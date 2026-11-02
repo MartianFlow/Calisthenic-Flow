@@ -10,7 +10,8 @@ import { navigate } from '../router.js';
 import { takeCelebration } from './session.js';
 import { burst, flash } from '../fx.js';
 import { ACH_BY_ID, ITEM_BY_ID, RARITY, titleFor, totalXP, levelInfo } from '../game.js';
-import { heroAvatar, levelBar } from './hero.js';
+import { heroAvatar, levelBar, itemIcon } from './hero.js';
+import { pixelIcon } from '../pixel.js';
 
 function tile(label, value, sub = '') {
   return `<div class="tile"><div class="eyebrow">${esc(label)}</div><div class="tile-num">${value}</div>${sub ? `<div class="muted tiny">${sub}</div>` : ''}</div>`;
@@ -145,27 +146,31 @@ function rewardCard(s, state) {
   const items = g.items.map((id) => ITEM_BY_ID[id]).filter(Boolean);
   const lvl = levelInfo(totalXP(state));
   return `
-    <section class="card reward-card">
+    <section class="px-panel reward-card">
       <div class="reward-top">
-        <div class="reward-hero">${heroAvatar(state, 110)}</div>
+        <div class="px-scene mini">${heroAvatar(state, 120, 'idle')}</div>
         <div class="grow">
-          <div class="xp-gain">+${g.xp}<small> XP</small></div>
+          <div class="px-gain">+${g.xp} EXP</div>
           ${g.levelAfter > g.levelBefore
-            ? `<div class="lvl-up">${icon('star', 16)} ¡Tu héroe sube a nivel ${g.levelAfter}!</div><span class="hero-title">${esc(titleFor(g.levelAfter))}</span>`
-            : `<div class="muted small">Nivel ${lvl.level} · ${esc(titleFor(lvl.level))}</div>`}
-          ${levelBar(lvl)}
+            ? `<div class="px-levelup">¡LEVEL UP! LV ${g.levelAfter}</div><span class="px-title">${esc(titleFor(g.levelAfter))}</span>`
+            : `<span class="px-title">LV ${lvl.level} · ${esc(titleFor(lvl.level))}</span>`}
+          ${levelBar(lvl, 14)}
         </div>
       </div>
       ${ach.length ? `
-        <span class="eyebrow">Logros desbloqueados</span>
-        <ul class="reward-list">${ach.map((a) => `
-          <li><span class="ach-badge ${a.rarity} done">${icon('trophy', 18)}</span>
-            <div class="grow"><strong>${esc(a.name)}</strong><div class="muted small">${esc(a.desc)}</div></div>
-            <span class="rarity ${a.rarity}">+${RARITY[a.rarity].xp} XP</span></li>`).join('')}</ul>` : ''}
-      ${items.length ? `
-        <span class="eyebrow">Nuevos artículos</span>
-        <div class="equip-chips">${items.map((it) => `<span class="equip-chip"><i style="background:${it.color}"></i>${esc(it.name)}</span>`).join('')}</div>
-        <a class="btn primary small" href="#/equipo">${icon('star', 16)} Equipar</a>` : ''}
+        <p class="px-sub">Logros desbloqueados</p>
+        <ul class="px-ach-list">${ach.map((a) => `
+          <li class="px-ach done">
+            <span class="px-badge" style="--rar:${{ bronce: '#d98a4a', plata: '#c9d1e0', oro: '#ffd23f', leyenda: '#ff4f9a' }[a.rarity]}">${pixelIcon({ constancia: 'flame', progreso: 'map', hitos: 'trophy', habitos: 'star' }[a.cat], '#fff', 32)}</span>
+            <div class="grow"><strong>${esc(a.name)}</strong><div class="px-desc">${esc(a.desc)}</div></div>
+            <span class="px-xp">+${RARITY[a.rarity].xp}</span>
+          </li>`).join('')}</ul>` : ''}
+      ${items.map((it) => `
+        <div class="px-dialog">
+          ${itemIcon(it, 40)}
+          <p>¡Has conseguido <b>${esc(it.name)}</b>!</p>
+        </div>`).join('')}
+      ${items.length ? `<a class="px-btn" href="#/equipo">${pixelIcon('chest', '#fff', 24)} Equipar</a>` : ''}
     </section>`;
 }
 

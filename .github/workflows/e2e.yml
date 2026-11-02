@@ -1,0 +1,31 @@
+# Pruebas funcionales e2e en cada cambio: iPhone emulado con Chromium y con WebKit (motor de Safari).
+name: Pruebas e2e
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Instalar navegadores
+        run: npx playwright install --with-deps chromium webkit
+      - name: Ejecutar pruebas
+        run: npx playwright test
+      - name: Guardar informe
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: informe-playwright
+          path: playwright-report/
+          retention-days: 14

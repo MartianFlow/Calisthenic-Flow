@@ -18,12 +18,12 @@ Es una **web app instalable (PWA)**: se añade a la pantalla de inicio del iPhon
   - Día S: habilidades y core; aparece con 5 o más días y objetivos.
   - Deja descanso entre sesiones y nunca pone habilidades de brazos rectos en días seguidos ni más de 3 días por semana.
   - La pantalla Hoy te dice qué toca, si es día de descanso y cuál es el próximo entreno. Puedes editar el entreno antes de empezar.
-- **Gamificación:**
-  - **Héroe digital** de cómic cuyo físico crece con tu progreso real (bíceps, hombros, piernas y abdominales).
+- **Gamificación (pixel art, estilo RPG retro de 16 bits):**
+  - **Héroe en pixel art** cuyo físico crece con tu progreso real (bíceps, hombros, piernas y abdominales).
   - **Atributos** con rango de E a S: Tirón, Empuje, Piernas, Core, Equilibrio y Aguante.
   - **Experiencia (XP) y nivel**, con títulos de Novato a Mito. Ganas XP con cada serie, cada entreno, cada paso superado y cada logro.
   - **Tabla de 43 logros** de bronce, plata, oro y leyenda, con progreso visible. Premian constancia, progreso, hitos reales (primera dominada, pino libre, front lever…) y buenos hábitos.
-  - **33 artículos** para equipar (cintas, gafas, muñequeras, capas, medallas, auras, corona…). Se desbloquean por nivel o por logro. También puedes elegir piel, pelo y peinado.
+  - **33 artículos** con iconos de 16×16 para equipar (cintas, gafas, muñequeras, capas, medallas, auras, corona…). Se desbloquean por nivel o por logro. También puedes elegir piel, pelo y peinado.
   - Al terminar cada entreno ves la XP ganada, si subes de nivel y los logros y artículos nuevos.
 - **Descansos según el paso:** unos 3 min en series de 1–5 reps, 1,5–2 min en las de 6–12, 2,5–3 min en holds de brazos rectos, 45–60 s entre intentos de pino libre y 60 s en core.
 - **Progresión según cómo te sientes:** al terminar cada ejercicio, mientras corre el descanso, la app pregunta si te pareció **Fácil, Normal o Difícil**.
@@ -75,6 +75,36 @@ El razonamiento y las fuentes de cada decisión están en:
 - [`docs/investigacion-principios.md`](docs/investigacion-principios.md): descansos, series, RIR, estancamiento, descarga, calentamiento y seguridad.
 - [`docs/investigacion-progresiones.md`](docs/investigacion-progresiones.md): revisión ruta por ruta.
 
+## Pruebas funcionales (e2e)
+
+La carpeta [`tests/e2e`](tests/e2e) tiene una batería de pruebas con [Playwright](https://playwright.dev). Simulan un iPhone 13 y recorren la app como lo harías tú:
+
+| Archivo | Qué comprueba |
+|---|---|
+| `onboarding.spec.js` | Configuración inicial: niveles, objetivos (máx. 3), días y primer entreno del día |
+| `workout.spec.js` | Entreno completo: calentamiento, series, cronómetro de isometrías, descanso, valoración durante el descanso, resumen con EXP. También recargar a mitad de entreno y descartar |
+| `progression.spec.js` | Fácil, Normal y Difícil: subida del objetivo, cambio de paso, 2 sesiones en habilidades, recalibrado, reinicio por estancamiento y descanso según el paso |
+| `plan.spec.js` | Recomendación de días, cambio de días disponibles, reglas de brazos rectos, día de descanso y «Misión cumplida» |
+| `gamification.spec.js` | Héroe en pixel art, atributos, logros desbloqueados, artículos bloqueados y desbloqueados, apariencia y nombre |
+| `navigation.spec.js` | Rutas, visor de vídeo, búsqueda en YouTube, cambio manual de nivel, calendario, progreso y pestañas |
+| `deload.spec.js` | Sugerencia y efecto de la semana de descarga |
+| `data.spec.js` | Migración desde la v1, exportar e importar la copia, borrar datos y funcionamiento sin conexión |
+
+Las pruebas usan un reloj fijo (lunes 2/11/2026) y bloquean internet, así que siempre dan el mismo resultado. Además fallan si la app lanza cualquier error de JavaScript.
+
+**Ejecutarlas en el Mac:**
+
+```bash
+npm install
+npx playwright install chromium webkit   # solo la primera vez
+npm run test:e2e            # todas, con Chromium y WebKit (Safari)
+npm run test:e2e:webkit     # solo WebKit
+npm run test:e2e:ui         # modo visual: ves cada paso en el navegador
+npm run test:e2e:report     # informe HTML de la última ejecución
+```
+
+**En GitHub** se ejecutan solas en cada cambio (pestaña *Actions* → *Pruebas e2e*). Si alguna falla, el informe con capturas y trazas se descarga desde la propia ejecución.
+
 ## Personalizar las rutas
 
 Todo el contenido de las progresiones está en [`js/data/roadmaps.js`](js/data/roadmaps.js). Ahí puedes:
@@ -102,12 +132,14 @@ js/data/videos.js       Vídeo de técnica de cada paso
 js/data/legacy.js       Nombres de pasos de la v1 (migración del progreso)
 js/fx.js                Efectos de cómic (onomatopeyas, latidos, destellos)
 js/game.js              XP, niveles, atributos, logros y artículos
-js/avatar.js            Personaje digital en SVG
+js/avatar.js            Héroe en pixel art (generado por capas)
+js/pixel.js             Motor de pixel art e iconos 16×16
 js/schedule.js          Plan semanal recomendado
 js/video.js             Visor de vídeos de YouTube
 js/views/*.js           Pantallas: Hoy, Calendario, Entreno, Rutas, Héroe, Plan, Progreso y Ajustes
-fonts/                  Tipografía Bangers (SIL Open Font License 1.1, de Vernon Adams)
+fonts/                  Tipografías Bangers, Press Start 2P y VT323 (SIL Open Font License 1.1)
 docs/                   Investigación con fuentes
+tests/e2e/              Pruebas funcionales (Playwright)
 ```
 
 Los vídeos pertenecen a sus autores y se reproducen con el reproductor oficial de YouTube.
