@@ -22,7 +22,10 @@ Documento de referencia para continuar el trabajo en sesiones futuras. Resume qu
   12. **Pierna en el gimnasio.** Se considera avanzado y entrena 5 días, 2 de ellos de pierna.
       - Su rutina de pierna, que hace **completa en cada día de pierna**: sentadilla hack, peso muerto **piernas rígidas**, sentadilla goblet en hack, extensión de cuádriceps, curl femoral, aductor, abductor, gemelo de pie y gemelo sentado.
       - Primero se repartió en Pierna A y B; tras su respuesta, es un solo día «Pierna» (tipo `P`) dos veces por semana. El torso es Torso A / Torso B.
-  13. **Modo noche:** en su iPhone no cambiaba. Se añadió en Ajustes un selector de tema (Automático / Claro / Oscuro).
+  13. **Modo noche:** en su iPhone no cambiaba. Se añadió en Ajustes un selector de tema (Automático / Claro / Oscuro). En su captura del iPhone ya se ve oscuro.
+  14. **Ver un ejercicio sin empezar el entreno.**
+      - Los ejercicios de Hoy y del Plan semanal son enlaces: los de calistenia van a `#/ruta/:id`, que ahora muestra arriba el vídeo y las claves del paso actual.
+      - Los de gimnasio van a `#/ejercicio/:id` (`views/exercise.js`): vídeo, objetivo, peso editable, claves y un historial con la gráfica del peso.
 
 ## Despliegue
 
@@ -31,7 +34,7 @@ Documento de referencia para continuar el trabajo en sesiones futuras. Resume qu
   - El usuario debía activarlo a mano y dijo "listo", pero no se ha podido verificar: github.io está bloqueado desde el entorno cloud.
 - **Instalación en el iPhone:** Safari → Compartir → Añadir a pantalla de inicio.
 - **Actualizaciones:** el service worker sirve primero la caché y actualiza en segundo plano, así que los cambios se ven la **segunda vez** que se abre la app.
-  - **Al añadir archivos**, hay que incluirlos en `ASSETS` de `sw.js` y subir `VERSION` (ahora `cf-v7`).
+  - **Al añadir archivos**, hay que incluirlos en `ASSETS` de `sw.js` y subir `VERSION` (ahora `cf-v8`).
 
 ## Arquitectura
 
@@ -59,12 +62,12 @@ js/device.js             Audio (WebAudio, desbloqueo por gesto), vibración, wak
 js/ui.js                 esc, formatos, iconos SVG de trazo, toast, progressBar
 js/charts.js             Gráficas SVG (barras semanales, línea de progreso)
 js/data/roadmaps.js      Contenido: 14 rutas / 116 pasos, DAY_TEMPLATES, WARMUP
-js/data/videos.js        Vídeo por paso (clave 'ruta/key') — 87 de 116
+js/data/videos.js        Vídeo por paso (clave 'ruta/key') — 87 de 116; y de los 9 ejercicios de gimnasio (clave 'gym/<id>')
 js/data/legacy.js        Nombres de pasos v1 para migrar progreso
 js/data/gym.js           Pierna en el gimnasio: 9 ejercicios con kg (LIFTS), LEG_DAYS (P = rutina completa) y LEG_WARMUP
-js/views/*.js            home, session, roadmaps, progress (+resumen/detalle), calendar, settings (+onboarding), hero (+logros/equipo), plan
+js/views/*.js            home, session, roadmaps, progress (+resumen/detalle), calendar, settings (+onboarding), hero (+logros/equipo), plan, exercise (ficha de gimnasio)
 docs/                    Investigación con fuentes (principios, progresiones y pierna en el gimnasio)
-tests/e2e/               46 pruebas Playwright + fixtures.js
+tests/e2e/               48 pruebas Playwright + fixtures.js
 .github/workflows/e2e.yml  CI: Chromium + WebKit en cada push
 ```
 
@@ -74,6 +77,7 @@ tests/e2e/               46 pruebas Playwright + fixtures.js
   - Cualquier `update()` del store vuelve a pintar la vista actual. Con `{ silent: true }` no lo hace.
   - La animación de entrada solo se lanza al **cambiar de ruta**: clase `.enter` y variable `--i` para el escalonado.
 - **Acciones:** `data-action="nombre"` en el HTML y un handler en el `actions` exportado por la vista. Todas se combinan en `app.js`. Los cambios de formularios van con `data-change`.
+- **Volver:** `data-action="go-back" data-fallback="#/…"` hace `history.back()`, o va a la ruta indicada si no hay historial. Lo usan la ruta y la ficha de ejercicio.
 - **Escapar todo** lo que venga del usuario con `esc()`.
 - **Datos derivados:** la XP, los atributos y las estadísticas se calculan siempre a partir del historial. Solo se guardan las fechas de los logros desbloqueados (`state.game.unlocked`).
 - **El progreso se guarda por índice de paso** (`progress[id].step`). Si se insertan o quitan pasos, hay que añadir una migración en `store.js`: subir `DATA_VERSION` y usar los nombres antiguos o `was: [...]` en los pasos.
@@ -217,14 +221,15 @@ Cada sesión del historial guarda:
   - **Errores:** falla si hay errores de JS.
   - **Ayudantes:** `seed()` (vía addInitScript, solo en el frame superior y una vez por pestaña), `makeState()`, `pastSession()`, `trainOnly()`, `completeCurrentExercise()` (solo las series del ejercicio actual) y `rate()`.
 - **Configuración:** `reducedMotion: 'reduce'` (las animaciones infinitas hacen que los elementos no sean "estables"). Los artículos bloqueados llevan `aria-disabled` y para pulsarlos hay que usar `click({ force: true })`.
-- **Resultados:** 46 pruebas.
+- **Resultados:** 48 pruebas.
   - `gym.spec.js` cubre el modo de pierna en el gimnasio.
   - En `navigation.spec.js` están las del tema forzado, con `colorScheme` claro y oscuro.
   - **En CI:** pasan todas en Chromium y todas menos una en WebKit. La prueba sin conexión se salta en WebKit por una limitación de Playwright: `setOffline` con service worker da un error interno al recargar.
 - **CI:** `.github/workflows/e2e.yml`.
   - Usa checkout@v5 y setup-node@v5, e instala con `npx playwright install --with-deps chromium webkit`.
   - Se puede consultar con las herramientas MCP de GitHub (`actions_list`, `get_job_logs`).
-- **Fallos reales que encontraron las pruebas, ya corregidos:**
+- **Fallos reales encontrados, ya corregidos:**
+  - Con «Reducir movimiento», las líneas de las gráficas no se veían: dependían de la animación `draw`. Se corrigió en el bloque `prefers-reduced-motion`. Cualquier estilo que solo se vea al terminar una animación tiene que corregirse ahí también.
   - La tab bar oculta en el entreno seguía siendo accesible. Ahora usa `visibility: hidden`.
   - El panel de descanso con la valoración tapaba las series en pantallas de 664 px. Ahora se compacta con `.rest-bar.with-rate` y el padding inferior usa `:has()`.
 

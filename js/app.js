@@ -14,6 +14,7 @@ import * as settings from './views/settings.js';
 import * as calendar from './views/calendar.js';
 import * as hero from './views/hero.js';
 import * as planView from './views/plan.js';
+import * as exercise from './views/exercise.js';
 import { syncAchievements } from './game.js';
 import { applyTheme } from './theme.js';
 import { update } from './store.js';
@@ -31,6 +32,7 @@ addRoute('/heroe', hero.render, { tab: 'heroe' });
 addRoute('/logros', hero.renderAchievements, { tab: 'heroe' });
 addRoute('/equipo', hero.renderEquipment, { tab: 'heroe' });
 addRoute('/plan', planView.render, { tab: 'hoy' });
+addRoute('/ejercicio/:id', exercise.renderLift, { tab: 'hoy' });
 addRoute('/bienvenida', settings.renderOnboarding, { tab: null });
 
 const actions = {
@@ -43,6 +45,7 @@ const actions = {
   ...video.actions,
   ...hero.actions,
   ...planView.actions,
+  ...exercise.actions,
   'chart-tip'(el) {
     const fig = el.closest('.chart');
     if (!fig) return;

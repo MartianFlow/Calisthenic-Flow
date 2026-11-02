@@ -18,6 +18,8 @@
 //                en el tope obliga a consolidar antes de subir.
 //   cues       – claves técnicas
 
+import { VIDEOS } from './videos.js';
+
 export const LIFTS = [
   {
     id: 'hack', name: 'Sentadilla hack', muscle: 'Cuádriceps, glúteo y aductores',
@@ -101,6 +103,9 @@ export const LIFTS = [
     ],
   },
 ];
+
+// Vídeo de técnica de cada ejercicio (js/data/videos.js, clave gym/<id>).
+for (const l of LIFTS) l.video = VIDEOS[`gym/${l.id}`] || null;
 
 export const LIFT_BY_ID = Object.fromEntries(LIFTS.map((l) => [l.id, l]));
 

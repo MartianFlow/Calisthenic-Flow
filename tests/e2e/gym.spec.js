@@ -119,3 +119,33 @@ test.describe('Día de pierna', () => {
     expect((await readState(page)).lifts.hack).toMatchObject({ kg: 105, reps: 10 });
   });
 });
+
+test.describe('Ver un ejercicio sin empezar el entreno', () => {
+  test.use({ now: '2026-11-03T10:00:00+01:00' }); // martes → Pierna
+
+  test('desde Hoy se abre la ficha con vídeo, objetivo e historial', async ({ page }) => {
+    await seed(page, gymState({ lifts: { hack: { kg: 100, reps: 8, stall: 0 } } }));
+    await page.goto('/');
+    await page.locator('.ex-link').first().click();
+    await expect(page).toHaveURL(/#\/ejercicio\/hack$/);
+    await expect(page.getByRole('heading', { name: 'Sentadilla hack' })).toBeVisible();
+    await expect(page.locator('.work-box')).toContainText('3 × 8 · 100 kg');
+    await page.locator('[data-action="video-open"]').click();
+    await expect(page.locator('.video-modal iframe')).toHaveAttribute('src', /youtube-nocookie\.com\/embed\/VNpkYdex6Yc/);
+    await page.locator('.video-modal-panel [data-action="video-close"]').click();
+    // Volver lleva a donde estabas, sin haber empezado ningún entreno
+    await page.locator('[data-action="go-back"]').click();
+    await expect(page.getByRole('heading', { name: 'Hoy', exact: true })).toBeVisible();
+    expect((await readState(page)).active).toBeNull();
+  });
+
+  test('desde el Plan semanal: un ejercicio de calistenia abre su ruta con el vídeo arriba', async ({ page }) => {
+    await seed(page, gymState({ progress: { dominadas: { step: 4, passes: 0, done: false } } }));
+    await page.goto('/#/plan');
+    await page.locator('.week-row').first().locator('a.mini-chip', { hasText: 'Dominadas' }).click();
+    await expect(page).toHaveURL(/#\/ruta\/dominadas$/);
+    await expect(page.locator('.card').first().locator('[data-action="video-open"]')).toBeVisible();
+    await page.locator('[data-action="go-back"]').click();
+    await expect(page).toHaveURL(/#\/plan$/);
+  });
+});

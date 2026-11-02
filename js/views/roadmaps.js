@@ -102,7 +102,7 @@ export function renderDetail({ id }) {
 
   return `
     <header class="page-head">
-      <a class="back" href="#/rutas">${icon('back', 18)} Rutas</a>
+      <button class="back" data-action="go-back" data-fallback="#/rutas">${icon('back', 18)} Volver</button>
       <div class="eyebrow">${esc(CATEGORIES[r.category].label)} · ${esc(r.group)}</div>
       <h1>${esc(r.name)}</h1>
       <p class="muted">${esc(r.summary)}</p>
@@ -119,6 +119,11 @@ export function renderDetail({ id }) {
         <div class="route-level big">${progress.done ? icon('trophy', 28) : `<span>${index + 1}</span><small>/${r.steps.length}</small>`}</div>
       </div>
       ${progressBar(roadmapPercent(id))}
+      ${videoCard(step, r.name)}
+      <details class="cues">
+        <summary>${icon('info', 18)} Claves técnicas</summary>
+        <ul>${step.cues.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>
+      </details>
       ${!progress.done && work < step.target ? `
         <div class="work-box">
           <div><span class="muted small">Tu objetivo ahora</span><strong>${step.sets} × ${esc(unitLabel(step.type, work))}</strong></div>

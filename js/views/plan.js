@@ -61,12 +61,12 @@ function chipFor(d, id) {
   const lift = LIFT_BY_ID[id];
   if (lift) {
     const kg = liftState(getState(), id).kg;
-    return `<span class="mini-chip lift">${esc(lift.name)}${kg != null ? `<small> · ${esc(fmtKg(kg))}</small>` : ''}</span>`;
+    return `<a class="mini-chip lift" href="#/ejercicio/${id}">${esc(lift.name)}${kg != null ? `<small> · ${esc(fmtKg(kg))}</small>` : ''}</a>`;
   }
   const r = ROADMAP_BY_ID[id];
   if (!r) return '';
   const skill = d.skills.includes(id);
-  return `<span class="mini-chip ${skill ? 'skill' : ''}">${esc(r.name)}<small> · ${esc(stepOf(id).step.name)}</small></span>`;
+  return `<a class="mini-chip ${skill ? 'skill' : ''}" href="#/ruta/${id}">${esc(r.name)}<small> · ${esc(stepOf(id).step.name)}</small></a>`;
 }
 
 function dayRow(d, isToday) {
@@ -146,6 +146,7 @@ export function render() {
 
     <section class="card">
       <h3>Tu semana</h3>
+      <p class="muted small">Toca un ejercicio para ver su vídeo y su técnica.</p>
       <ol class="week-list">${week.map((d) => dayRow(d, d.weekday === todayIdx)).join('')}</ol>
     </section>
 

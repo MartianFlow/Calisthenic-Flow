@@ -2,7 +2,7 @@
 // Estrategia: responde desde caché y actualiza en segundo plano
 // (los cambios publicados se ven la siguiente vez que abras la app).
 
-const VERSION = 'cf-v7';
+const VERSION = 'cf-v8';
 const ASSETS = [
   './',
   './index.html',
@@ -34,6 +34,7 @@ const ASSETS = [
   './js/views/calendar.js',
   './js/views/hero.js',
   './js/views/plan.js',
+  './js/views/exercise.js',
   './fonts/bangers-latin.woff2',
   './fonts/press-start-2p-latin.woff2',
   './fonts/vt323-latin.woff2',

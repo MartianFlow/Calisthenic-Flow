@@ -11,7 +11,8 @@ Es una **web app instalable (PWA)**: se añade a la pantalla de inicio del iPhon
 - **14 rutas de progresión (116 pasos) revisadas con investigación.** Fuentes: r/bodyweightfitness Recommended Routine, Overcoming Gravity, GMB, estudios sobre descansos y RIR, etc. Cada paso tiene una meta de series × reps/segundos y claves técnicas:
   - **Fuerza:** Dominadas, Remo invertido, Flexiones, Fondos, Piernas (hasta pistol y camarón), Isquios y cadera (hasta el curl nórdico) y Core (hasta el dragon flag).
   - **Habilidades:** Muscle-up, Pino, Flexión de pino, L-sit, Front lever, Planche y Back lever, con prerrequisitos de fuerza.
-- **Vídeo de técnica por ejercicio** (87 de 116 pasos), que se ve dentro de la app. Los pasos sin vídeo tienen un botón para buscarlo en YouTube.
+- **Vídeo de técnica por ejercicio** (87 de 116 pasos y los 9 de pierna en el gimnasio), que se ve dentro de la app. Los pasos sin vídeo tienen un botón para buscarlo en YouTube.
+  - **Sin empezar el entreno:** toca cualquier ejercicio en Hoy o en el Plan semanal para ver su vídeo, sus claves técnicas y tu objetivo. Los de gimnasio muestran además tu historial de pesos con una gráfica.
 - **Plan semanal recomendado:** según tu nivel (principiante, intermedio o avanzado), tus habilidades objetivo y los días que tienes libres, la app te recomienda cuántos días entrenar y reparte la semana:
   - Día A: tirón vertical, fondos, piernas y core.
   - Día B: tirón horizontal, flexiones, isquios y core.
@@ -94,7 +95,7 @@ La carpeta [`tests/e2e`](tests/e2e) tiene una batería de pruebas con [Playwrigh
 | `workout.spec.js` | Entreno completo: calentamiento, series, cronómetro de isometrías, descanso, valoración durante el descanso, resumen con EXP. También recargar a mitad de entreno y descartar |
 | `progression.spec.js` | Fácil, Normal y Difícil: subida del objetivo, cambio de paso, 2 sesiones en habilidades, recalibrado, reinicio por estancamiento y descanso según el paso |
 | `plan.spec.js` | Recomendación de días, nivel con habilidades, cambio de días disponibles, reglas de brazos rectos, día de descanso y «Misión cumplida» |
-| `gym.spec.js` | Pierna en el gimnasio: semana torso/pierna, separación de los días de pierna, recomendación de 5 días, pesos con coma, subida y bajada de peso y cambio de peso durante el entreno |
+| `gym.spec.js` | Pierna en el gimnasio: semana torso/pierna, separación de los días de pierna, recomendación de 5 días, pesos con coma, subida y bajada de peso, cambio de peso durante el entreno y ficha del ejercicio con vídeo desde Hoy y el Plan |
 | `gamification.spec.js` | Héroe en pixel art, atributos, logros desbloqueados, artículos bloqueados y desbloqueados, apariencia y nombre |
 | `navigation.spec.js` | Rutas, visor de vídeo, búsqueda en YouTube, cambio manual de nivel, calendario, progreso, pestañas y tema claro u oscuro |
 | `deload.spec.js` | Sugerencia y efecto de la semana de descarga |
@@ -150,7 +151,7 @@ js/avatar.js            Héroe en pixel art (generado por capas)
 js/pixel.js             Motor de pixel art e iconos 16×16
 js/schedule.js          Plan semanal recomendado
 js/video.js             Visor de vídeos de YouTube
-js/views/*.js           Pantallas: Hoy, Calendario, Entreno, Rutas, Héroe, Plan, Progreso y Ajustes
+js/views/*.js           Pantallas: Hoy, Calendario, Entreno, Rutas, Héroe, Plan, Ejercicio, Progreso y Ajustes
 fonts/                  Tipografías Bangers, Press Start 2P y VT323 (SIL Open Font License 1.1)
 docs/                   Investigación con fuentes
 tests/e2e/              Pruebas funcionales (Playwright)

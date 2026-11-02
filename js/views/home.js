@@ -45,6 +45,14 @@ function weekStrip(state) {
     </section>`;
 }
 
+// Nombre del ejercicio con el icono ▶ pegado a la última palabra (no se queda solo en otra línea).
+function titleWithPlay(name, hasVideo) {
+  if (!hasVideo) return esc(name);
+  const cut = name.lastIndexOf(' ');
+  const play = `<span class="ex-play" aria-hidden="true">${icon('play', 11)}</span>`;
+  return `${esc(name.slice(0, cut + 1))}<span class="nowrap">${esc(name.slice(cut + 1))}${play}</span>`;
+}
+
 function editButtons(id, idx) {
   if (!editing) return '';
   return `
@@ -62,11 +70,11 @@ function liftRow(state, id, idx, dayType) {
   return `
     <li class="ex-row">
       <span class="num">${idx + 1}</span>
-      <div class="grow">
-        <div class="ex-title">${esc(lift.name)}</div>
+      <a class="grow ex-link" href="#/ejercicio/${id}" aria-label="Ver ${esc(lift.name)}: vídeo y técnica">
+        <div class="ex-title">${titleWithPlay(lift.name, !!lift.video)}</div>
         <div class="muted small">Gimnasio · ${esc(lift.muscle)}</div>
         ${last ? `<div class="muted small">Última vez: ${esc(last.sets.map((v, i) => `${fmtKg(last.loads[i])} × ${v}`).join(' · '))}</div>` : ''}
-      </div>
+      </a>
       <div class="ex-target">${sets} × ${liftGoal(lift, p)}
         <div class="muted tiny">${esc(fmtKg(p.kg))}</div></div>
       ${editButtons(id, idx)}
@@ -83,11 +91,11 @@ function exerciseRow(state, id, idx, dayType) {
   return `
     <li class="ex-row">
       <span class="num">${idx + 1}</span>
-      <div class="grow">
-        <div class="ex-title">${esc(step.name)}</div>
+      <a class="grow ex-link" href="#/ruta/${id}" aria-label="Ver ${esc(step.name)}: vídeo y técnica">
+        <div class="ex-title">${titleWithPlay(step.name, !!step.video)}</div>
         <div class="muted small">${esc(roadmap.name)} · paso ${index + 1}/${roadmap.steps.length}${isGoal ? ' · <span class="accent-text">objetivo</span>' : ''}</div>
         ${last ? `<div class="muted small">Última vez: ${last.map((v) => unitLabel(step.type, v)).join(' · ')}</div>` : ''}
-      </div>
+      </a>
       <div class="ex-target">${step.sets} × ${esc(unitLabel(step.type, goal))}${step.side ? '<small> /lado</small>' : ''}
         ${goal < step.target ? `<div class="muted tiny">meta ${step.target}${step.type === 'hold' ? ' s' : ''}</div>` : ''}</div>
       ${editButtons(id, idx)}
@@ -132,6 +140,7 @@ function planCard(state, info) {
         <div class="est">${icon('timer', 18)}<span>≈ ${minutes} min</span></div>
       </div>
       <ol class="ex-list">${plan.ids.map((id, i) => exerciseRow(state, id, i, plan.dayType)).join('')}</ol>
+      ${editing ? '' : `<p class="muted tiny ex-hint">${icon('play', 11)} Toca un ejercicio para ver su vídeo y su técnica.</p>`}
       ${editing ? `
         <div class="edit-panel">
           <label class="field">

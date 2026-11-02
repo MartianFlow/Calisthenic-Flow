@@ -89,4 +89,15 @@ export const VIDEOS = {
   "planche/tuck": { id: "t5Yq3Ozu7dE", title: "Basicos de Calistenia: Tuck Planche", lang: "es" },
   "planche/tuck-20": { id: "t5Yq3Ozu7dE", title: "Basicos de Calistenia: Tuck Planche", lang: "es" },
   "planche/tuck-avanzado": { id: "LMg1GX4f7M0", title: "Calistenia cómo hacer un tuck advance planche", lang: "es" },
+
+  // Pierna en el gimnasio (clave gym/<id de js/data/gym.js>).
+  "gym/hack": { id: "VNpkYdex6Yc", title: "TÉCNICA en SENTADILLA HACK: TUTORIAL para MÁS HIPERTROFIA y RENDIMIENTO", lang: "es" },
+  "gym/peso-muerto": { id: "8_sSHkTraAM", title: "PESO MUERTO con BARRA: RUMANO, piernas RÍGIDAS y SEMIRRÍGIDAS · Técnica correcta", lang: "es" },
+  "gym/goblet-hack": { id: "5GPTVI5MqQ8", title: "Sentadilla Goblet: técnica, beneficios, músculos involucrados y alternativas", lang: "es" },
+  "gym/extension": { id: "GwkdX6k9314", title: "Extensión de CUÁDRICEPS en MÁQUINA [Manual de instrucciones]", lang: "es" },
+  "gym/curl-femoral": { id: "locj9zuXya0", title: "FEMORAL SENTADO en MÁQUINA [Manual de instrucciones]", lang: "es" },
+  "gym/aductor": { id: "_6AEWNLnjNI", title: "¡Activa esos aductores con la técnica correcta!", lang: "es" },
+  "gym/abductor": { id: "fNRPymCcoXM", title: "Aprende a usar la Máquina de GLÚTEO MEDIO en el gimnasio", lang: "es" },
+  "gym/gemelo-pie": { id: "HObKQtrmU9g", title: "GEMELOS en MÁQUINA (de pie)", lang: "es" },
+  "gym/gemelo-sentado": { id: "-ClDK8lLPas", title: "Elevaciones de TALONES sentado en máquina: técnica correcta", lang: "es" },
 };

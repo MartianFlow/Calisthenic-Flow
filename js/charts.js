@@ -52,7 +52,10 @@ export function weeklyBars(series, { valueKey = 'minutes', unit = 'min', caption
 }
 
 // points: [{ date, value }]; target: valor objetivo (línea discontinua).
-export function progressLine(points, { target, unit = 'reps' } = {}) {
+export function progressLine(points, {
+  target, unit = 'reps', label = 'mejor serie', caption = 'Mejor serie de cada sesión en este paso · toca un punto',
+  floor = 0, // valor de la base del eje (p. ej. un peso cercano al mínimo, para que se vean los cambios)
+} = {}) {
   const W = 320;
   const H = 150;
   const left = 8;
@@ -61,24 +64,25 @@ export function progressLine(points, { target, unit = 'reps' } = {}) {
   const bottom = 22;
   const plotW = W - left - right;
   const plotH = H - top - bottom;
-  const max = Math.max(1, target || 0, ...points.map((p) => p.value)) * 1.1;
+  const hi = Math.max(1, target || 0, ...points.map((p) => p.value));
+  const max = floor + Math.max(1, (hi - floor) * 1.1);
   const xFor = (i) => left + (points.length === 1 ? plotW / 2 : (i / (points.length - 1)) * plotW);
-  const yFor = (v) => top + plotH - (v / max) * plotH;
+  const yFor = (v) => top + plotH - ((v - floor) / (max - floor)) * plotH;
 
   const line = points.map((p, i) => `${i ? 'L' : 'M'}${xFor(i).toFixed(1)},${yFor(p.value).toFixed(1)}`).join('');
   const last = points[points.length - 1];
   const targetY = target ? yFor(target) : null;
 
   const dots = points.map((p, i) => {
-    const label = `${shortDate.format(new Date(p.date))}: mejor serie ${p.value} ${unit}`;
+    const tip = `${shortDate.format(new Date(p.date))}: ${label} ${String(p.value).replace('.', ',')} ${unit}`;
     return `
       <circle class="dot ${p.value >= target ? 'met' : ''}" cx="${xFor(i)}" cy="${yFor(p.value)}" r="4.5"/>
-      <rect class="hit" x="${xFor(i) - 14}" y="0" width="28" height="${H}" data-action="chart-tip" data-tip="${esc(label)}"><title>${esc(label)}</title></rect>`;
+      <rect class="hit" x="${xFor(i) - 14}" y="0" width="28" height="${H}" data-action="chart-tip" data-tip="${esc(tip)}"><title>${esc(tip)}</title></rect>`;
   }).join('');
 
   return `
     <figure class="chart">
-      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Mejor serie por sesión">
+      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(caption)}">
         <line class="baseline" x1="${left}" x2="${W - right}" y1="${top + plotH}" y2="${top + plotH}"/>
         ${targetY !== null ? `
           <line class="target" x1="${left}" x2="${W - right}" y1="${targetY}" y2="${targetY}"/>
@@ -90,6 +94,6 @@ export function progressLine(points, { target, unit = 'reps' } = {}) {
           <text class="axis" x="${left}" y="${H - 5}">${shortDate.format(new Date(points[0].date)).replace('.', '')}</text>
           <text class="axis" x="${W - right}" y="${H - 5}" text-anchor="end">${shortDate.format(new Date(last.date)).replace('.', '')}</text>` : ''}
       </svg>
-      <figcaption class="chart-tip muted small" data-chart-tip>Mejor serie de cada sesión en este paso · toca un punto</figcaption>
+      <figcaption class="chart-tip muted small" data-chart-tip>${esc(caption)}</figcaption>
     </figure>`;
 }
