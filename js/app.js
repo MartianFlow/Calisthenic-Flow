@@ -4,6 +4,8 @@ import { addRoute, resolve } from './router.js';
 import { getState, subscribe } from './store.js';
 import { fmtClock } from './ui.js';
 import { wakeLock } from './device.js';
+import { stagger } from './fx.js';
+import * as video from './video.js';
 import * as home from './views/home.js';
 import * as session from './views/session.js';
 import * as roadmaps from './views/roadmaps.js';
@@ -29,6 +31,7 @@ const actions = {
   ...progress.actions,
   ...settings.actions,
   ...calendar.actions,
+  ...video.actions,
   'chart-tip'(el) {
     const fig = el.closest('.chart');
     if (!fig) return;
@@ -44,6 +47,7 @@ const viewEl = document.getElementById('view');
 const tabbar = document.getElementById('tabbar');
 let currentRoute = null;
 let lastPath = null;
+let enterTimer = null;
 
 function render() {
   const state = getState();
@@ -62,9 +66,18 @@ function render() {
     a.classList.toggle('on', on);
     if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
   });
+  // Animación de entrada solo al cambiar de pantalla (no en cada actualización).
   if (route.path !== lastPath) {
     window.scrollTo(0, 0);
     lastPath = route.path;
+    stagger(viewEl);
+    viewEl.classList.remove('enter');
+    void viewEl.offsetWidth;
+    viewEl.classList.add('enter');
+    clearTimeout(enterTimer);
+    enterTimer = setTimeout(() => viewEl.classList.remove('enter'), 1100);
+  } else if (viewEl.classList.contains('enter')) {
+    stagger(viewEl);
   }
 }
 
@@ -86,7 +99,8 @@ document.addEventListener('change', (event) => {
 });
 
 subscribe(render);
-window.addEventListener('hashchange', render);
+window.addEventListener('hashchange', () => { video.closeVideo(); render(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') video.closeVideo(); });
 
 setInterval(() => {
   if (currentRoute?.options.tick) {

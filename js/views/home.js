@@ -4,9 +4,9 @@ import { ROADMAPS, ROADMAP_BY_ID, DAY_TEMPLATES } from '../data/roadmaps.js';
 import { getState, update } from '../store.js';
 import {
   currentPlan, defaultIds, estimateMinutes, stepOf, createSession, startOfWeek,
-  sessionsInWeek, roadmapPercent, lastPerformance, workFor,
+  sessionsInWeek, roadmapPercent, lastPerformance, workFor, deloadActive, deloadSuggestion, startDeload,
 } from '../logic.js';
-import { esc, icon, targetLabel, fmtClock, progressBar, unitLabel } from '../ui.js';
+import { esc, icon, targetLabel, fmtClock, progressBar, unitLabel, fmtDate } from '../ui.js';
 import { navigate } from '../router.js';
 import { audio, wakeLock } from '../device.js';
 
@@ -90,7 +90,7 @@ function planCard(state) {
           </div>
         </div>` : ''}
       <div class="row gap">
-        <button class="btn primary grow" data-action="start-session" ${plan.ids.length ? '' : 'disabled'}>${icon('play', 18)} Empezar entreno</button>
+        <button class="btn primary grow cta" data-action="start-session" ${plan.ids.length ? '' : 'disabled'}>${icon('play', 18)} Empezar entreno</button>
         <button class="btn ghost" data-action="plan-edit">${editing ? 'Listo' : `${icon('edit', 18)} Editar`}</button>
       </div>
     </section>`;
@@ -123,6 +123,33 @@ function goalsCard(state) {
     </section>`;
 }
 
+function deloadCard(state) {
+  if (deloadActive(state)) {
+    return `
+      <section class="card deload-card">
+        <span class="eyebrow">Semana de descarga</span>
+        <h3>Recupera hasta el ${esc(fmtDate(state.deload.until))}</h3>
+        <p class="small">Una serie menos y objetivos al ~65 %. Tus tendones y articulaciones se adaptan; esta semana no subes de nivel.</p>
+        <button class="btn ghost small" data-action="deload-end">Terminar descarga</button>
+      </section>`;
+  }
+  const sug = deloadSuggestion(state);
+  if (!sug) return '';
+  const why = sug.reason === 'stall'
+    ? `Tienes ${sug.stalled} rutas estancadas.`
+    : `Llevas ${sug.weeks} semanas entrenando sin descanso.`;
+  return `
+    <section class="card deload-card">
+      <span class="eyebrow">¿Toca descarga?</span>
+      <h3>Una semana más suave</h3>
+      <p class="small">${why} Una semana de descarga (misma frecuencia, menos volumen) ayuda a recuperar y suele romper el estancamiento.</p>
+      <div class="row gap wrap">
+        <button class="btn primary small" data-action="deload-start">Empezar (7 días)</button>
+        <button class="btn ghost small" data-action="deload-snooze">Ahora no</button>
+      </div>
+    </section>`;
+}
+
 export function render() {
   const state = getState();
   const active = state.active;
@@ -143,6 +170,7 @@ export function render() {
           <button class="btn primary" data-action="go-session">${icon('play', 18)} Continuar</button>
         </div>
       </section>` : planCard(state)}
+    ${deloadCard(state)}
     ${weekStrip(state)}
     ${goalsCard(state)}
   `;
@@ -196,6 +224,9 @@ export const actions = {
   'plan-reset'() {
     update((s) => { s.plan = null; });
   },
+  'deload-start'() { update((s) => startDeload(s)); },
+  'deload-end'() { update((s) => { if (s.deload) s.deload.until = Date.now(); }); },
+  'deload-snooze'() { update((s) => { s.deloadSnoozeUntil = Date.now() + 7 * 24 * 60 * 60 * 1000; }); },
 };
 
 export const changes = {

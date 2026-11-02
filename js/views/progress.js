@@ -7,6 +7,8 @@ import { totals, weekStreak, weeklySeries, globalProgress, outcomeText, RATINGS 
 import { esc, icon, fmtDuration, fmtDate, fmtLongDate, fmtTime, unitLabel } from '../ui.js';
 import { weeklyBars } from '../charts.js';
 import { navigate } from '../router.js';
+import { takeCelebration } from './session.js';
+import { burst, flash } from '../fx.js';
 
 function tile(label, value, sub = '') {
   return `<div class="tile"><div class="eyebrow">${esc(label)}</div><div class="tile-num">${value}</div>${sub ? `<div class="muted tiny">${sub}</div>` : ''}</div>`;
@@ -138,9 +140,12 @@ export function renderSummary({ id }) {
   const state = getState();
   const s = state.sessions.find((x) => x.id === id);
   if (!s) return '<div class="empty"><p>Entreno no encontrado.</p><a class="btn ghost" href="#/">Volver</a></div>';
+  if (takeCelebration()) {
+    setTimeout(() => { flash(); burst(null, { text: '¡NIVEL!', big: true }); }, 350);
+  }
   return `
     <header class="page-head center">
-      <div class="badge-big">${icon(s.levelUps.length ? 'trophy' : 'flame', 34)}</div>
+      <div class="burst-title ${s.levelUps.length ? '' : 'pink'}">${s.levelUps.length ? '¡SUBES DE<br>NIVEL!' : '¡HECHO!'}</div>
       <h1>¡Entreno completado!</h1>
       <p class="muted">${esc(fmtLongDate(s.startedAt))}</p>
     </header>

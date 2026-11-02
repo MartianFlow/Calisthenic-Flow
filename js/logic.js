@@ -19,8 +19,19 @@ export function nextDayType(state) {
   return state.lastDayType === 'A' ? 'B' : 'A';
 }
 
+// Habilidades por sesión: máximo 2 (carga de tendones en brazos rectos). Con 3
+// objetivos se van rotando entre sesiones.
+export const MAX_SKILLS_PER_SESSION = 2;
+
+export function sessionGoals(state) {
+  const goals = state.settings.goals.filter((id) => ROADMAP_BY_ID[id]);
+  if (goals.length <= MAX_SKILLS_PER_SESSION) return goals;
+  const n = state.sessions.filter((s) => s.dayType === 'A' || s.dayType === 'B').length;
+  return Array.from({ length: MAX_SKILLS_PER_SESSION }, (_, i) => goals[(n + i) % goals.length]);
+}
+
 export function defaultIds(state, dayType) {
-  const ids = state.settings.goals.filter((id) => ROADMAP_BY_ID[id]);
+  const ids = sessionGoals(state);
   for (const id of DAY_TEMPLATES[dayType].ids) if (!ids.includes(id)) ids.push(id);
   return ids;
 }
@@ -46,7 +57,7 @@ export function estimateMinutes(state, ids, withWarmup = state.settings.warmup) 
     const { roadmap, step } = stepOf(id);
     const work = step.type === 'hold' ? step.target : step.target * 3;
     const sides = step.side ? 2 : 1;
-    sec += step.sets * (work * sides + 20) + (step.sets - 1) * roadmap.rest + 90;
+    sec += step.sets * (work * sides + 20) + (step.sets - 1) * restFor(roadmap, step) + 90;
   }
   return Math.max(5, Math.round(sec / 60 / 5) * 5);
 }
@@ -60,22 +71,66 @@ export function estimateMinutes(state, ids, withWarmup = state.settings.warmup) 
 // Normal = cuenta como sesión superada (al llegar a N subes de nivel);
 // Difícil = consolidas ese nivel antes de avanzar.
 
+// La valoración equivale a las repeticiones que quedaban en reserva (RIR):
+// Fácil ≥ 3 · Normal 1–2 (zona ideal) · Difícil 0 o técnica rota.
 export const RATINGS = {
-  facil: { label: 'Fácil', hint: 'Me sobraba' },
-  normal: { label: 'Normal', hint: 'Costó, con buena técnica' },
-  dificil: { label: 'Difícil', hint: 'Al límite' },
+  facil: { label: 'Fácil', hint: 'Me sobraban 3+ reps' },
+  normal: { label: 'Normal', hint: 'Me quedaban 1–2' },
+  dificil: { label: 'Difícil', hint: 'Sin margen o perdí técnica' },
 };
 
 export function defaultWork(step) {
   return Math.max(1, Math.round(step.target * 0.6));
 }
 
-export function increments(step) {
-  if (step.type === 'hold') {
-    const small = Math.max(2, Math.round(step.target * 0.1));
-    return { small, big: small * 2 };
-  }
-  return { small: 1, big: 2 };
+// Descanso entre series según el paso (la investigación desaconseja un valor fijo por ruta).
+export function restFor(roadmap, step) {
+  if (step.rest) return step.rest;
+  if (roadmap.id === 'core') return 60;
+  if (step.type === 'hold') return roadmap.straightArm ? 150 : 75;
+  if (step.side && roadmap.id === 'piernas') return step.target <= 5 ? 150 : 90;
+  if (step.target <= 5) return 180;
+  if (step.target <= 12) return ['dominadas', 'fondos', 'muscleup', 'hspu'].includes(roadmap.id) ? 120 : 90;
+  return 75;
+}
+
+// Cuánto sube el objetivo por serie según la valoración.
+export function increment(step, roadmap, rating, goal) {
+  if (step.type !== 'hold') return rating === 'facil' ? 2 : 1;
+  if (roadmap.straightArm) return rating === 'facil' ? 2 : 1; // tendones: poco a poco
+  return rating === 'facil' ? Math.max(3, Math.round(goal * 0.18)) : Math.max(2, Math.round(goal * 0.1));
+}
+
+// Sesiones con la meta cumplida (Normal) para subir: 1 en básicos de fuerza,
+// lo indicado en Ajustes (2 por defecto) en habilidades.
+export function passesRequired(state, roadmap) {
+  return roadmap.category === 'fuerza' ? 1 : Math.max(1, state.settings.passesToLevelUp | 0);
+}
+
+export function deloadActive(state, now = Date.now()) {
+  return !!(state.deload && state.deload.until > now);
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// Descarga cada 5–6 semanas o cuando hay ≥ 2 rutas estancadas.
+export function deloadSuggestion(state, now = Date.now()) {
+  if (deloadActive(state, now)) return null;
+  if (state.deloadSnoozeUntil && state.deloadSnoozeUntil > now) return null;
+  const stalled = Object.values(state.progress).filter((p) => (p.stall || 0) >= 2).length;
+  if (stalled >= 2) return { reason: 'stall', stalled };
+  const since = state.deload?.until ?? state.sessions[0]?.startedAt;
+  if (!since) return null;
+  const weeks = Math.floor((now - since) / (7 * DAY_MS));
+  const count = state.sessions.filter((s) => s.startedAt >= since).length;
+  if (weeks >= 5 && count >= 8) return { reason: 'weeks', weeks };
+  return null;
+}
+
+export function startDeload(s, days = 7) {
+  const now = Date.now();
+  s.deload = { start: now, until: now + days * DAY_MS };
+  s.plan = null;
 }
 
 // Objetivo por serie para la próxima sesión de una ruta.
@@ -91,20 +146,24 @@ export function workFor(id) {
 }
 
 export function createSession(state, plan) {
+  const deload = deloadActive(state);
   const items = plan.ids.filter((id) => ROADMAP_BY_ID[id]).map((id) => {
     const { roadmap, step, index } = stepOf(id);
-    const goal = workFor(id);
+    const work = workFor(id);
+    // Semana de descarga: una serie menos y objetivo al ~65 %.
+    const goal = deload ? Math.max(1, Math.round(work * 0.65)) : work;
+    const sets = deload ? Math.max(2, step.sets - 1) : step.sets;
     return {
       roadmapId: id,
       stepIndex: index,
       type: step.type,
       target: step.target,
       goal,
-      plannedSets: step.sets,
+      plannedSets: sets,
       side: !!step.side,
-      rest: roadmap.rest,
+      rest: restFor(roadmap, step),
       rating: null,
-      sets: Array.from({ length: step.sets }, () => ({ value: goal, done: false })),
+      sets: Array.from({ length: sets }, () => ({ value: goal, done: false })),
     };
   });
   const now = Date.now();
@@ -113,6 +172,7 @@ export function createSession(state, plan) {
     startedAt: now,
     lastActivityAt: now,
     dayType: plan.dayType,
+    deload,
     warmupDone: !(state.settings.warmup && plan.warmup !== false),
     warmupChecks: [],
     items,
@@ -145,14 +205,18 @@ export function nextUnrated(active) {
 
 // Aplica la valoración y el rendimiento de un ejercicio a su progreso.
 // Devuelve el resultado para mostrarlo en el resumen y el calendario.
+const STALL_LIMIT = 3; // exposiciones seguidas sin subir el objetivo
+
 function applyProgress(p, roadmap, item, required) {
   const step = roadmap.steps[item.stepIndex];
   const rating = item.rating || 'normal'; // sin valorar cuenta como normal
   const goal = item.goal ?? step.target;
-  const inc = increments(step);
   const isLast = p.step >= roadmap.steps.length - 1;
+  const doneValues = item.sets.filter((x) => x.done).map((x) => Number(x.value) || 0);
 
   const levelUp = (reason) => {
+    p.stall = 0;
+    p.resets = 0;
     if (isLast) {
       p.work = step.target;
       if (p.done) return { kind: 'keep', next: step.target };
@@ -165,34 +229,48 @@ function applyProgress(p, roadmap, item, required) {
     return { kind: 'levelup', reason, to: p.step, next: p.work };
   };
 
+  let outcome;
   if (stepMet(item)) {
     p.work = step.target;
     if (rating === 'facil') return levelUp('facil');
     if (rating === 'normal') {
       p.passes += 1;
       if (p.passes >= required) return levelUp('passes');
+      p.stall = 0;
       return { kind: 'pass', passes: p.passes, required, next: step.target };
     }
-    return { kind: 'consolidate', next: step.target };
-  }
-
-  if (goalMet(item)) {
+    outcome = { kind: 'consolidate', next: step.target };
+  } else if (goalMet(item)) {
     if (rating === 'dificil') {
       p.work = goal;
-      return { kind: 'keep', next: goal };
+      outcome = { kind: 'keep', next: goal };
+    } else {
+      const next = Math.min(step.target, goal + increment(step, roadmap, rating, goal));
+      p.work = next;
+      p.stall = 0;
+      return { kind: 'up', from: goal, next };
     }
-    const next = Math.min(step.target, goal + (rating === 'facil' ? inc.big : inc.small));
+  } else if (rating === 'dificil' && doneValues.length) {
+    // No se llegó y costó: recalibrar al mínimo conseguido.
+    const next = Math.max(1, Math.min(goal, ...doneValues));
     p.work = next;
-    return { kind: 'up', from: goal, next };
+    outcome = next < goal ? { kind: 'down', from: goal, next } : { kind: 'keep', next: goal };
+  } else {
+    p.work = goal;
+    outcome = { kind: 'keep', next: goal };
   }
 
-  if (rating === 'dificil') {
-    const next = Math.max(1, goal - inc.small);
+  // Estancamiento: tras varias sesiones sin avanzar, reiniciar al ~80 % y reconstruir.
+  p.stall = (p.stall || 0) + 1;
+  if (p.stall >= STALL_LIMIT) {
+    const base = p.work;
+    const next = Math.max(1, Math.round(base * 0.8));
     p.work = next;
-    return next < goal ? { kind: 'down', from: goal, next } : { kind: 'keep', next: goal };
+    p.stall = 0;
+    p.resets = (p.resets || 0) + 1;
+    return { kind: 'reset', from: base, next, suggestDrop: p.resets >= 2 && p.step > 0 };
   }
-  p.work = goal;
-  return { kind: 'keep', next: goal };
+  return outcome;
 }
 
 // Cierra el entreno activo, lo guarda en el historial y aplica la progresión.
@@ -206,7 +284,6 @@ export function finishActiveSession() {
   if (duration > MAX_REASONABLE_SESSION) {
     duration = Math.max(60_000, (active.lastActivityAt || active.startedAt) - active.startedAt + 60_000);
   }
-  const required = Math.max(1, state.settings.passesToLevelUp | 0);
   const dateIso = new Date(endedAt).toISOString();
   const session = {
     id: active.id,
@@ -214,6 +291,7 @@ export function finishActiveSession() {
     endedAt,
     duration: Math.round(duration / 1000),
     dayType: active.dayType,
+    deload: !!active.deload,
     items: [],
     levelUps: [],
     notes: active.notes || '',
@@ -241,7 +319,8 @@ export function finishActiveSession() {
       const roadmap = ROADMAP_BY_ID[item.roadmapId];
       const p = (s.progress[item.roadmapId] ||= { step: 0, passes: 0, done: false });
       if (p.step !== item.stepIndex) continue; // el nivel se cambió a mano durante el entreno
-      const outcome = applyProgress(p, roadmap, item, required);
+      if (active.deload) { entry.outcome = { kind: 'deload' }; continue; }
+      const outcome = applyProgress(p, roadmap, item, passesRequired(s, roadmap));
       entry.outcome = outcome;
       if (outcome.kind === 'levelup' || outcome.kind === 'completed') {
         const from = item.stepIndex;
@@ -279,7 +358,11 @@ export function outcomeText(entry) {
     case 'up':
       return `Próxima vez: ${sets} × ${unit(o.next)} (antes ${unit(o.from)})`;
     case 'down':
-      return `Bajamos a ${sets} × ${unit(o.next)} para consolidar`;
+      return `Recalibrado a tu mínimo de hoy: ${sets} × ${unit(o.next)}`;
+    case 'reset':
+      return `Llevas ${STALL_LIMIT} sesiones sin avanzar: reiniciamos a ${sets} × ${unit(o.next)} para volver a subir${o.suggestDrop ? '. Si sigue costando, baja un paso desde Rutas' : ''}`;
+    case 'deload':
+      return 'Semana de descarga: sin cambios en tu progreso';
     default:
       return `Próxima vez: mantén ${sets} × ${unit(o.next)}`;
   }

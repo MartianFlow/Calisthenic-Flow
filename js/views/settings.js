@@ -2,7 +2,7 @@
 
 import { ROADMAPS, ROADMAP_BY_ID } from '../data/roadmaps.js';
 import { getState, update, replaceState, resetState, getProgress } from '../store.js';
-import { prereqStatus } from '../logic.js';
+import { prereqStatus, deloadActive } from '../logic.js';
 import { esc, icon, targetLabel, toast } from '../ui.js';
 import { navigate } from '../router.js';
 import { audio } from '../device.js';
@@ -57,15 +57,19 @@ export function render() {
 
     <section class="card">
       <h3>Habilidades objetivo</h3>
-      <p class="muted small">Hasta ${MAX_GOALS}. Se practican al inicio de cada entreno, cuando estás fresco. ${icon('lock', 12)} = se recomienda más base antes.</p>
+      <p class="muted small">Hasta ${MAX_GOALS}. Se practican al inicio del entreno, cuando estás fresco, con un máximo de 2 por sesión (si eliges 3, se van rotando). ${icon('lock', 12)} = se recomienda más base antes.</p>
       ${goalPicker(state)}
     </section>
 
     <section class="card">
       <h3>Plan semanal</h3>
       <div class="field"><span>Días de entreno por semana</span>${segmented('daysPerWeek', [2, 3, 4, 5, 6].map((n) => [n, String(n)]), st.daysPerWeek)}</div>
-      <div class="field"><span>Sesiones cumpliendo el objetivo para subir de nivel</span>${segmented('passesToLevelUp', [[1, '1'], [2, '2'], [3, '3']], st.passesToLevelUp)}</div>
-      <p class="muted small">Con 2 sesiones te aseguras de que el paso está consolidado antes de avanzar.</p>
+      <div class="field"><span>Sesiones con la meta cumplida para subir en habilidades</span>${segmented('passesToLevelUp', [[1, '1'], [2, '2'], [3, '3']], st.passesToLevelUp)}</div>
+      <p class="muted small">En los básicos de fuerza basta 1 sesión. En habilidades de brazos rectos se recomiendan 2, porque los tendones se adaptan más despacio que el músculo.</p>
+      ${deloadActive(state)
+        ? `<button class="btn ghost small" data-action="deload-end">Terminar semana de descarga</button>`
+        : `<button class="btn ghost small" data-action="deload-start">Empezar semana de descarga</button>`}
+      <p class="muted small">Descarga: 7 días con una serie menos y objetivos al ~65 %. Recomendada cada 5–6 semanas o si te estancas.</p>
     </section>
 
     <section class="card">

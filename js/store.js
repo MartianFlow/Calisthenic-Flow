@@ -2,13 +2,16 @@
 // Nada sale del dispositivo: no hay servidor ni cuenta.
 
 import { ROADMAPS, ROADMAP_BY_ID } from './data/roadmaps.js';
+import { LEGACY_V1 } from './data/legacy.js';
+
+const DATA_VERSION = 2;
 
 const KEY = 'calisthenic-flow:v1';
 const listeners = new Set();
 
 export function defaultState() {
   return {
-    version: 1,
+    version: DATA_VERSION,
     onboarded: false,
     settings: {
       goals: [],            // ids de habilidades en foco (máx. 3)
@@ -23,6 +26,8 @@ export function defaultState() {
     active: null,           // entreno en curso
     plan: null,             // { dayType, ids } plan personalizado del siguiente entreno
     lastDayType: null,
+    deload: null,           // { start, until } semana de descarga
+    deloadSnoozeUntil: null,
   };
 }
 
@@ -38,9 +43,43 @@ function load() {
   return defaultState();
 }
 
+// v1 → v2: las rutas se revisaron con la investigación (pasos nuevos, fusionados o
+// eliminados). El progreso se guardaba por índice: se recoloca por nombre del paso.
+function legacyIndex(id, oldIdx) {
+  const r = ROADMAP_BY_ID[id];
+  const names = LEGACY_V1[id];
+  if (!r || !names) return oldIdx | 0;
+  for (let i = Math.min(oldIdx | 0, names.length - 1); i >= 0; i--) {
+    const j = r.steps.findIndex((st) => st.name === names[i] || st.was?.includes(names[i]));
+    if (j >= 0) return j;
+  }
+  return 0;
+}
+
+function migrate(s) {
+  if ((s.version || 1) >= DATA_VERSION) return s;
+  for (const [id, p] of Object.entries(s.progress || {})) {
+    if (!p) continue;
+    p.step = legacyIndex(id, p.step);
+    p.passes = 0;
+  }
+  for (const sess of s.sessions || []) {
+    for (const it of sess.items || []) it.stepIndex = legacyIndex(it.roadmapId, it.stepIndex);
+  }
+  for (const l of s.levelLog || []) {
+    l.from = legacyIndex(l.roadmapId, l.from);
+    l.to = legacyIndex(l.roadmapId, l.to);
+  }
+  for (const it of s.active?.items || []) it.stepIndex = legacyIndex(it.roadmapId, it.stepIndex);
+  s.plan = null;
+  s.version = DATA_VERSION;
+  return s;
+}
+
 // Completa campos que falten (versiones antiguas o copias importadas).
 export function normalize(data) {
   const base = defaultState();
+  migrate(data);
   const s = { ...base, ...data, settings: { ...base.settings, ...(data.settings || {}) } };
   s.progress = s.progress && typeof s.progress === 'object' ? s.progress : {};
   s.levelLog = Array.isArray(s.levelLog) ? s.levelLog : [];

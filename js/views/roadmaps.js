@@ -3,12 +3,13 @@
 import { ROADMAPS, ROADMAP_BY_ID, CATEGORIES } from '../data/roadmaps.js';
 import { getState, update, setStep } from '../store.js';
 import {
-  stepOf, roadmapPercent, globalProgress, prereqStatus, roadmapHistory, createSession, workFor,
+  stepOf, roadmapPercent, globalProgress, prereqStatus, roadmapHistory, createSession, workFor, passesRequired, restFor,
 } from '../logic.js';
-import { esc, icon, targetLabel, progressBar, toast, unitLabel } from '../ui.js';
+import { esc, icon, targetLabel, progressBar, toast, unitLabel, fmtRest } from '../ui.js';
 import { progressLine } from '../charts.js';
 import { navigate } from '../router.js';
 import { audio, wakeLock } from '../device.js';
+import { videoCard } from '../video.js';
 
 const MAX_GOALS = 3;
 
@@ -80,6 +81,7 @@ function stepItem(r, s, i, progress) {
           </span>
           ${state === 'current' ? '<span class="pill accent tiny">Actual</span>' : ''}
         </summary>
+        ${videoCard(s, r.name)}
         <ul class="cue-list">${s.cues.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>
         ${state !== 'current' ? `<button class="btn ghost small" data-action="set-level" data-id="${r.id}" data-step="${i}">Establecer como nivel actual</button>` : ''}
       </details>
@@ -93,7 +95,7 @@ export function renderDetail({ id }) {
   const { step, index, progress } = stepOf(id);
   const isGoal = state.settings.goals.includes(id);
   const prereqs = prereqStatus(r);
-  const required = state.settings.passesToLevelUp;
+  const required = passesRequired(state, r);
   const history = roadmapHistory(state, id).filter((h) => h.stepIndex === index);
   const unit = step.type === 'hold' ? 's' : 'reps';
   const work = workFor(id);
@@ -112,7 +114,7 @@ export function renderDetail({ id }) {
         <div>
           <div class="eyebrow">${progress.done ? 'Ruta completada' : 'Nivel actual'}</div>
           <h2>${esc(step.name)}</h2>
-          <div class="muted small">Paso ${index + 1} de ${r.steps.length} · ${esc(targetLabel(step))}</div>
+          <div class="muted small">Paso ${index + 1} de ${r.steps.length} · ${esc(targetLabel(step))} · descanso ${fmtRest(restFor(r, step))}</div>
         </div>
         <div class="route-level big">${progress.done ? icon('trophy', 28) : `<span>${index + 1}</span><small>/${r.steps.length}</small>`}</div>
       </div>

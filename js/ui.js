@@ -18,6 +18,8 @@ export function fmtClock(totalSeconds) {
   return `${h ? h + ':' : ''}${mm}:${String(sec).padStart(2, '0')}`;
 }
 
+export const fmtRest = (sec) => (sec >= 60 ? fmtClock(sec) : `${sec} s`);
+
 export function fmtDuration(totalSeconds) {
   const min = Math.round(totalSeconds / 60);
   if (min < 1) return '<1 min';

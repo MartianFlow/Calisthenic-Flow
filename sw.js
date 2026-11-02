@@ -2,7 +2,7 @@
 // Estrategia: responde desde caché y actualiza en segundo plano
 // (los cambios publicados se ven la siguiente vez que abras la app).
 
-const VERSION = 'cf-v2';
+const VERSION = 'cf-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -15,13 +15,18 @@ const ASSETS = [
   './js/ui.js',
   './js/charts.js',
   './js/device.js',
+  './js/fx.js',
+  './js/video.js',
   './js/data/roadmaps.js',
+  './js/data/videos.js',
+  './js/data/legacy.js',
   './js/views/home.js',
   './js/views/session.js',
   './js/views/roadmaps.js',
   './js/views/progress.js',
   './js/views/settings.js',
   './js/views/calendar.js',
+  './fonts/bangers-latin.woff2',
   './icons/apple-touch-icon.png',
   './icons/icon-192.png',
   './icons/icon-512.png',

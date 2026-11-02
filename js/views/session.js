@@ -6,9 +6,17 @@ import { itemComplete, finishActiveSession, lastPerformance, nextUnrated, RATING
 import { esc, icon, fmtClock, unitLabel, toast } from '../ui.js';
 import { navigate } from '../router.js';
 import { audio, vibrate, wakeLock } from '../device.js';
+import { videoCard } from '../video.js';
+import { burst, bump, beat, replay } from '../fx.js';
 
 const HOLD_COUNTDOWN = 3000;
 const beeped = { holdStart: null, holdTarget: null };
+const lastSecond = { rest: null, hold: null };
+const RATING_WORDS = { facil: '¡FÁCIL!', normal: '¡BIEN!', dificil: '¡DURO!' };
+const RATING_COLORS = { facil: 'cyan', normal: '', dificil: 'pink' };
+let sheetShown = false; // para animar el panel inferior solo al aparecer
+export let pendingCelebration = false;
+export function takeCelebration() { const v = pendingCelebration; pendingCelebration = false; return v; }
 
 function chips(a) {
   const warm = `<button class="chip ${a.warmupDone ? 'done' : ''} ${!a.warmupDone ? 'current' : ''}" data-action="session-goto" data-index="-1">Calent.</button>`;
@@ -79,8 +87,9 @@ function exerciseCard(state, a) {
       </div>
       ${goal < item.target ? `<div class="muted small">Meta del paso: ${item.plannedSets} × ${esc(unitLabel(item.type, item.target))}. Tu valoración decide cuánto sube el objetivo.</div>` : ''}
       ${last ? `<div class="muted small">Última vez: ${last.map((v) => unitLabel(item.type, v)).join(' · ')}</div>` : ''}
+      ${videoCard(step, roadmap.name)}
       <details class="cues">
-        <summary>${icon('info', 18)} Técnica</summary>
+        <summary>${icon('info', 18)} Claves técnicas</summary>
         <ul>${step.cues.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>
       </details>
       ${item.side ? '<p class="muted small">Haz cada serie con los dos lados y apunta el lado más débil.</p>' : ''}
@@ -111,14 +120,17 @@ function ratingButtons(index, current, compact = false) {
     </button>`).join('')}</div>`;
 }
 
+let lastPrompt = null;
 function ratePanel(a) {
-  if (a.ratePrompt == null) return '';
+  if (a.ratePrompt == null) { lastPrompt = null; return ''; }
+  const appear = lastPrompt !== a.ratePrompt;
+  lastPrompt = a.ratePrompt;
   const item = a.items[a.ratePrompt];
   if (!item) return '';
   const step = ROADMAP_BY_ID[item.roadmapId].steps[item.stepIndex];
   return `
     <div class="rate-panel">
-      <div class="rate-q">${a.finishing ? '<span class="eyebrow">Antes de terminar</span>' : ''}
+      <div class="rate-q ${appear ? 'appear' : ''}">${a.finishing ? '<span class="eyebrow">Antes de terminar</span>' : ''}
         ¿Qué tal te ha parecido <strong>${esc(step.name)}</strong>?</div>
       ${ratingButtons(a.ratePrompt, item.rating)}
       <button class="link muted" data-action="rate-later">${a.finishing ? 'Omitir' : 'Ahora no'}</button>
@@ -127,10 +139,12 @@ function ratePanel(a) {
 
 function bottomSheet(a) {
   const rating = ratePanel(a);
-  if (!a.rest && !rating) return '';
+  if (!a.rest && !rating) { sheetShown = false; return ''; }
+  const appear = !sheetShown;
+  sheetShown = true;
   const remaining = a.rest ? Math.max(0, (a.rest.endsAt - Date.now()) / 1000) : 0;
   return `
-    <div class="rest-bar ${rating ? 'with-rate' : ''}" ${a.rest ? 'role="timer"' : ''}>
+    <div class="rest-bar ${rating ? 'with-rate' : ''} ${appear ? 'appear' : ''}" ${a.rest ? 'role="timer"' : ''}>
       ${a.rest ? `
         <div class="rest-progress"><span data-tick="rest-bar" style="width:${(remaining / a.rest.total) * 100}%"></span></div>
         <div class="row between">
@@ -208,7 +222,11 @@ export function tick(ctx) {
       return;
     }
     const clock = document.querySelector('[data-tick="rest"]');
-    if (clock) clock.textContent = fmtClock(Math.ceil(remaining));
+    const sec = Math.ceil(remaining);
+    if (clock && clock.textContent !== fmtClock(sec)) {
+      clock.textContent = fmtClock(sec);
+      if (sec <= 5 || sec % 10 === 0) beat(clock);
+    }
     const bar = document.querySelector('[data-tick="rest-bar"]');
     if (bar) bar.style.width = `${(remaining / a.rest.total) * 100}%`;
   }
@@ -220,7 +238,8 @@ export function tick(ctx) {
     const clock = document.querySelector('[data-tick="hold"]');
     if (ms < 0) {
       if (phase) phase.textContent = 'Prepárate';
-      if (clock) clock.textContent = String(Math.ceil(-ms / 1000));
+      const n = String(Math.ceil(-ms / 1000));
+      if (clock && clock.textContent !== n) { clock.textContent = n; beat(clock); }
     } else {
       if (beeped.holdStart !== a.hold.startsAt) {
         beeped.holdStart = a.hold.startsAt;
@@ -232,12 +251,16 @@ export function tick(ctx) {
         beeped.holdTarget = a.hold.startsAt;
         audio.beep({ times: 2, freq: 1046 });
         vibrate(200);
+        burst(clock, { text: '¡OBJETIVO!', color: 'cyan', big: true });
       }
       if (phase) {
         phase.textContent = secs >= goal ? '¡Objetivo conseguido!' : '¡Aguanta!';
         phase.classList.toggle('met', secs >= goal);
       }
-      if (clock) clock.textContent = String(secs);
+      if (clock && clock.textContent !== String(secs)) {
+        clock.textContent = String(secs);
+        beat(clock);
+      }
     }
   }
 }
@@ -292,6 +315,7 @@ function finish({ skipChecks = false } = {}) {
   }
   const session = finishActiveSession();
   wakeLock.release();
+  pendingCelebration = session.levelUps.length > 0;
   navigate(`#/resumen/${session.id}`, { replace: true });
 }
 
@@ -349,12 +373,14 @@ export const actions = {
     update((s) => { s.active.warmupDone = true; s.active.lastActivityAt = Date.now(); });
     window.scrollTo({ top: 0 });
   },
-  'set-inc'(el) { adjust(el, 1); },
-  'set-dec'(el) { adjust(el, -1); },
+  'set-inc'(el) { adjust(el, 1); bump(document.querySelectorAll('.set .val')[Number(el.dataset.set)]); },
+  'set-dec'(el) { adjust(el, -1); bump(document.querySelectorAll('.set .val')[Number(el.dataset.set)]); },
   'set-toggle'(el) {
     audio.unlock();
     const i = Number(el.dataset.set);
     const before = getState().active.current;
+    const wasDone = getState().active.items[before].sets[i].done;
+    const rect = el.getBoundingClientRect();
     update((s) => {
       const a = s.active;
       const set = a.items[a.current].sets[i];
@@ -364,6 +390,10 @@ export const actions = {
         completeSet(s, a.current, i);
       }
     });
+    if (!wasDone) {
+      burst({ getBoundingClientRect: () => rect });
+      if (getState().active.current === before) replay(document.querySelectorAll('.check-btn')[i], 'stamp');
+    }
     if (getState().active.current !== before) window.scrollTo({ top: 0 });
   },
   'set-add'() {
@@ -388,6 +418,7 @@ export const actions = {
       a.items[i].rateSkipped = false;
       if (a.ratePrompt === i) a.ratePrompt = a.finishing ? nextUnrated(a) : null;
     });
+    burst(el, { text: RATING_WORDS[value], color: RATING_COLORS[value] });
     toast(`Anotado: ${RATINGS[value].label}`);
     afterRating();
   },
@@ -433,6 +464,7 @@ export const actions = {
       a.items[item].sets[set].value = secs;
       completeSet(s, item, set);
     });
+    burst(null, { big: true });
     if (getState().active.current !== before) window.scrollTo({ top: 0 });
   },
   'hold-cancel'() {
