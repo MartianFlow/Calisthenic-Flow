@@ -81,3 +81,39 @@ test.describe('Calendario y progreso', () => {
     }
   });
 });
+
+test.describe('Tema', () => {
+  const bg = (page) => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--bg').trim());
+
+  test.describe('con el iPhone en modo claro', () => {
+    test.use({ colorScheme: 'light' });
+
+    test('se puede forzar el modo oscuro y se mantiene al reabrir', async ({ page }) => {
+      await seed(page, makeState());
+      await page.goto('/#/ajustes');
+      expect(await bg(page)).toBe('#fff2bd');
+      await page.locator('[data-action="set-theme"][data-value="dark"]').click();
+      expect(await bg(page)).toBe('#120e18');
+      await expect(page.locator('meta[name="theme-color"]').first()).toHaveAttribute('content', '#050507');
+      expect((await readState(page)).settings.theme).toBe('dark');
+      await page.reload();
+      await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+      expect(await bg(page)).toBe('#120e18');
+      // Automático vuelve a seguir al iPhone
+      await page.locator('[data-action="set-theme"][data-value="auto"]').click();
+      expect(await bg(page)).toBe('#fff2bd');
+    });
+  });
+
+  test.describe('con el iPhone en modo oscuro', () => {
+    test.use({ colorScheme: 'dark' });
+
+    test('automático es oscuro y se puede forzar el claro', async ({ page }) => {
+      await seed(page, makeState());
+      await page.goto('/#/ajustes');
+      expect(await bg(page)).toBe('#120e18');
+      await page.locator('[data-action="set-theme"][data-value="light"]').click();
+      expect(await bg(page)).toBe('#fff2bd');
+    });
+  });
+});

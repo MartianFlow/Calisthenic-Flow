@@ -126,17 +126,51 @@ function isoWeek(ts) {
   return 1 + Math.round(((d - week1) / 864e5 - 3 + ((week1.getDay() + 6) % 7)) / 7);
 }
 
-// Con la pierna en el gimnasio: T = torso, P = pierna. Los torsos alternan TA/TB
-// (empezando por TB las semanas ISO impares) y los días de pierna PA/PB.
-const GYM_SLOTS = {
-  1: 'T', 2: 'TP', 3: 'TPT', 4: 'TPTP', 5: 'TPTPT', 6: 'TPTTPT', 7: 'TPTTPTT',
-};
-export function gymWeekTemplate(n, oddWeek) {
-  const slots = GYM_SLOTS[Math.max(1, Math.min(7, n))].split('');
-  const legDays = slots.filter((x) => x === 'P').length;
+// Con la pierna en el gimnasio se eligen a la vez los días y si cada uno es de torso
+// o de pierna, entre todas las combinaciones posibles (como mucho unas pocas cientos):
+//   · nunca dos días de pierna seguidos, y lo más separados posible (hasta 72–96 h,
+//     lo que tardan en recuperarse la sentadilla y el peso muerto pesados);
+//   · nunca dos días de torso seguidos (habilidades de brazos rectos);
+//   · y, a igualdad, menos días seguidos y empezar antes en la semana.
+// Días de pierna: 1 con 2–3 días de entreno, 2 con 4 o más. Los torsos alternan TA/TB
+// (empezando por TB las semanas ISO impares).
+const circGap = (a, b) => ((b - a + 7) % 7) || 7;
+
+function combos(list, k, start = 0, acc = [], out = []) {
+  if (acc.length === k) { out.push([...acc]); return out; }
+  for (let i = start; i < list.length; i++) combos(list, k, i + 1, [...acc, list[i]], out);
+  return out;
+}
+
+function gymScore(days, isLeg) {
+  const n = days.length;
+  let adj = 0; let torsoAdj = 0; let legAdj = 0;
+  for (let i = 0; n > 1 && i < n; i++) {
+    const j = (i + 1) % n;
+    if (circGap(days[i], days[j]) !== 1) continue;
+    adj++;
+    if (isLeg[i] && isLeg[j]) legAdj++;
+    else if (!isLeg[i] && !isLeg[j]) torsoAdj++;
+  }
+  const legs = days.filter((_, i) => isLeg[i]);
+  const legGap = legs.length === 2 ? Math.min(circGap(legs[0], legs[1]), circGap(legs[1], legs[0])) : 4;
+  return -1000 * legAdj - 100 * torsoAdj + 10 * Math.min(legGap, 4) - adj - days[0] * 0.1;
+}
+
+export function gymDays(available, n, oddWeek) {
+  const avail = available.map((on, i) => (on ? i : -1)).filter((i) => i >= 0);
+  const k = Math.max(1, Math.min(n, avail.length));
+  const legs = k <= 1 ? 0 : k <= 3 ? 1 : 2;
+  let best = null;
+  for (const days of combos(avail, k)) {
+    for (const legIdx of combos(days.map((_, i) => i), legs)) {
+      const isLeg = days.map((_, i) => legIdx.includes(i));
+      const score = gymScore(days, isLeg);
+      if (!best || score > best.score) best = { score, days, isLeg };
+    }
+  }
   let t = oddWeek ? 1 : 0;
-  let l = legDays === 1 && oddWeek ? 1 : 0; // con un solo día de pierna, alterna PA/PB cada semana
-  return slots.map((x) => (x === 'T' ? ['TA', 'TB'][t++ % 2] : ['PA', 'PB'][l++ % 2]));
+  return { days: best.days, types: best.isLeg.map((leg) => (leg ? 'P' : ['TA', 'TB'][t++ % 2])) };
 }
 
 export function weekTemplate(n, hasGoals, oddWeek) {
@@ -153,6 +187,9 @@ export function weekTemplate(n, hasGoals, oddWeek) {
 export const DAY_INFO = {
   ...DAY_TEMPLATES,
   ...LEG_DAYS,
+  // Nombres de una versión anterior (Pierna A/B), para el historial.
+  PA: { ...LEG_DAYS.P, label: 'Pierna A', badge: 'PA' },
+  PB: { ...LEG_DAYS.P, label: 'Pierna B', badge: 'PB' },
   S: { label: 'Día S', badge: 'S', focus: 'Habilidades · Core', ids: ['core'] },
   R: { label: 'Descanso', badge: '—', focus: 'Recuperación activa: caminar, movilidad o estiramientos suaves.', ids: [] },
 };
@@ -169,11 +206,15 @@ export function buildWeek(state, weekStart = startOfWeek(Date.now())) {
   if (!sched) return null;
   const goals = state.settings.goals.filter((id) => ROADMAP_BY_ID[id]);
   const n = Math.min(state.settings.daysPerWeek, sched.days.filter(Boolean).length);
-  const chosen = pickDays(sched.days, n);
   const odd = isoWeek(weekStart) % 2 === 1;
-  const types = state.settings.legs === 'gym'
-    ? gymWeekTemplate(chosen.length, odd)
-    : weekTemplate(chosen.length, goals.length > 0, odd);
+  let chosen;
+  let types;
+  if (state.settings.legs === 'gym') {
+    ({ days: chosen, types } = gymDays(sched.days, n, odd));
+  } else {
+    chosen = pickDays(sched.days, n);
+    types = weekTemplate(chosen.length, goals.length > 0, odd);
+  }
   const week = WD_SHORT.map((_, i) => ({ weekday: i, type: 'R', skills: [], ids: [] }));
   const count = {};
   const lastDay = {};

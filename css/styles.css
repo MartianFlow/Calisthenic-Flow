@@ -1,6 +1,6 @@
 /* Calisthenic Flow — estilo cómic de alto contraste.
    Paneles con tinta gruesa, sombras duras, semitonos, colores saturados
-   y animaciones con ritmo. Tema oscuro por defecto y claro automático. */
+   y animaciones con ritmo. Tema oscuro por defecto; claro automático o elegido en Ajustes. */
 
 @font-face {
   font-family: 'Bangers';
@@ -61,8 +61,9 @@
   color-scheme: dark;
 }
 
+/* Tema claro: automático según el iPhone, o forzado desde Ajustes (data-theme en <html>). */
 @media (prefers-color-scheme: light) {
-  :root {
+  :root:not([data-theme="dark"]) {
     --bg: #fff2bd;
     --bg-glow-1: rgba(255, 45, 135, 0.18);
     --bg-glow-2: rgba(24, 224, 255, 0.22);
@@ -80,6 +81,25 @@
     --overlay: #fff6d1;
     color-scheme: light;
   }
+}
+
+:root[data-theme="light"] {
+  --bg: #fff2bd;
+  --bg-glow-1: rgba(255, 45, 135, 0.18);
+  --bg-glow-2: rgba(24, 224, 255, 0.22);
+  --dot: rgba(5, 5, 7, 0.09);
+  --surface: #ffffff;
+  --surface-2: #fff6d1;
+  --text: #050507;
+  --muted: #4b4458;
+  --border: #050507;
+  --shadow: #050507;
+  --accent-text: #c4005c;
+  --ok: #12c76a;
+  --danger: #e0002a;
+  --chart-line: #e0006f;
+  --overlay: #fff6d1;
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }
@@ -1050,7 +1070,7 @@ a.px-panel:active { transform: translate(4px, 4px); box-shadow: 0 0 0 4px #000, 
 .type-badge.t-R { background: transparent; color: var(--muted); border-style: dashed; border-color: var(--muted); }
 .type-badge.t-TA, .type-badge.t-TB, .type-badge.t-PA, .type-badge.t-PB { font-size: 17px; letter-spacing: -0.02em; }
 .type-badge.t-TA { background: var(--yellow); } .type-badge.t-TB { background: var(--cyan); }
-.type-badge.t-PA { background: var(--lime); } .type-badge.t-PB { background: #ff9a3d; }
+.type-badge.t-P, .type-badge.t-PA { background: var(--lime); } .type-badge.t-PB { background: #ff9a3d; }
 .mini-chip.lift { background: color-mix(in srgb, var(--lime) 30%, var(--surface)); }
 .mini-chips { display: flex; flex-wrap: wrap; gap: 5px; }
 .mini-chip { font-size: 12px; font-weight: 800; padding: 3px 7px; border-radius: 5px; border: 2px solid var(--border); background: var(--surface); }

@@ -1,6 +1,6 @@
 # Pierna en el gimnasio y plan torso/pierna
 
-Revisión de la rutina de pierna del usuario: sentadilla hack, peso muerto, sentadilla goblet en hack, extensión de cuádriceps, curl femoral, aductor, abductor, gemelo sentado y gemelo de pie. Contexto: 5 días por semana, 3 de torso con calistenia y 2 de pierna en el gimnasio.
+Revisión de la rutina de pierna del usuario: sentadilla hack, peso muerto **piernas rígidas**, sentadilla goblet en hack, extensión de cuádriceps, curl femoral, aductor, abductor, gemelo sentado y gemelo de pie. Hace **la rutina completa en cada día de pierna**. Contexto: 5 días por semana, 3 de torso con calistenia y 2 de pierna en el gimnasio.
 
 La investigación se hizo con búsquedas web, y varias fuentes se leyeron solo en resumen. Lo que no tiene fuente se marca como **[criterio propio]**.
 
@@ -10,15 +10,25 @@ La investigación se hizo con búsquedas web, y varias fuentes se leyeron solo e
 - **Más volumen, menos beneficio por serie:** la hipertrofia sigue subiendo con más series, pero cada vez menos. La fuerza se estanca antes. Con el volumen igualado, la frecuencia apenas cambia la hipertrofia (Pelland et al., 67 estudios). <https://sportrxiv.org/index.php/server/preprint/view/460>
 - **Tope por sesión:** a partir de unas 11 series por músculo y sesión no se ve beneficio extra (preprint de Remmert et al., leído en un resumen). <https://biolayne.com/reps/issue-36/too-much-muscle-math-finding-the-ideal-training-volume-per-session/>
 - **Frecuencia:** sin igualar el volumen, 2 veces por semana es mejor que 1 (Schoenfeld 2016). <https://pubmed.ncbi.nlm.nih.gov/27102172/>
-- **En la app:** cada músculo de pierna se trabaja 2 veces por semana, con 10–12 series directas de cuádriceps y unas 9 de isquios, y nunca más de ~7 por sesión.
+- **En la app:** la rutina completa 2 veces por semana, con 3 series por ejercicio.
+  - **Por sesión:** cuádriceps 9 series (hack, goblet y extensión), isquios 6 (piernas rígidas y curl) y gemelos 6. Todo queda por debajo del tope de ~11.
+  - **Por semana:** 18, 12 y 12 series, dentro del rango de 10–20; el cuádriceps queda en la parte alta.
+  - Unas 27 series por sesión: unos 80 min con el calentamiento.
 
-## 2. Reparto en dos días y orden
+## 2. Una rutina completa o dos días distintos, y el orden
+
+- **Primera versión:** se repartió en Pierna A (hack) y Pierna B (peso muerto) para no repetir los dos pesados con solo 48 h entre días.
+- **Versión actual:** el usuario confirmó que hace los 9 ejercicios cada día, así que la app usa su rutina completa.
+  - Es viable: el volumen por sesión y por semana está dentro de los rangos de arriba.
+  - Lo que vigilar es la recuperación entre los dos días (ver Belcher, abajo).
+- **Siempre el mismo orden:** el progreso por peso compara cada sesión con la anterior. Si un día la hack fuera después del peso muerto, rendiría menos y la app lo tomaría como un estancamiento falso. Por eso no se alterna el orden **[criterio propio]**.
 
 - **Orden:** lo que va primero gana más fuerza; para la hipertrofia el orden no importa (Nunes 2021). <https://pubmed.ncbi.nlm.nih.gov/32077380/>
   - Por eso los multiarticulares van primero.
   - Por lo mismo, los días de torso A y B alternan qué pareja va primero.
 - **Recuperación:** tras series al fallo, la velocidad en sentadilla y en peso muerto tarda hasta 96 h en recuperarse (Belcher 2019). <https://pubmed.ncbi.nlm.nih.gov/30779596/>
-  - La hack pesada va en Pierna A y el peso muerto pesado en Pierna B; nunca los dos el mismo día **[criterio propio]**.
+  - Con la rutina completa los dos días, el plan semanal separa los días de pierna todo lo posible: nunca seguidos y, si hay días libres, 72 h o más.
+  - En la hack y el peso muerto piernas rígidas conviene dejar 1–3 repeticiones en reserva. Si la recuperación no llega, la app lo detecta: Difícil sin llegar baja el peso, y 3 sesiones sin avanzar también.
 - **Curl y extensión en los dos días:** las sentadillas apenas hacen crecer los isquios ni el recto femoral (Kubo 2019, en resumen). Esos músculos necesitan trabajo directo. <https://www.strongerbyscience.com/squats-adductors/>
 
 ## 3. Ejercicios
@@ -31,20 +41,20 @@ La investigación se hizo con búsquedas web, y varias fuentes se leyeron solo e
 - **Aductor mayor:** trabaja sobre todo como extensor de cadera (Takahashi 2025), así que la máquina de aductores es un complemento de la sentadilla profunda. <https://www.citedrive.com/en/discovery/redefining-muscular-action-human-adductor-magnus-is-designed-to-act-primarily-for-hip-extension-rather-than-adduction-in-living-young-individuals>
 - **Gemelo de pie o sentado:**
   - De pie, el gastrocnemio creció un 9–12 %; sentado, un ~1 %. El sóleo creció parecido en los dos (Kinoshita 2023, personas sin experiencia). <https://www.frontiersin.org/journals/physiology/articles/10.3389/fphys.2023.1272106/full>
-  - Por eso el gemelo de pie lleva 4 series y el sentado 3.
+  - Por eso en la app el gemelo de pie va antes que el sentado, cuando estás más fresco.
 - **Trabajar en estiramiento:**
   - Las parciales en estiramiento dieron más hipertrofia en extensión de rodilla (Pedrosa 2022) y en gemelo (Kassiano 2023). <https://doi.org/10.1080/17461391.2021.1927199> · <https://pubmed.ncbi.nlm.nih.gov/37015016/>
   - En personas entrenadas los resultados son mixtos. La app pide recorrido completo con pausa abajo **[criterio propio]**.
-- **Peso muerto rumano o convencional:** no hay ensayos de hipertrofia que los comparen.
-  - Por EMG, el peso muerto con piernas rígidas carga más la parte alta del isquio (Schoenfeld 2015). <https://breakingmuscle.com/study-compares-hamstring-muscle-activation-during-the-deadlift-and-leg-curl/>
-  - Rango: rumano 6–10; convencional pesado 4–6. La app usa 5–8 mientras no se sepa cuál hace el usuario **[criterio propio]**.
+- **Peso muerto piernas rígidas** (el que hace el usuario): no hay ensayos de hipertrofia que lo comparen con el convencional.
+  - Por EMG carga más la parte alta del isquio, y el curl la parte baja (Schoenfeld 2015). Juntos cubren el músculo entero. <https://breakingmuscle.com/study-compares-hamstring-muscle-activation-during-the-deadlift-and-leg-curl/>
+  - **Rango en la app:** 6–10 reps a 2–3 RIR, como el rumano, porque es una bisagra más ligera que el convencional y la lumbar limita antes que el músculo **[criterio propio]**.
 
 ## 4. Repeticiones, cercanía al fallo, descanso y progresión
 
 - **Cercanía al fallo:**
   - La hipertrofia mejora al acercarse al fallo; la fuerza cambia poco (Robinson 2024). <https://www.fau.edu/newsdesk/articles/muscle-growth-strength-study>
   - Entrenar al fallo retrasa la recuperación 24–48 h (Gentil). <https://paulogentil.com/pdf/Time%20course%20of%20recovery%20following%20resistance%20training%20leading%20or%20not%20to%20failure.pdf>
-  - En la app: máquinas de aislamiento a 0–1 RIR, hack y goblet a 1–2, peso muerto a 2–3 y nunca al fallo **[criterio propio]**.
+  - En la app: máquinas de aislamiento a 0–1 RIR, hack y goblet a 1–2, peso muerto piernas rígidas a 2–3 y nunca al fallo **[criterio propio]**.
 - **Descanso:**
   - 3 min dieron más grosor de muslo y más 1RM en sentadilla que 1 min (Schoenfeld 2016). <https://pubmed.ncbi.nlm.nih.gov/26605807/>
   - Más de 60–90 s aporta poco en aislamiento (Singer 2024). <https://pubmed.ncbi.nlm.nih.gov/39205815/>
@@ -69,9 +79,12 @@ El peso de referencia es el de la serie más ligera que se hizo: si cambias el p
 
 ## 5. Organización de la semana
 
-- **Con 5 días:** lunes torso, martes Pierna A, miércoles torso, jueves Pierna B, viernes torso.
-  - Así las habilidades de brazos rectos caen 3 días no seguidos y la pierna tiene 48–96 h entre sesiones.
-  - Si se puede, la Pierna B el sábado deja 96 h desde el martes **[criterio propio, basado en Belcher]**.
+- **El plan elige a la vez los días y su tipo** (`gymDays` en `js/schedule.js`), probando todas las combinaciones:
+  - nunca dos días de pierna seguidos, y lo más separados posible (hasta 72–96 h);
+  - nunca dos días de torso seguidos, por las habilidades de brazos rectos;
+  - a igualdad, menos días seguidos.
+- **Con lunes a viernes:** torso L-X-V y pierna M-J (48 h entre días de pierna; no hay otra forma sin juntar dos torsos).
+- **Si además el sábado está libre:** torso L-X-S y pierna M-V, con 72 h **[criterio propio, basado en Belcher]**.
 - **Peso muerto antes de dominadas:** no se encontraron estudios. Se recomienda usar straps y dejar 2–3 RIR **[criterio propio]**.
 - **Torso:**
   - Cada día de torso tiene los 4 patrones de la Recommended Routine: dominadas, fondos, remo y flexiones, más core.

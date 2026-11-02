@@ -8,6 +8,18 @@
   <meta name="theme-color" content="#050507" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#fff2bd" media="(prefers-color-scheme: light)">
   <meta name="color-scheme" content="dark light">
+  <script>
+    // Tema elegido en Ajustes, aplicado antes de pintar (ver js/theme.js).
+    try {
+      var cfState = JSON.parse(localStorage.getItem('calisthenic-flow:v1') || '{}');
+      var cfTheme = cfState && cfState.settings && cfState.settings.theme;
+      if (cfTheme === 'light' || cfTheme === 'dark') {
+        document.documentElement.setAttribute('data-theme', cfTheme);
+        var cfColor = cfTheme === 'dark' ? '#050507' : '#fff2bd';
+        document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) { m.setAttribute('content', cfColor); });
+      }
+    } catch (e) { /* sin datos guardados: tema automático */ }
+  </script>
 
   <!-- iOS: app a pantalla completa desde la pantalla de inicio -->
   <meta name="apple-mobile-web-app-capable" content="yes">

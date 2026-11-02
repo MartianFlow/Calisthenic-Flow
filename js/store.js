@@ -20,6 +20,7 @@ export function defaultState() {
       sound: true,
       warmup: true,
       legs: 'calistenia',   // 'calistenia' | 'gym' (pierna en el gimnasio con pesos)
+      theme: 'auto',        // 'auto' (sigue al iPhone) | 'light' | 'dark'
     },
     progress: {},           // id → { step, passes, done }
     lifts: {},              // ejercicio de gimnasio → { kg, reps, stall }
@@ -95,6 +96,7 @@ export function normalize(data) {
   s.sessions = Array.isArray(s.sessions) ? s.sessions : [];
   s.settings.goals = (s.settings.goals || []).filter((id) => ROADMAP_BY_ID[id]);
   if (!['calistenia', 'gym'].includes(s.settings.legs)) s.settings.legs = 'calistenia';
+  if (!['auto', 'light', 'dark'].includes(s.settings.theme)) s.settings.theme = 'auto';
   s.lifts = s.lifts && typeof s.lifts === 'object' ? s.lifts : {};
   for (const [id, l] of Object.entries(s.lifts)) {
     if (!l || typeof l !== 'object') { delete s.lifts[id]; continue; }

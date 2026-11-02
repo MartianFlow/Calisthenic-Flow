@@ -15,6 +15,7 @@ import * as calendar from './views/calendar.js';
 import * as hero from './views/hero.js';
 import * as planView from './views/plan.js';
 import { syncAchievements } from './game.js';
+import { applyTheme } from './theme.js';
 import { update } from './store.js';
 
 addRoute('/', home.render, { tab: 'hoy' });
@@ -61,6 +62,7 @@ let enterTimer = null;
 
 function render() {
   const state = getState();
+  applyTheme(state.settings.theme); // también tras importar una copia o borrar los datos
   let hash = location.hash || '#/';
   if (!state.onboarded && hash !== '#/bienvenida') {
     history.replaceState(null, '', '#/bienvenida');

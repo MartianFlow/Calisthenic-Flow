@@ -20,11 +20,9 @@ Documento de referencia para continuar el trabajo en sesiones futuras. Resume qu
   10. Héroe, artículos y logros en **pixel art estilo Zelda**. Se hizo un estilo RPG retro **original**, sin copiar elementos de Zelda (nada de rupias, Trifuerza ni la ropa de Link).
   11. Nivel sin mínimo de 8 entrenos y contando las habilidades.
   12. **Pierna en el gimnasio.** Se considera avanzado y entrena 5 días, 2 de ellos de pierna.
-      - Su rutina de pierna: sentadilla hack, peso muerto, sentadilla goblet en hack, extensión de cuádriceps, curl femoral, aductor, abductor, gemelo sentado y gemelo de pie.
-      - Se repartió en Pierna A y Pierna B, y el torso pasó a Torso A y Torso B.
-- **Dudas abiertas sobre su caso:**
-  - Si su peso muerto es rumano o convencional (el rango 5–8 es provisional).
-  - Si hacía los 9 ejercicios en cada sesión (se repartieron en 2 días por volumen).
+      - Su rutina de pierna, que hace **completa en cada día de pierna**: sentadilla hack, peso muerto **piernas rígidas**, sentadilla goblet en hack, extensión de cuádriceps, curl femoral, aductor, abductor, gemelo de pie y gemelo sentado.
+      - Primero se repartió en Pierna A y B; tras su respuesta, es un solo día «Pierna» (tipo `P`) dos veces por semana. El torso es Torso A / Torso B.
+  13. **Modo noche:** en su iPhone no cambiaba. Se añadió en Ajustes un selector de tema (Automático / Claro / Oscuro).
 
 ## Despliegue
 
@@ -33,7 +31,7 @@ Documento de referencia para continuar el trabajo en sesiones futuras. Resume qu
   - El usuario debía activarlo a mano y dijo "listo", pero no se ha podido verificar: github.io está bloqueado desde el entorno cloud.
 - **Instalación en el iPhone:** Safari → Compartir → Añadir a pantalla de inicio.
 - **Actualizaciones:** el service worker sirve primero la caché y actualiza en segundo plano, así que los cambios se ven la **segunda vez** que se abre la app.
-  - **Al añadir archivos**, hay que incluirlos en `ASSETS` de `sw.js` y subir `VERSION` (ahora `cf-v6`).
+  - **Al añadir archivos**, hay que incluirlos en `ASSETS` de `sw.js` y subir `VERSION` (ahora `cf-v7`).
 
 ## Arquitectura
 
@@ -46,7 +44,8 @@ manifest.webmanifest     PWA
 css/styles.css           Todo el estilo: tema cómic + tema pixel (sección "Héroe en pixel art")
 fonts/                   Bangers (cómic), Press Start 2P y VT323 (pixel) — OFL, autoalojadas
 icons/                   Iconos de la app (explosión amarilla con barras)
-js/app.js                Rutas hash, delegación de eventos (data-action / data-change), tick 250 ms, sync de logros al cargar
+js/app.js                Rutas hash, delegación de eventos (data-action / data-change), tick 250 ms, sync de logros al cargar, aplica el tema
+js/theme.js              Tema claro/oscuro: applyTheme (data-theme en <html> + meta theme-color). index.html lo aplica antes de pintar
 js/router.js             Router por hash
 js/store.js              Estado en localStorage (clave 'calisthenic-flow:v1'), normalize + migración v1→v2
 js/logic.js              Sesiones, progresión doble, descansos, descarga, estadísticas
@@ -62,10 +61,10 @@ js/charts.js             Gráficas SVG (barras semanales, línea de progreso)
 js/data/roadmaps.js      Contenido: 14 rutas / 116 pasos, DAY_TEMPLATES, WARMUP
 js/data/videos.js        Vídeo por paso (clave 'ruta/key') — 87 de 116
 js/data/legacy.js        Nombres de pasos v1 para migrar progreso
-js/data/gym.js           Pierna en el gimnasio: 9 ejercicios con kg (LIFTS), LEG_DAYS (PA/PB) y LEG_WARMUP
+js/data/gym.js           Pierna en el gimnasio: 9 ejercicios con kg (LIFTS), LEG_DAYS (P = rutina completa) y LEG_WARMUP
 js/views/*.js            home, session, roadmaps, progress (+resumen/detalle), calendar, settings (+onboarding), hero (+logros/equipo), plan
 docs/                    Investigación con fuentes (principios, progresiones y pierna en el gimnasio)
-tests/e2e/               43 pruebas Playwright + fixtures.js
+tests/e2e/               46 pruebas Playwright + fixtures.js
 .github/workflows/e2e.yml  CI: Chromium + WebKit en cada push
 ```
 
@@ -83,7 +82,7 @@ tests/e2e/               43 pruebas Playwright + fixtures.js
 
 ```js
 { version: 2, onboarded,
-  settings: { goals[≤3], daysPerWeek, passesToLevelUp (habilidades), sound, warmup, legs: 'calistenia'|'gym', schedule: { days[7 bool] } | null },
+  settings: { goals[≤3], daysPerWeek, passesToLevelUp (habilidades), sound, warmup, legs: 'calistenia'|'gym', theme: 'auto'|'light'|'dark', schedule: { days[7 bool] } | null },
   progress: { [rutaId]: { step, passes, done, work, stall, resets } },   // work = objetivo por serie actual
   lifts: { [liftId]: { kg, reps, stall } },                              // pierna en el gimnasio: peso y reps objetivo
   levelLog[], sessions[], active, plan, lastDayType, deload: { start, until }, deloadSnoozeUntil,
@@ -96,7 +95,7 @@ Cada sesión del historial guarda:
 - Los ejercicios de gimnasio llevan `liftId` en vez de `roadmapId`/`stepIndex`, y además `min`, `max`, `goal`, `sets` (reps), `loads` (kg por serie) y `outcome`.
   - Los `outcome` posibles son `load-up`, `up`, `keep`, `consolidate`, `down`, `load-down`, `reset`, `no-kg` y `deload`.
   - Para pintar cualquier ítem usa `itemName()` (logic.js) y `itemBlock()` (progress.js), que ya distinguen los dos tipos.
-- `dayType` puede ser `A`, `B`, `S`, `TA`, `TB`, `PA`, `PB` o `libre`; para mostrarlo usa `dayLabel()` (schedule.js).
+- `dayType` puede ser `A`, `B`, `S`, `TA`, `TB`, `P` o `libre`, y `PA`/`PB` en sesiones antiguas. Para mostrarlo usa `dayLabel()` (schedule.js).
 
 ## Reglas de entrenamiento (basadas en la investigación de `docs/`)
 
@@ -141,10 +140,16 @@ Cada sesión del historial guarda:
   - **Plantilla de 3 días:** A-B-A en las semanas ISO pares y B-A-B en las impares. Por eso el 2/11/2026 (lunes, semana 45) toca B.
   - **Elección de días:** `pickDays` busca la máxima separación entre los días disponibles.
 - **Pierna en el gimnasio** (`settings.legs = 'gym'`, investigación en `docs/investigacion-pierna-gym.md`):
-  - **Plantilla** (`gymWeekTemplate`): T-P-T-P-T con 5 días. T alterna TA/TB (empieza por TB en las semanas impares) y P alterna PA/PB.
+  - **Días y tipos** (`gymDays`): prueba todas las combinaciones de días y tipos.
+    - Nunca pierna en días seguidos, y la mayor separación posible (tope de 4 días).
+    - Nunca torso en días seguidos; a igualdad, menos días seguidos.
+    - Con L–V: TB-P-TA-P-TB. Con L–S: torso L-X-S y pierna M-V.
+    - 1 día de pierna con 2–3 días de entreno, 2 con 4 o más. T alterna TA/TB (empieza por TB en las semanas impares).
   - **Torso A/B:** dominadas, fondos, remo, flexiones y core, con el orden de las parejas cambiado. Las habilidades solo van en los días de torso.
-  - **Pierna A:** hack 4×6–10, extensión, curl, aductor y gemelo de pie 4×8–12.
-  - **Pierna B:** peso muerto 3×5–8, goblet 3×10–15, curl, extensión ×2, abductor y gemelo sentado. `LEG_DAYS.PB.sets` cambia las series solo en ese día.
+  - **Pierna (`P`):** la rutina completa del usuario, 3 series cada ejercicio y siempre en el mismo orden, para que el peso sea comparable entre sesiones.
+    - Orden: hack 6–10, piernas rígidas 6–10, goblet 10–15, extensión, curl, aductor, abductor, gemelo de pie y gemelo sentado.
+    - `LEG_DAYS.P.sets` permitiría cambiar las series solo en ese día.
+    - `PA`/`PB` solo quedan en `DAY_INFO` como nombres para el historial.
   - **Progresión doble con carga** (`applyLiftProgress`):
     - Tope del rango con Fácil o Normal: +`inc` kg y vuelta al mínimo. Con Difícil: consolidar, salvo en las máquinas `failureOk`, que suben igual.
     - Por debajo del tope: +2 reps con Fácil y +1 con Normal.
@@ -181,7 +186,11 @@ Cada sesión del historial guarda:
 
 ## Diseño
 
-- **Tema cómic de alto contraste** en toda la app (tokens en `:root`, claro y oscuro automáticos):
+- **Tema claro y oscuro:**
+  - El oscuro va por defecto en `:root`.
+  - El claro se aplica con `@media (prefers-color-scheme: light) :root:not([data-theme="dark"])` o con `:root[data-theme="light"]`. El bloque de tokens claros está duplicado: si cambias uno, cambia los dos.
+  - El usuario puede forzarlo en Ajustes → Apariencia.
+- **Tema cómic de alto contraste** en toda la app:
   - Paneles con borde de 3 px negro y sombra dura, colores amarillo `#ffe500`, rosa `#ff2d87` y cian `#18e0ff`.
   - Tipografía Bangers y tramas de semitonos.
   - Onomatopeyas «¡POW!» al completar series, latido en el descanso y explosión al subir de nivel.
@@ -208,7 +217,9 @@ Cada sesión del historial guarda:
   - **Errores:** falla si hay errores de JS.
   - **Ayudantes:** `seed()` (vía addInitScript, solo en el frame superior y una vez por pestaña), `makeState()`, `pastSession()`, `trainOnly()`, `completeCurrentExercise()` (solo las series del ejercicio actual) y `rate()`.
 - **Configuración:** `reducedMotion: 'reduce'` (las animaciones infinitas hacen que los elementos no sean "estables"). Los artículos bloqueados llevan `aria-disabled` y para pulsarlos hay que usar `click({ force: true })`.
-- **Resultados:** 43 pruebas. `gym.spec.js` cubre el modo de pierna en el gimnasio.
+- **Resultados:** 46 pruebas.
+  - `gym.spec.js` cubre el modo de pierna en el gimnasio.
+  - En `navigation.spec.js` están las del tema forzado, con `colorScheme` claro y oscuro.
   - **En CI:** pasan todas en Chromium y todas menos una en WebKit. La prueba sin conexión se salta en WebKit por una limitación de Playwright: `setOffline` con service worker da un error interno al recargar.
 - **CI:** `.github/workflows/e2e.yml`.
   - Usa checkout@v5 y setup-node@v5, e instala con `npx playwright install --with-deps chromium webkit`.

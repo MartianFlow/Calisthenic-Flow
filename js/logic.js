@@ -29,14 +29,21 @@ export function itemName(item) {
 export const TORSO_TYPES = ['A', 'B', 'TA', 'TB'];
 export const isGymLegs = (state) => state.settings.legs === 'gym';
 
-// Orden de los días cuando no hay plan semanal (o al cambiar de día a mano).
+// Tipos de día para «Cambiar de día» en la pantalla Hoy.
 export function dayOrder(state) {
-  return isGymLegs(state) ? ['TA', 'PA', 'TB', 'PB'] : ['A', 'B'];
+  if (isGymLegs(state)) return ['TA', 'TB', 'P'];
+  return state.settings.goals.length ? ['A', 'B', 'S'] : ['A', 'B'];
 }
 
+// Siguiente día cuando no hay plan semanal: alterna A/B, o torso/pierna con los
+// torsos alternando TA/TB.
 export function nextDayType(state) {
-  const order = dayOrder(state);
-  return order[(order.indexOf(state.lastDayType) + 1) % order.length];
+  if (isGymLegs(state)) {
+    if (state.lastDayType === 'TA' || state.lastDayType === 'TB') return 'P';
+    const lastTorso = [...state.sessions].reverse().find((s) => s.dayType === 'TA' || s.dayType === 'TB');
+    return lastTorso?.dayType === 'TA' ? 'TB' : 'TA';
+  }
+  return state.lastDayType === 'A' ? 'B' : 'A';
 }
 
 // Habilidades por sesión: máximo 2 (carga de tendones en brazos rectos). Con 3
@@ -53,7 +60,7 @@ export function sessionGoals(state) {
 export function defaultIds(state, dayType) {
   if (LEG_DAYS[dayType]) return [...LEG_DAYS[dayType].ids];
   const ids = sessionGoals(state);
-  for (const id of DAY_TEMPLATES[dayType].ids) if (!ids.includes(id)) ids.push(id);
+  for (const id of DAY_TEMPLATES[dayType]?.ids || []) if (!ids.includes(id)) ids.push(id);
   return ids;
 }
 
@@ -512,7 +519,7 @@ export function finishActiveSession() {
     s.sessions.push(session);
     s.active = null;
     s.plan = null;
-    if (['A', 'B', 'TA', 'TB', 'PA', 'PB'].includes(active.dayType)) s.lastDayType = active.dayType;
+    if (['A', 'B', 'TA', 'TB', 'P'].includes(active.dayType)) s.lastDayType = active.dayType;
   });
   return session;
 }

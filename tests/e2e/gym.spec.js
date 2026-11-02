@@ -13,14 +13,24 @@ test.describe('Plan torso / pierna', () => {
     await page.goto('/#/plan');
     const rows = page.locator('.week-row');
     // Semana 45 (impar): empieza por Torso B
-    const expected = ['TB', 'PA', 'TA', 'PB', 'TB', 'R', 'R'];
+    const expected = ['TB', 'P', 'TA', 'P', 'TB', 'R', 'R'];
     for (const [i, type] of expected.entries()) await expect(rows.nth(i)).toHaveClass(new RegExp(`type-${type}\\b`));
     // Los días de torso no llevan pierna de calistenia y los de pierna no llevan habilidades
     await expect(rows.nth(0)).not.toContainText('Piernas ·');
     await expect(rows.nth(0).locator('.mini-chip.skill')).toContainText('Front lever');
     await expect(rows.nth(1).locator('.mini-chip.skill')).toHaveCount(0);
-    await expect(rows.nth(1)).toContainText('Sentadilla hack');
-    await expect(rows.nth(3)).toContainText('Peso muerto');
+    // Cada día de pierna es la rutina completa (9 ejercicios)
+    await expect(rows.nth(1).locator('.mini-chip.lift')).toHaveCount(9);
+    await expect(rows.nth(3)).toContainText('Peso muerto piernas rígidas');
+  });
+
+  test('con el sábado libre separa los días de pierna 72 h', async ({ page }) => {
+    await seed(page, gymState({ settings: { schedule: { days: [true, true, true, true, true, true, false] } } }));
+    await page.goto('/#/plan');
+    const types = await page.locator('.week-row').evaluateAll((rows) => rows.map((r) => r.className.match(/type-(\w+)/)[1]));
+    expect(types.filter((t) => t === 'P')).toHaveLength(2);
+    const legDays = types.map((t, i) => (t === 'P' ? i : -1)).filter((i) => i >= 0);
+    expect(legDays[1] - legDays[0]).toBeGreaterThanOrEqual(3);
   });
 
   test('elegir pierna en el gimnasio cambia la recomendación y la plantilla', async ({ page }) => {
@@ -50,19 +60,20 @@ test.describe('Plan torso / pierna', () => {
 });
 
 test.describe('Día de pierna', () => {
-  test.use({ now: '2026-11-03T10:00:00+01:00' }); // martes → Pierna A
+  test.use({ now: '2026-11-03T10:00:00+01:00' }); // martes → Pierna
 
   test('el tope del rango con Normal sube el peso y vuelve al mínimo', async ({ page }) => {
     await seed(page, gymState({ lifts: { hack: { kg: 100, reps: 10, stall: 0 } } }));
     await page.goto('/');
-    await expect(page.locator('.plan h2')).toContainText('Pierna A');
+    await expect(page.locator('.plan h2')).toContainText('Pierna');
+    await expect(page.locator('.ex-row')).toHaveCount(9);
     await page.locator('[data-action="start-session"]').click();
     await expect(page.locator('.exercise h2')).toHaveText('Calentamiento de pierna');
     await page.locator('[data-action="warmup-done"]').last().click();
 
     await expect(page.locator('.exercise h2')).toHaveText('Sentadilla hack');
     await expect(page.locator('.load-input')).toHaveValue('100');
-    await expect(page.locator('.set')).toHaveCount(4);
+    await expect(page.locator('.set')).toHaveCount(3);
     await completeCurrentExercise(page);
     await expect(page.locator('.rate-q')).toContainText('Sentadilla hack');
     await rate(page, 'normal');
@@ -71,10 +82,10 @@ test.describe('Día de pierna', () => {
     await expect(page).toHaveURL(/#\/resumen\//);
     await expect(page.locator('.burst-title')).toContainText('PESO');
     await expect(page.locator('.summary-item.lift')).toContainText('100 kg × 10');
-    await expect(page.locator('.outcome')).toContainText('¡Sube el peso! Próxima vez: 4 × 6 reps con 105 kg');
+    await expect(page.locator('.outcome')).toContainText('¡Sube el peso! Próxima vez: 3 × 6 reps con 105 kg');
     const s = await readState(page);
     expect(s.lifts.hack).toMatchObject({ kg: 105, reps: 6, stall: 0 });
-    expect(s.sessions[0].dayType).toBe('PA');
+    expect(s.sessions[0].dayType).toBe('P');
     expect(s.game.unlocked['dia-pierna']).toBeTruthy();
   });
 
@@ -83,7 +94,7 @@ test.describe('Día de pierna', () => {
     await page.goto('/');
     await page.locator('[data-action="start-session"]').click();
     await page.locator('[data-action="warmup-done"]').last().click();
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 3; i++) {
       for (let k = 0; k < 2; k++) await page.locator(`[data-action="set-dec"][data-set="${i}"]`).click(); // 6 → 4
     }
     await completeCurrentExercise(page);

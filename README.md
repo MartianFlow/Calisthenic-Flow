@@ -18,9 +18,10 @@ Es una **web app instalable (PWA)**: se añade a la pantalla de inicio del iPhon
   - Día S: habilidades y core; aparece con 5 o más días y objetivos.
   - Deja descanso entre sesiones y nunca pone habilidades de brazos rectos en días seguidos ni más de 3 días por semana.
   - **Nivel:** media de lo recorrido en tus rutas de fuerza y en las habilidades que trabajas. Las habilidades cuentan desde el nivel que piden sus prerrequisitos. Sin mínimo de entrenos.
-- **Pierna en el gimnasio (opcional):** en *Plan semanal* eliges «Pierna: Gimnasio» y la semana pasa a torso/pierna (con 5 días: torso L-X-V y pierna M-J).
+- **Pierna en el gimnasio (opcional):** en *Plan semanal* eliges «Pierna: Gimnasio» y la semana pasa a torso/pierna.
+  - **Reparto:** con 5 días, torso L-X-V y pierna M-J. Si también tienes libre el sábado, pierna martes y viernes, con 72 h de separación.
   - **Torso A / Torso B:** dominadas, fondos, remo, flexiones y core, con tus habilidades al principio. A y B cambian el orden.
-  - **Pierna A** (hack, extensión, curl femoral, aductor, gemelo de pie) y **Pierna B** (peso muerto, goblet en hack, curl femoral, extensión, abductor, gemelo sentado).
+  - **Pierna:** tu rutina completa, siempre en el mismo orden: sentadilla hack, peso muerto piernas rígidas, goblet en hack, extensión, curl femoral, aductor, abductor, gemelo de pie y gemelo sentado.
   - Apuntas el peso de cada ejercicio y la app usa **progresión doble con carga**: cuando haces el tope del rango en todas las series, te sube el peso (+5 kg o +2,5 kg) y vuelves al mínimo del rango. Si no llegas al mínimo con Difícil, te baja ~10 %.
   - Calentamiento propio de pierna, XP por cada subida de peso y logros de pierna.
   - La pantalla Hoy te dice qué toca, si es día de descanso y cuál es el próximo entreno. Puedes editar el entreno antes de empezar.
@@ -38,6 +39,7 @@ Es una **web app instalable (PWA)**: se añade a la pantalla de inicio del iPhon
   - Al alcanzar la meta: **Fácil** te pasa al siguiente ejercicio de la escala. **Normal** cuenta como sesión superada: con 1 subes en fuerza, y en habilidades necesitas 2 (configurable). **Difícil** te hace consolidar ese nivel.
   - **Estancamiento:** si una ruta no avanza en 3 sesiones, el objetivo se reinicia al 80 % para volver a subir.
 - **Semana de descarga:** la app la sugiere cada 5–6 semanas o si tienes 2 rutas estancadas. Durante 7 días hay una serie menos, los objetivos bajan al 65 % y no se sube de nivel.
+- **Tema claro u oscuro:** automático según el iPhone, o elegido a mano en Ajustes → Apariencia.
 - **Calendario:** marca los días entrenados y las subidas de nivel. Al tocar un día ves qué entrenaste, tus series, cómo valoraste cada ejercicio y qué cambió en tu progreso.
 - **Durante el entreno:** calentamiento guiado, contador +/− por serie, cronómetro con cuenta atrás para isometrías, temporizador de descanso con aviso sonoro y pantalla siempre encendida.
 - **Progreso:** tiempo total, racha de semanas cumpliendo tu objetivo, minutos por semana, historial de subidas de nivel, gráfica de tu mejor serie en cada paso e historial completo de entrenos con notas.
@@ -92,9 +94,9 @@ La carpeta [`tests/e2e`](tests/e2e) tiene una batería de pruebas con [Playwrigh
 | `workout.spec.js` | Entreno completo: calentamiento, series, cronómetro de isometrías, descanso, valoración durante el descanso, resumen con EXP. También recargar a mitad de entreno y descartar |
 | `progression.spec.js` | Fácil, Normal y Difícil: subida del objetivo, cambio de paso, 2 sesiones en habilidades, recalibrado, reinicio por estancamiento y descanso según el paso |
 | `plan.spec.js` | Recomendación de días, nivel con habilidades, cambio de días disponibles, reglas de brazos rectos, día de descanso y «Misión cumplida» |
-| `gym.spec.js` | Pierna en el gimnasio: semana torso/pierna, recomendación de 5 días, pesos con coma, subida y bajada de peso y cambio de peso durante el entreno |
+| `gym.spec.js` | Pierna en el gimnasio: semana torso/pierna, separación de los días de pierna, recomendación de 5 días, pesos con coma, subida y bajada de peso y cambio de peso durante el entreno |
 | `gamification.spec.js` | Héroe en pixel art, atributos, logros desbloqueados, artículos bloqueados y desbloqueados, apariencia y nombre |
-| `navigation.spec.js` | Rutas, visor de vídeo, búsqueda en YouTube, cambio manual de nivel, calendario, progreso y pestañas |
+| `navigation.spec.js` | Rutas, visor de vídeo, búsqueda en YouTube, cambio manual de nivel, calendario, progreso, pestañas y tema claro u oscuro |
 | `deload.spec.js` | Sugerencia y efecto de la semana de descarga |
 | `data.spec.js` | Migración desde la v1, exportar e importar la copia, borrar datos y funcionamiento sin conexión |
 
@@ -140,7 +142,8 @@ js/logic.js             Generación de entrenos, subidas de nivel y estadística
 js/data/roadmaps.js     Contenido: rutas, plantillas y calentamiento
 js/data/videos.js       Vídeo de técnica de cada paso
 js/data/legacy.js       Nombres de pasos de la v1 (migración del progreso)
-js/data/gym.js          Pierna en el gimnasio: ejercicios con peso, Pierna A/B y su calentamiento
+js/data/gym.js          Pierna en el gimnasio: ejercicios con peso, día de pierna y su calentamiento
+js/theme.js             Tema claro u oscuro elegido en Ajustes
 js/fx.js                Efectos de cómic (onomatopeyas, latidos, destellos)
 js/game.js              XP, niveles, atributos, logros y artículos
 js/avatar.js            Héroe en pixel art (generado por capas)

@@ -295,7 +295,7 @@ export const actions = {
   'plan-switch'() {
     update((s) => {
       const base = todayInfo(s).plan;
-      const order = isGymLegs(s) ? dayOrder(s) : s.settings.goals.length ? ['A', 'B', 'S'] : ['A', 'B'];
+      const order = dayOrder(s);
       const dayType = order[(order.indexOf(base.dayType) + 1) % order.length] || order[0];
       const ids = dayType === 'S'
         ? [...s.settings.goals.filter((id) => ROADMAP_BY_ID[id]).slice(0, 3), 'core']

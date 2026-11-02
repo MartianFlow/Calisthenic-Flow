@@ -8,6 +8,7 @@ import { navigate } from '../router.js';
 import { audio } from '../device.js';
 import { recommendDays, DEFAULT_DAYS } from '../schedule.js';
 import { dayChips, daysSegmented, legsSegmented } from './plan.js';
+import { THEMES, applyTheme } from '../theme.js';
 
 const MAX_GOALS = 3;
 const skills = () => ROADMAPS.filter((r) => r.category === 'habilidad');
@@ -74,6 +75,13 @@ export function render() {
         ? `<button class="btn ghost small" data-action="deload-end">Terminar semana de descarga</button>`
         : `<button class="btn ghost small" data-action="deload-start">Empezar semana de descarga</button>`}
       <p class="muted small">Descarga: 7 días con una serie menos y objetivos al ~65 %. Recomendada cada 5–6 semanas o si te estancas.</p>
+    </section>
+
+    <section class="card">
+      <h3>Apariencia</h3>
+      <div class="segmented" role="radiogroup" aria-label="Tema">${THEMES.map(([value, label]) => `
+        <button role="radio" aria-checked="${st.theme === value}" class="${st.theme === value ? 'on' : ''}" data-action="set-theme" data-value="${value}">${esc(label)}</button>`).join('')}</div>
+      <p class="muted small">Automático sigue el modo claro u oscuro del iPhone. Si desde la pantalla de inicio no cambia, elige Claro u Oscuro.</p>
     </section>
 
     <section class="card">
@@ -168,6 +176,12 @@ export const actions = {
     const key = el.dataset.key;
     const value = Number(el.dataset.value);
     update((s) => { s.settings[key] = value; if (key === 'daysPerWeek') s.plan = null; });
+  },
+  'set-theme'(el) {
+    const value = el.dataset.value;
+    if (!THEMES.some(([v]) => v === value)) return;
+    applyTheme(value);
+    update((s) => { s.settings.theme = value; });
   },
   'toggle-setting'(el) {
     const key = el.dataset.key;

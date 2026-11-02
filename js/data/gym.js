@@ -21,7 +21,7 @@
 export const LIFTS = [
   {
     id: 'hack', name: 'Sentadilla hack', muscle: 'Cuádriceps, glúteo y aductores',
-    sets: 4, min: 6, max: 10, inc: 5, rest: 180, rir: '1–2',
+    sets: 3, min: 6, max: 10, inc: 5, rest: 180, rir: '1–2',
     cues: [
       'Pies a la anchura de los hombros; cuanto más abajo en la plataforma, más cuádriceps.',
       'Baja profundo: pasar de la paralela trabaja más glúteo y aductores que media sentadilla.',
@@ -29,11 +29,11 @@ export const LIFTS = [
     ],
   },
   {
-    id: 'peso-muerto', name: 'Peso muerto', muscle: 'Isquios, glúteo y espalda',
-    sets: 3, min: 5, max: 8, inc: 5, rest: 180, rir: '2–3',
+    id: 'peso-muerto', name: 'Peso muerto piernas rígidas', muscle: 'Isquios y glúteo',
+    sets: 3, min: 6, max: 10, inc: 5, rest: 180, rir: '2–3',
     cues: [
-      'Barra pegada a las piernas durante todo el recorrido; espalda neutra.',
-      'En la versión rumana (rodillas casi rectas, bajas hasta notar el isquio) trabajan más los isquios.',
+      'Rodillas casi rectas (un poco desbloqueadas) y cadera hacia atrás, como cerrando una puerta con el culo.',
+      'Barra pegada a las piernas y espalda neutra: baja solo hasta donde notes el isquio sin redondear la lumbar.',
       'Nunca al fallo; usa straps si el agarre te limita, así llegas fresco a las dominadas.',
     ],
   },
@@ -84,7 +84,7 @@ export const LIFTS = [
   },
   {
     id: 'gemelo-pie', name: 'Gemelo de pie', muscle: 'Gemelos (gastrocnemio y sóleo)',
-    sets: 4, min: 8, max: 12, inc: 5, rest: 75, rir: '0–1', failureOk: true,
+    sets: 3, min: 8, max: 12, inc: 5, rest: 75, rir: '0–1', failureOk: true,
     cues: [
       'Rodillas casi estiradas: así trabaja el gastrocnemio, la parte más visible.',
       'Baja hasta el máximo estiramiento y pausa 2 s abajo.',
@@ -104,19 +104,16 @@ export const LIFTS = [
 
 export const LIFT_BY_ID = Object.fromEntries(LIFTS.map((l) => [l.id, l]));
 
-// Dos días de pierna. Cada músculo se trabaja las dos veces, y los dos ejercicios
-// más pesados (hack y peso muerto) van en días distintos (Belcher 2019: la sentadilla
-// y el peso muerto pesados tardan hasta 96 h en recuperarse del todo).
-// `sets` cambia el número de series de un ejercicio solo en ese día.
+// Día de pierna: la rutina completa del usuario, dos veces por semana y siempre en
+// el mismo orden (multiarticulares primero). Mismo orden = rendimiento comparable
+// entre sesiones, que es lo que necesita la progresión por peso.
+// Por sesión: cuádriceps 9 series, isquios 6, gemelos 6 → por debajo del tope de
+// ~11 por músculo y sesión; por semana 18 / 12 / 12, dentro de 10–20.
+// `sets` (opcional) cambia el número de series de un ejercicio solo en ese día.
 export const LEG_DAYS = {
-  PA: {
-    label: 'Pierna A', badge: 'PA', focus: 'Cuádriceps y aductores · Isquios · Gemelo de pie',
-    ids: ['hack', 'extension', 'curl-femoral', 'aductor', 'gemelo-pie'],
-  },
-  PB: {
-    label: 'Pierna B', badge: 'PB', focus: 'Cadena posterior y glúteo · Cuádriceps · Sóleo',
-    ids: ['peso-muerto', 'goblet-hack', 'curl-femoral', 'extension', 'abductor', 'gemelo-sentado'],
-    sets: { extension: 2 },
+  P: {
+    label: 'Pierna', badge: 'P', focus: 'Rutina completa: cuádriceps, isquios, glúteo, aductores y gemelos',
+    ids: ['hack', 'peso-muerto', 'goblet-hack', 'extension', 'curl-femoral', 'aductor', 'abductor', 'gemelo-pie', 'gemelo-sentado'],
   },
 };
 

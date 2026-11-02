@@ -87,11 +87,11 @@ function legend(state) {
   if (isGymLegs(state)) {
     const row = (t) => `<li><span class="type-badge t-${t}">${esc(DAY_INFO[t].badge)}</span><div><strong>${esc(DAY_INFO[t].label)}</strong><span class="muted small">${esc(DAY_INFO[t].focus)}</span></div></li>`;
     return `
-      <ul class="split-legend">${['TA', 'TB', 'PA', 'PB'].map(row).join('')}</ul>
+      <ul class="split-legend">${['TA', 'TB', 'P'].map(row).join('')}</ul>
       <ul class="reasons">
         <li>Torso y pierna alternos: con 5 días, torso lunes-miércoles-viernes y pierna martes-jueves (o los días que elijas).</li>
         <li>Cada día de torso trabaja los 4 patrones (tirón vertical y horizontal, fondos y flexiones), como la Recommended Routine. A y B cambian el orden: lo que va primero es lo que más fuerza gana.</li>
-        <li>Los dos días de pierna trabajan todos los músculos, con la hack pesada en uno y el peso muerto pesado en el otro.</li>
+        <li>Los días de pierna son tu rutina completa, siempre en el mismo orden para poder comparar los pesos. Si puedes, sepáralos 72 h (por ejemplo martes y viernes): marca también el sábado como disponible.</li>
         <li>Habilidades solo en los días de torso: máximo 2 por sesión y, las de brazos rectos, nunca en días seguidos.</li>
         <li>Cada 5–6 semanas, una semana de descarga.</li>
       </ul>`;
