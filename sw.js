@@ -2,7 +2,7 @@
 // Estrategia: responde desde caché y actualiza en segundo plano
 // (los cambios publicados se ven la siguiente vez que abras la app).
 
-const VERSION = 'cf-v5';
+const VERSION = 'cf-v6';
 const ASSETS = [
   './',
   './index.html',
@@ -24,6 +24,7 @@ const ASSETS = [
   './js/data/roadmaps.js',
   './js/data/videos.js',
   './js/data/legacy.js',
+  './js/data/gym.js',
   './js/views/home.js',
   './js/views/session.js',
   './js/views/roadmaps.js',

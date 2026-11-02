@@ -1,7 +1,9 @@
 // Lógica de entrenamiento: generación de rutinas, subida de nivel y estadísticas.
 
 import { ROADMAPS, ROADMAP_BY_ID, DAY_TEMPLATES, WARMUP } from './data/roadmaps.js';
+import { LIFT_BY_ID, LEG_DAYS, LEG_WARMUP } from './data/gym.js';
 import { getState, getProgress, update } from './store.js';
+import { fmtKg } from './ui.js';
 
 const MAX_REASONABLE_SESSION = 3 * 60 * 60 * 1000;
 
@@ -15,8 +17,26 @@ export function stepOf(id) {
   return { roadmap, step: roadmap.steps[progress.step], index: progress.step, progress };
 }
 
+export const isLift = (id) => !!LIFT_BY_ID[id];
+
+// Nombre del ejercicio de un ítem de entreno (paso de una ruta o ejercicio de gimnasio).
+export function itemName(item) {
+  if (item.liftId) return LIFT_BY_ID[item.liftId]?.name || item.liftId;
+  return ROADMAP_BY_ID[item.roadmapId]?.steps[item.stepIndex]?.name || '';
+}
+
+// Días con trabajo de torso (donde van las habilidades).
+export const TORSO_TYPES = ['A', 'B', 'TA', 'TB'];
+export const isGymLegs = (state) => state.settings.legs === 'gym';
+
+// Orden de los días cuando no hay plan semanal (o al cambiar de día a mano).
+export function dayOrder(state) {
+  return isGymLegs(state) ? ['TA', 'PA', 'TB', 'PB'] : ['A', 'B'];
+}
+
 export function nextDayType(state) {
-  return state.lastDayType === 'A' ? 'B' : 'A';
+  const order = dayOrder(state);
+  return order[(order.indexOf(state.lastDayType) + 1) % order.length];
 }
 
 // Habilidades por sesión: máximo 2 (carga de tendones en brazos rectos). Con 3
@@ -26,11 +46,12 @@ export const MAX_SKILLS_PER_SESSION = 2;
 export function sessionGoals(state) {
   const goals = state.settings.goals.filter((id) => ROADMAP_BY_ID[id]);
   if (goals.length <= MAX_SKILLS_PER_SESSION) return goals;
-  const n = state.sessions.filter((s) => s.dayType === 'A' || s.dayType === 'B').length;
+  const n = state.sessions.filter((s) => TORSO_TYPES.includes(s.dayType)).length;
   return Array.from({ length: MAX_SKILLS_PER_SESSION }, (_, i) => goals[(n + i) % goals.length]);
 }
 
 export function defaultIds(state, dayType) {
+  if (LEG_DAYS[dayType]) return [...LEG_DAYS[dayType].ids];
   const ids = sessionGoals(state);
   for (const id of DAY_TEMPLATES[dayType].ids) if (!ids.includes(id)) ids.push(id);
   return ids;
@@ -51,9 +72,24 @@ export function lastPerformance(state, roadmapId, stepIndex) {
   return null;
 }
 
+// Último registro de un ejercicio de gimnasio: { sets: reps[], loads: kg[] }.
+export function lastLift(state, liftId) {
+  for (let i = state.sessions.length - 1; i >= 0; i--) {
+    const item = state.sessions[i].items.find((x) => x.liftId === liftId);
+    if (item && item.sets.length) return { sets: item.sets, loads: item.loads || [] };
+  }
+  return null;
+}
+
 export function estimateMinutes(state, ids, withWarmup = state.settings.warmup) {
   let sec = withWarmup ? 6 * 60 : 0;
   for (const id of ids) {
+    const lift = LIFT_BY_ID[id];
+    if (lift) {
+      sec += lift.sets * (((lift.min + lift.max) / 2) * 3.5 + 25) + (lift.sets - 1) * lift.rest + 90;
+      continue;
+    }
+    if (!ROADMAP_BY_ID[id]) continue;
     const { roadmap, step } = stepOf(id);
     const work = step.type === 'hold' ? step.target : step.target * 3;
     const sides = step.side ? 2 : 1;
@@ -117,7 +153,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export function deloadSuggestion(state, now = Date.now()) {
   if (deloadActive(state, now)) return null;
   if (state.deloadSnoozeUntil && state.deloadSnoozeUntil > now) return null;
-  const stalled = Object.values(state.progress).filter((p) => (p.stall || 0) >= 2).length;
+  const stalled = [...Object.values(state.progress), ...Object.values(state.lifts || {})]
+    .filter((p) => (p?.stall || 0) >= 2).length;
   if (stalled >= 2) return { reason: 'stall', stalled };
   const since = state.deload?.until ?? state.sessions[0]?.startedAt;
   if (!since) return null;
@@ -145,9 +182,119 @@ export function workFor(id) {
   return Math.min(step.target, Math.max(1, w));
 }
 
+// ───────────────────── Pierna en el gimnasio (progresión doble con carga) ─────────────────────
+//
+// Cada ejercicio tiene un rango (p. ej. 6–10 reps). Se trabaja con un objetivo de
+// reps por serie y un peso. La valoración (RIR) decide:
+//   · Todas las series en el tope del rango + Fácil/Normal → +peso y vuelta al mínimo.
+//   · Por debajo del tope: Fácil +2 reps, Normal +1, Difícil se mantiene.
+//   · Sin llegar al mínimo del rango y Difícil → baja ~10 % el peso.
+//   · 3 sesiones sin avanzar → baja ~10 % y reconstruye desde el mínimo.
+
+export function liftState(state, id) {
+  return state.lifts?.[id] || { kg: null, reps: null, stall: 0 };
+}
+
+export function liftGoal(lift, p) {
+  return Math.min(lift.max, Math.max(lift.min, p.reps ?? lift.min));
+}
+
+// Redondea al múltiplo del incremento (2,5 kg, 5 kg…) por debajo.
+function floorLoad(kg, inc) {
+  return Math.max(0, Math.floor(kg / inc + 1e-9) * inc);
+}
+
+// ~10 % menos, redondeado al incremento y siempre al menos un incremento menos.
+export function lighterLoad(kg, inc) {
+  return Math.max(0, Math.min(floorLoad(kg * 0.9, inc), kg - inc));
+}
+
+function liftItem(state, id, deload, dayType) {
+  const lift = LIFT_BY_ID[id];
+  const p = liftState(state, id);
+  const goal = deload ? lift.min : liftGoal(lift, p);
+  const kg = p.kg == null ? null : deload ? lighterLoad(p.kg, lift.inc) : p.kg;
+  const base = LEG_DAYS[dayType]?.sets?.[id] ?? lift.sets;
+  const sets = deload ? Math.max(2, base - 1) : base;
+  return {
+    liftId: id,
+    type: 'reps',
+    min: lift.min,
+    max: lift.max,
+    target: lift.max,
+    goal,
+    kg,
+    plannedSets: sets,
+    side: false,
+    rest: lift.rest,
+    rating: null,
+    sets: Array.from({ length: sets }, () => ({ value: goal, kg, done: false })),
+  };
+}
+
+function applyLiftProgress(p, lift, item) {
+  const rating = item.rating || 'normal';
+  const done = item.sets.filter((x) => x.done);
+  const loads = done.map((x) => Number(x.kg) || 0);
+  const reps = done.map((x) => Number(x.value) || 0);
+  // Peso de trabajo: el de la serie más ligera (si cambiaste el peso a mitad, cuenta el menor).
+  const kg = loads.length ? Math.min(...loads) : Number(item.kg) || 0;
+  const hasKg = kg > 0;
+  const goal = item.goal ?? lift.min;
+  p.kg = hasKg ? kg : p.kg ?? null;
+
+  let outcome;
+  if (stepMet(item)) {
+    // En máquinas de aislamiento llegar al fallo es normal: también sube el peso.
+    if (rating !== 'dificil' || lift.failureOk) {
+      p.reps = lift.min;
+      p.stall = 0;
+      if (!hasKg) { p.reps = lift.max; return { kind: 'no-kg', next: lift.max }; }
+      p.kg = kg + lift.inc;
+      return { kind: 'load-up', from: kg, kg: p.kg, next: lift.min };
+    }
+    p.reps = lift.max;
+    outcome = { kind: 'consolidate', next: lift.max, kg };
+  } else if (goalMet(item)) {
+    if (rating === 'dificil') {
+      p.reps = goal;
+      outcome = { kind: 'keep', next: goal, kg };
+    } else {
+      const next = Math.min(lift.max, goal + (rating === 'facil' ? 2 : 1));
+      p.reps = next;
+      p.stall = 0;
+      return { kind: 'up', from: goal, next, kg };
+    }
+  } else if (rating === 'dificil' && reps.length) {
+    const low = Math.min(...reps);
+    if (low < lift.min && hasKg) {
+      p.kg = lighterLoad(kg, lift.inc);
+      p.reps = lift.min;
+      p.stall = 0;
+      return { kind: 'load-down', from: kg, kg: p.kg, next: lift.min };
+    }
+    const next = Math.max(lift.min, Math.min(goal, low));
+    p.reps = next;
+    outcome = next < goal ? { kind: 'down', from: goal, next, kg } : { kind: 'keep', next: goal, kg };
+  } else {
+    p.reps = goal;
+    outcome = { kind: 'keep', next: goal, kg };
+  }
+
+  p.stall = (p.stall || 0) + 1;
+  if (p.stall >= STALL_LIMIT && hasKg) {
+    p.kg = lighterLoad(kg, lift.inc);
+    p.reps = lift.min;
+    p.stall = 0;
+    return { kind: 'reset', from: kg, kg: p.kg, next: lift.min };
+  }
+  return outcome;
+}
+
 export function createSession(state, plan) {
   const deload = deloadActive(state);
-  const items = plan.ids.filter((id) => ROADMAP_BY_ID[id]).map((id) => {
+  const items = plan.ids.filter((id) => ROADMAP_BY_ID[id] || LIFT_BY_ID[id]).map((id) => {
+    if (LIFT_BY_ID[id]) return liftItem(state, id, deload, plan.dayType);
     const { roadmap, step, index } = stepOf(id);
     const work = workFor(id);
     // Semana de descarga: una serie menos y objetivo al ~65 %.
@@ -173,6 +320,8 @@ export function createSession(state, plan) {
     lastActivityAt: now,
     dayType: plan.dayType,
     deload,
+    // Días solo de gimnasio: calentamiento de pierna en vez del de calistenia.
+    warmupKind: items.length && items.every((it) => it.liftId) ? 'pierna' : 'base',
     warmupDone: !(state.settings.warmup && plan.warmup !== false),
     warmupChecks: [],
     items,
@@ -183,6 +332,10 @@ export function createSession(state, plan) {
     finishing: false,  // valorando los últimos ejercicios antes de terminar
     notes: '',
   };
+}
+
+export function warmupList(active) {
+  return active?.warmupKind === 'pierna' ? LEG_WARMUP : WARMUP;
 }
 
 export function itemComplete(item) {
@@ -292,7 +445,7 @@ export function finishActiveSession() {
     duration: Math.round(duration / 1000),
     dayType: active.dayType,
     deload: !!active.deload,
-    warmupFull: (active.warmupChecks || []).length >= WARMUP.length,
+    warmupFull: (active.warmupChecks || []).length >= warmupList(active).length,
     items: [],
     levelUps: [],
     notes: active.notes || '',
@@ -302,6 +455,30 @@ export function finishActiveSession() {
     for (const item of active.items) {
       const done = item.sets.filter((x) => x.done);
       if (!done.length) continue;
+      if (item.liftId) {
+        const lift = LIFT_BY_ID[item.liftId];
+        const entry = {
+          liftId: item.liftId,
+          type: 'reps',
+          min: item.min,
+          max: item.max,
+          target: item.target,
+          goal: item.goal,
+          plannedSets: item.plannedSets,
+          side: false,
+          sets: done.map((x) => Number(x.value) || 0),
+          loads: done.map((x) => (x.kg == null ? null : Number(x.kg))),
+          met: stepMet(item),
+          goalMet: goalMet(item),
+          rating: item.rating || null,
+        };
+        session.items.push(entry);
+        if (!lift) continue;
+        s.lifts ||= {};
+        const p = (s.lifts[item.liftId] ||= { kg: null, reps: null, stall: 0 });
+        entry.outcome = active.deload ? { kind: 'deload' } : applyLiftProgress(p, lift, item);
+        continue;
+      }
       const entry = {
         roadmapId: item.roadmapId,
         stepIndex: item.stepIndex,
@@ -335,15 +512,43 @@ export function finishActiveSession() {
     s.sessions.push(session);
     s.active = null;
     s.plan = null;
-    if (active.dayType === 'A' || active.dayType === 'B') s.lastDayType = active.dayType;
+    if (['A', 'B', 'TA', 'TB', 'PA', 'PB'].includes(active.dayType)) s.lastDayType = active.dayType;
   });
   return session;
 }
 
 // Texto corto que explica qué cambia tras un ejercicio.
+function liftOutcomeText(entry) {
+  const o = entry.outcome;
+  const sets = entry.plannedSets;
+  const lift = LIFT_BY_ID[entry.liftId];
+  const reps = (v) => `${v} ${v === 1 ? 'rep' : 'reps'}`;
+  switch (o.kind) {
+    case 'load-up':
+      return `¡Sube el peso! Próxima vez: ${sets} × ${reps(o.next)} con ${fmtKg(o.kg)} (antes ${fmtKg(o.from)})`;
+    case 'up':
+      return `Próxima vez: ${sets} × ${reps(o.next)} con ${fmtKg(o.kg)} (antes ${reps(o.from)})`;
+    case 'consolidate':
+      return `Tope del rango, pero costó: repite ${sets} × ${reps(o.next)} con ${fmtKg(o.kg)} antes de subir peso`;
+    case 'down':
+      return `Recalibrado a tu mínimo de hoy: ${sets} × ${reps(o.next)} con ${fmtKg(o.kg)}`;
+    case 'load-down':
+      return `No llegaste al mínimo del rango (${lift?.min ?? o.next} reps): baja a ${fmtKg(o.kg)} y vuelve a ${reps(o.next)}`;
+    case 'reset':
+      return `Llevas ${STALL_LIMIT} sesiones sin avanzar: baja a ${fmtKg(o.kg)} (~10 %) y reconstruye desde ${reps(o.next)}`;
+    case 'no-kg':
+      return 'Tope del rango: apunta el peso que usas para que la app te lo suba';
+    case 'deload':
+      return 'Semana de descarga: sin cambios en tu progreso';
+    default:
+      return `Próxima vez: mantén ${sets} × ${reps(o.next)} con ${fmtKg(o.kg)}`;
+  }
+}
+
 export function outcomeText(entry) {
   const o = entry.outcome;
   if (!o) return '';
+  if (entry.liftId) return liftOutcomeText(entry);
   const r = ROADMAP_BY_ID[entry.roadmapId];
   const unit = (v) => (entry.type === 'hold' ? `${v} s` : `${v} ${v === 1 ? 'rep' : 'reps'}`);
   const sets = entry.plannedSets;

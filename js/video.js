@@ -15,7 +15,7 @@ const searchUrl = (q) => `https://www.youtube.com/results?search_query=${encodeU
 export function videoCard(step, roadmapName = '') {
   const v = step.video;
   if (!v) {
-    return `<a class="video-search" href="${searchUrl(`${step.name} ${roadmapName} calistenia técnica`)}" target="_blank" rel="noopener">
+    return `<a class="video-search" href="${searchUrl(step.query || `${step.name} ${roadmapName} calistenia técnica`)}" target="_blank" rel="noopener">
       ${icon('play', 16)} Buscar técnica en YouTube</a>`;
   }
   return `

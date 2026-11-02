@@ -1,13 +1,14 @@
 // Pantalla "Hoy": qué toca según tu plan semanal, tu héroe, la semana y tus objetivos.
 
 import { ROADMAPS, ROADMAP_BY_ID } from '../data/roadmaps.js';
+import { LIFTS, LIFT_BY_ID } from '../data/gym.js';
 import { getState, update } from '../store.js';
 import {
-  defaultIds, estimateMinutes, stepOf, createSession, startOfWeek,
-  sessionsInWeek, roadmapPercent, lastPerformance, workFor, deloadActive, deloadSuggestion, startDeload,
+  defaultIds, estimateMinutes, stepOf, createSession, startOfWeek, dayOrder, isGymLegs,
+  sessionsInWeek, roadmapPercent, lastPerformance, lastLift, liftState, liftGoal, workFor, deloadActive, deloadSuggestion, startDeload,
 } from '../logic.js';
 import { todayInfo, buildWeek, DAY_INFO, WEEKDAYS, WD_SHORT, weekdayIndex } from '../schedule.js';
-import { esc, icon, fmtClock, progressBar, unitLabel, fmtDate } from '../ui.js';
+import { esc, icon, fmtClock, progressBar, unitLabel, fmtDate, fmtKg } from '../ui.js';
 import { navigate } from '../router.js';
 import { audio, wakeLock } from '../device.js';
 import { heroMini } from './hero.js';
@@ -26,7 +27,7 @@ function weekStrip(state) {
     const planned = type && type !== 'R';
     return `
     <div class="day ${trainedDays.has(i) ? 'on' : ''} ${i === today ? 'today' : ''} ${planned ? 'planned' : ''}">
-      <span class="dot">${trainedDays.has(i) ? icon('check', 14) : planned ? `<b>${type}</b>` : ''}</span>
+      <span class="dot">${trainedDays.has(i) ? icon('check', 14) : planned ? `<b>${esc(DAY_INFO[type]?.badge || type)}</b>` : ''}</span>
       <span class="lbl">${l}</span>
     </div>`;
   }).join('');
@@ -44,7 +45,37 @@ function weekStrip(state) {
     </section>`;
 }
 
-function exerciseRow(state, id, idx) {
+function editButtons(id, idx) {
+  if (!editing) return '';
+  return `
+        <div class="edit-btns">
+          <button class="icon-btn up" data-action="plan-move" data-id="${id}" data-dir="-1" aria-label="Subir" ${idx === 0 ? 'disabled' : ''}>${icon('back', 18)}</button>
+          <button class="icon-btn danger" data-action="plan-remove" data-id="${id}" aria-label="Quitar">${icon('close', 18)}</button>
+        </div>`;
+}
+
+function liftRow(state, id, idx, dayType) {
+  const lift = LIFT_BY_ID[id];
+  const p = liftState(state, id);
+  const last = lastLift(state, id);
+  const sets = DAY_INFO[dayType]?.sets?.[id] ?? lift.sets;
+  return `
+    <li class="ex-row">
+      <span class="num">${idx + 1}</span>
+      <div class="grow">
+        <div class="ex-title">${esc(lift.name)}</div>
+        <div class="muted small">Gimnasio · ${esc(lift.muscle)}</div>
+        ${last ? `<div class="muted small">Última vez: ${esc(last.sets.map((v, i) => `${fmtKg(last.loads[i])} × ${v}`).join(' · '))}</div>` : ''}
+      </div>
+      <div class="ex-target">${sets} × ${liftGoal(lift, p)}
+        <div class="muted tiny">${esc(fmtKg(p.kg))}</div></div>
+      ${editButtons(id, idx)}
+    </li>`;
+}
+
+function exerciseRow(state, id, idx, dayType) {
+  if (LIFT_BY_ID[id]) return liftRow(state, id, idx, dayType);
+  if (!ROADMAP_BY_ID[id]) return '';
   const { roadmap, step, index } = stepOf(id);
   const last = lastPerformance(state, id, index);
   const isGoal = state.settings.goals.includes(id);
@@ -59,11 +90,7 @@ function exerciseRow(state, id, idx) {
       </div>
       <div class="ex-target">${step.sets} × ${esc(unitLabel(step.type, goal))}${step.side ? '<small> /lado</small>' : ''}
         ${goal < step.target ? `<div class="muted tiny">meta ${step.target}${step.type === 'hold' ? ' s' : ''}</div>` : ''}</div>
-      ${editing ? `
-        <div class="edit-btns">
-          <button class="icon-btn up" data-action="plan-move" data-id="${id}" data-dir="-1" aria-label="Subir" ${idx === 0 ? 'disabled' : ''}>${icon('back', 18)}</button>
-          <button class="icon-btn danger" data-action="plan-remove" data-id="${id}" aria-label="Quitar">${icon('close', 18)}</button>
-        </div>` : ''}
+      ${editButtons(id, idx)}
     </li>`;
 }
 
@@ -92,6 +119,7 @@ function planCard(state, info) {
   const tpl = DAY_INFO[plan.dayType];
   const minutes = estimateMinutes(state, plan.ids);
   const available = ROADMAPS.filter((r) => !plan.ids.includes(r.id));
+  const availableLifts = isGymLegs(state) ? LIFTS.filter((l) => !plan.ids.includes(l.id)) : [];
   const eyebrow = info.mode === 'scheduled' ? `Hoy toca · ${WEEKDAYS[weekdayIndex()]}` : plan.custom ? 'Entreno editado' : 'Próximo entreno';
   return `
     <section class="card plan">
@@ -103,14 +131,19 @@ function planCard(state, info) {
         </div>
         <div class="est">${icon('timer', 18)}<span>≈ ${minutes} min</span></div>
       </div>
-      <ol class="ex-list">${plan.ids.map((id, i) => exerciseRow(state, id, i)).join('')}</ol>
+      <ol class="ex-list">${plan.ids.map((id, i) => exerciseRow(state, id, i, plan.dayType)).join('')}</ol>
       ${editing ? `
         <div class="edit-panel">
           <label class="field">
             <span>Añadir ejercicio</span>
             <select data-change="plan-add">
-              <option value="">Elige una ruta…</option>
+              <option value="">Elige un ejercicio…</option>
+              <optgroup label="Rutas de calistenia">
               ${available.map((r) => `<option value="${r.id}">${esc(r.name)} — ${esc(stepOf(r.id).step.name)}</option>`).join('')}
+              </optgroup>
+              ${availableLifts.length ? `<optgroup label="Pierna en el gimnasio">
+              ${availableLifts.map((l) => `<option value="${l.id}">${esc(l.name)}</option>`).join('')}
+              </optgroup>` : ''}
             </select>
           </label>
           <div class="row gap">
@@ -262,8 +295,8 @@ export const actions = {
   'plan-switch'() {
     update((s) => {
       const base = todayInfo(s).plan;
-      const order = s.settings.goals.length ? ['A', 'B', 'S'] : ['A', 'B'];
-      const dayType = order[(order.indexOf(base.dayType) + 1) % order.length] || 'A';
+      const order = isGymLegs(s) ? dayOrder(s) : s.settings.goals.length ? ['A', 'B', 'S'] : ['A', 'B'];
+      const dayType = order[(order.indexOf(base.dayType) + 1) % order.length] || order[0];
       const ids = dayType === 'S'
         ? [...s.settings.goals.filter((id) => ROADMAP_BY_ID[id]).slice(0, 3), 'core']
         : defaultIds(s, dayType);

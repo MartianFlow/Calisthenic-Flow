@@ -3,6 +3,7 @@
 
 import { ROADMAP_BY_ID } from '../data/roadmaps.js';
 import { getState } from '../store.js';
+import { dayLabel } from '../schedule.js';
 import { esc, icon, fmtDuration, fmtLongDate, fmtTime } from '../ui.js';
 import { itemBlock } from './progress.js';
 
@@ -95,7 +96,7 @@ function dayDetail(byDay) {
         <article class="cal-session">
           <div class="row between">
             <div>
-              <div class="eyebrow">${s.dayType === 'libre' ? 'Entreno libre' : `Día ${esc(s.dayType)}`} · ${fmtTime(s.startedAt)}</div>
+              <div class="eyebrow">${esc(dayLabel(s.dayType))} · ${fmtTime(s.startedAt)}</div>
               <strong>${fmtDuration(s.duration)} · ${s.items.length} ${s.items.length === 1 ? 'ejercicio' : 'ejercicios'}</strong>
             </div>
             <a class="link" href="#/sesion/${s.id}">Detalle ${icon('next', 14)}</a>

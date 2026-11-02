@@ -17,6 +17,7 @@ export const XP_RULES = {
   minute: 1,         // por minuto (máx. 60 por sesión)
   levelUp: 120,      // por subir de paso en una ruta
   routeDone: 600,    // por completar una ruta
+  loadUp: 30,        // por subir el peso en un ejercicio de gimnasio
 };
 
 export const RARITY = {
@@ -32,10 +33,14 @@ export function sessionXP(s) {
   const minutes = Math.min(60, Math.round(s.duration / 60));
   const ups = s.levelUps.filter((l) => !l.completed).length;
   const done = s.levelUps.filter((l) => l.completed).length;
+  const loads = s.items.filter((it) => it.outcome?.kind === 'load-up').length;
   return {
     total: XP_RULES.session + sets * XP_RULES.set + rated * XP_RULES.rated + minutes * XP_RULES.minute
-      + ups * XP_RULES.levelUp + done * XP_RULES.routeDone,
-    parts: { base: XP_RULES.session, sets: sets * XP_RULES.set, rated: rated * XP_RULES.rated, minutes, levelUps: ups * XP_RULES.levelUp + done * XP_RULES.routeDone },
+      + ups * XP_RULES.levelUp + done * XP_RULES.routeDone + loads * XP_RULES.loadUp,
+    parts: {
+      base: XP_RULES.session, sets: sets * XP_RULES.set, rated: rated * XP_RULES.rated, minutes,
+      levelUps: ups * XP_RULES.levelUp + done * XP_RULES.routeDone, loadUps: loads * XP_RULES.loadUp,
+    },
   };
 }
 
@@ -81,8 +86,14 @@ function routeFraction(id) {
   return (p.step + (p.done ? 1 : 0)) / r.steps.length;
 }
 
+// Subidas de peso en los ejercicios de gimnasio (del historial).
+export function loadUpCount(state) {
+  return state.sessions.reduce((a, s) => a + s.items.filter((it) => it.outcome?.kind === 'load-up').length, 0);
+}
+
 export function attributes(state) {
   const minutes = state.sessions.reduce((a, s) => a + s.duration, 0) / 60;
+  const loadUps = loadUpCount(state);
   return ATTR_DEFS.map((d) => {
     let value;
     if (d.key === 'aguante') {
@@ -94,6 +105,8 @@ export function attributes(state) {
       const weights = d.routes.map((id) => (ROADMAP_BY_ID[id].category === 'fuerza' ? 2 : 1));
       const sum = fr.reduce((a, f, i) => a + f * weights[i], 0);
       value = Math.round((sum / weights.reduce((a, w) => a + w, 0)) * 100);
+      // Pierna en el gimnasio: cuenta lo que has subido de peso (60 subidas = 100).
+      if (d.key === 'piernas' && loadUps) value = Math.max(value, Math.min(100, Math.round(Math.sqrt(loadUps / 60) * 100)));
     }
     return { ...d, value, rank: rankFor(value) };
   });
@@ -153,7 +166,7 @@ export function gameStats(state) {
   for (const ses of s) {
     for (const it of ses.items) {
       sets += it.sets.length;
-      routes.add(it.roadmapId);
+      if (it.roadmapId) routes.add(it.roadmapId);
       if (it.rating) rated++;
       const sum = it.sets.reduce((a, v) => a + v, 0) * (it.side ? 2 : 1);
       if (it.type === 'hold') holdSec += sum; else reps += sum;
@@ -174,6 +187,8 @@ export function gameStats(state) {
     warmups: s.filter((x) => x.warmupFull).length,
     deloadSessions: s.filter((x) => x.deload).length,
     perfect: s.filter((x) => x.items.length >= 3 && x.items.every((it) => it.goalMet && it.rating)).length,
+    legDays: s.filter((x) => x.items.some((it) => it.liftId)).length,
+    loadUps: loadUpCount(state),
     videos: state.game?.videosWatched || 0,
     map: globalProgress(),
   };
@@ -205,6 +220,8 @@ export const ACHIEVEMENTS = [
   { id: 'maraton', cat: 'constancia', rarity: 'plata', name: 'Maratoniano', desc: 'Un entreno de 60 minutos o más.', check: (st) => [Math.floor(st.maxMinutes), 60] },
   { id: 'horas-10', cat: 'constancia', rarity: 'plata', name: '10 horas de hierro', desc: 'Acumula 10 horas entrenando.', check: (st) => [Math.floor(st.seconds / 3600), 10] },
   { id: 'horas-50', cat: 'constancia', rarity: 'oro', name: 'Cincuenta horas', desc: 'Acumula 50 horas entrenando.', check: (st) => [Math.floor(st.seconds / 3600), 50] },
+  { id: 'dia-pierna', cat: 'constancia', rarity: 'bronce', name: 'Día de pierna', desc: 'Completa tu primer día de pierna en el gimnasio.', check: (st) => [st.legDays, 1] },
+  { id: 'pierna-25', cat: 'constancia', rarity: 'plata', name: 'Nunca me salto pierna', desc: 'Completa 25 días de pierna en el gimnasio.', check: (st) => [st.legDays, 25] },
 
   // Progreso
   { id: 'subida-1', cat: 'progreso', rarity: 'bronce', name: '¡Nivel arriba!', desc: 'Supera tu primer paso en una ruta.', check: (st) => [st.levelUps, 1] },
@@ -214,6 +231,7 @@ export const ACHIEVEMENTS = [
   { id: 'mapa-25', cat: 'progreso', rarity: 'plata', name: 'Cartógrafo', desc: 'Completa el 25 % del mapa.', check: (st) => [st.map, 25] },
   { id: 'mapa-50', cat: 'progreso', rarity: 'oro', name: 'Medio mundo', desc: 'Completa el 50 % del mapa.', check: (st) => [st.map, 50] },
   { id: 'explorador', cat: 'progreso', rarity: 'plata', name: 'Explorador', desc: 'Entrena 8 rutas distintas.', check: (st) => [st.routes, 8] },
+  { id: 'mas-peso', cat: 'progreso', rarity: 'plata', name: 'Más discos', desc: 'Sube el peso 10 veces en ejercicios de pierna.', check: (st) => [st.loadUps, 10] },
 
   // Hitos de calistenia
   { id: 'primera-dominada', cat: 'hitos', rarity: 'bronce', name: 'Primera dominada', desc: 'Llega al paso «Dominadas».', check: () => n(reached('dominadas', 'dominadas')) },

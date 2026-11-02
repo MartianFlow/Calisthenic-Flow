@@ -8,10 +8,13 @@
 // · Habilidades de brazos rectos (front lever, planche, back lever): como mucho
 //   3 días por semana, nunca en días seguidos y máximo 2 por sesión.
 // · Un día S (habilidades + core) solo cuando hay objetivos y 5 o más días.
+// · Pierna en el gimnasio: torso/pierna (T-P-T-P-T con 5 días). Las habilidades van
+//   en los días de torso; los de pierna se reparten para no caer seguidos.
 
 import { ROADMAP_BY_ID, ROADMAPS, DAY_TEMPLATES } from './data/roadmaps.js';
+import { LEG_DAYS } from './data/gym.js';
 import { getProgress } from './store.js';
-import { currentPlan, startOfWeek } from './logic.js';
+import { currentPlan, startOfWeek, TORSO_TYPES } from './logic.js';
 
 export const WEEKDAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 export const WD_SHORT = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
@@ -19,13 +22,41 @@ export const DEFAULT_DAYS = [true, false, true, false, true, false, false];
 
 export const weekdayIndex = (ts = Date.now()) => (new Date(ts).getDay() + 6) % 7;
 
+const routeFrac = (r) => {
+  const p = getProgress(r.id);
+  return (p.step + (p.done ? 1 : 0)) / r.steps.length;
+};
+
+// Rutas de pierna de calistenia: no cuentan si la pierna se entrena en el gimnasio.
+export const LEG_ROUTES = ['piernas', 'bisagra'];
+
+// Nivel de entrenamiento: media de lo recorrido en cada ruta que entrenas.
+// · Básicos de fuerza: fracción de la ruta superada (paso actual / pasos).
+// · Habilidades (las que son objetivo o en las que ya has avanzado): empezar una ya
+//   exige la base de sus prerrequisitos, así que su escala va de ese punto de partida
+//   al 100 %. Ej.: el front lever pide haber llegado a «Dominadas (volumen)» (5/10
+//   superado) y a «Elevaciones de rodillas colgado» (4/10) → arranca en el 45 %.
+// Cortes [criterio propio]: < 30 % principiante, < 60 % intermedio, resto avanzado.
 export function trainingLevel(state) {
-  const basics = ROADMAPS.filter((r) => r.category === 'fuerza');
-  const frac = basics.reduce((a, r) => {
+  const gymLegs = state.settings.legs === 'gym';
+  const parts = [];
+  for (const r of ROADMAPS) {
+    if (r.category === 'fuerza') {
+      if (gymLegs && LEG_ROUTES.includes(r.id)) continue;
+      parts.push(routeFrac(r));
+      continue;
+    }
     const p = getProgress(r.id);
-    return a + (p.step + (p.done ? 1 : 0)) / r.steps.length;
-  }, 0) / basics.length;
-  if (state.sessions.length < 8 || frac < 0.3) return { key: 'principiante', label: 'Principiante', frac };
+    const active = state.settings.goals.includes(r.id) || p.step > 0 || p.done;
+    if (!active) continue;
+    const reqs = r.prereq || [];
+    const base = reqs.length
+      ? reqs.reduce((a, q) => a + q.step / ROADMAP_BY_ID[q.id].steps.length, 0) / reqs.length
+      : 0;
+    parts.push(base + routeFrac(r) * (1 - base));
+  }
+  const frac = parts.length ? parts.reduce((a, v) => a + v, 0) / parts.length : 0;
+  if (frac < 0.3) return { key: 'principiante', label: 'Principiante', frac };
   if (frac < 0.6) return { key: 'intermedio', label: 'Intermedio', frac };
   return { key: 'avanzado', label: 'Avanzado', frac };
 }
@@ -37,7 +68,15 @@ export function recommendDays(state) {
   const available = (state.settings.schedule?.days || DEFAULT_DAYS).filter(Boolean).length;
   let days = 3;
   const reasons = [];
-  if (level.key === 'principiante') {
+  if (state.settings.legs === 'gym') {
+    if (level.key === 'avanzado') {
+      days = 5;
+      reasons.push('Nivel avanzado con la pierna en el gimnasio: 3 días de torso (tirón, empuje y habilidades) y 2 de pierna. Cada músculo se trabaja 2–3 veces por semana, que es lo que mejor funciona.');
+    } else {
+      days = 4;
+      reasons.push(`Nivel ${level.label.toLowerCase()} con la pierna en el gimnasio: 2 días de torso y 2 de pierna, así cada músculo se trabaja 2 veces por semana. Con más nivel, un 3.er día de torso.`);
+    }
+  } else if (level.key === 'principiante') {
     days = 3;
     reasons.push('Nivel principiante: 3 días de cuerpo completo dan 2–3 estímulos por patrón y 48 h para recuperar, como la Recommended Routine.');
   } else if (level.key === 'intermedio') {
@@ -87,6 +126,19 @@ function isoWeek(ts) {
   return 1 + Math.round(((d - week1) / 864e5 - 3 + ((week1.getDay() + 6) % 7)) / 7);
 }
 
+// Con la pierna en el gimnasio: T = torso, P = pierna. Los torsos alternan TA/TB
+// (empezando por TB las semanas ISO impares) y los días de pierna PA/PB.
+const GYM_SLOTS = {
+  1: 'T', 2: 'TP', 3: 'TPT', 4: 'TPTP', 5: 'TPTPT', 6: 'TPTTPT', 7: 'TPTTPTT',
+};
+export function gymWeekTemplate(n, oddWeek) {
+  const slots = GYM_SLOTS[Math.max(1, Math.min(7, n))].split('');
+  const legDays = slots.filter((x) => x === 'P').length;
+  let t = oddWeek ? 1 : 0;
+  let l = legDays === 1 && oddWeek ? 1 : 0; // con un solo día de pierna, alterna PA/PB cada semana
+  return slots.map((x) => (x === 'T' ? ['TA', 'TB'][t++ % 2] : ['PA', 'PB'][l++ % 2]));
+}
+
 export function weekTemplate(n, hasGoals, oddWeek) {
   switch (n) {
     case 1: return ['A'];
@@ -100,9 +152,16 @@ export function weekTemplate(n, hasGoals, oddWeek) {
 
 export const DAY_INFO = {
   ...DAY_TEMPLATES,
-  S: { label: 'Día S', focus: 'Habilidades · Core', ids: ['core'] },
-  R: { label: 'Descanso', focus: 'Recuperación activa: caminar, movilidad o estiramientos suaves.', ids: [] },
+  ...LEG_DAYS,
+  S: { label: 'Día S', badge: 'S', focus: 'Habilidades · Core', ids: ['core'] },
+  R: { label: 'Descanso', badge: '—', focus: 'Recuperación activa: caminar, movilidad o estiramientos suaves.', ids: [] },
 };
+
+// Nombre de un tipo de día para el historial («Torso A», «Pierna B», «Día A»…).
+export function dayLabel(type) {
+  if (type === 'libre') return 'Entreno libre';
+  return DAY_INFO[type]?.label || `Día ${type}`;
+}
 
 // Construye la semana: [{ weekday, type, skills, ids }] para L…D.
 export function buildWeek(state, weekStart = startOfWeek(Date.now())) {
@@ -111,14 +170,17 @@ export function buildWeek(state, weekStart = startOfWeek(Date.now())) {
   const goals = state.settings.goals.filter((id) => ROADMAP_BY_ID[id]);
   const n = Math.min(state.settings.daysPerWeek, sched.days.filter(Boolean).length);
   const chosen = pickDays(sched.days, n);
-  const types = weekTemplate(chosen.length, goals.length > 0, isoWeek(weekStart) % 2 === 1);
+  const odd = isoWeek(weekStart) % 2 === 1;
+  const types = state.settings.legs === 'gym'
+    ? gymWeekTemplate(chosen.length, odd)
+    : weekTemplate(chosen.length, goals.length > 0, odd);
   const week = WD_SHORT.map((_, i) => ({ weekday: i, type: 'R', skills: [], ids: [] }));
   const count = {};
   const lastDay = {};
   let rot = 0;
   chosen.forEach((wd, k) => {
     const type = types[k];
-    const maxSkills = type === 'S' ? 3 : 2;
+    const maxSkills = type === 'S' ? 3 : TORSO_TYPES.includes(type) ? 2 : 0;
     const skills = [];
     let straight = 0;
     for (let j = 0; j < goals.length && skills.length < maxSkills; j++) {
@@ -130,7 +192,7 @@ export function buildWeek(state, weekStart = startOfWeek(Date.now())) {
       lastDay[g] = wd;
       if (isStraight) straight++;
     }
-    if (goals.length > maxSkills) rot = (rot + 1) % goals.length;
+    if (maxSkills && goals.length > maxSkills) rot = (rot + 1) % goals.length;
     const base = DAY_INFO[type].ids;
     week[wd] = { weekday: wd, type, skills, ids: [...skills, ...base.filter((id) => !skills.includes(id))] };
   });

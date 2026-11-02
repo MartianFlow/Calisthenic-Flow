@@ -17,12 +17,18 @@ Es una **web app instalable (PWA)**: se añade a la pantalla de inicio del iPhon
   - Día B: tirón horizontal, flexiones, isquios y core.
   - Día S: habilidades y core; aparece con 5 o más días y objetivos.
   - Deja descanso entre sesiones y nunca pone habilidades de brazos rectos en días seguidos ni más de 3 días por semana.
+  - **Nivel:** media de lo recorrido en tus rutas de fuerza y en las habilidades que trabajas. Las habilidades cuentan desde el nivel que piden sus prerrequisitos. Sin mínimo de entrenos.
+- **Pierna en el gimnasio (opcional):** en *Plan semanal* eliges «Pierna: Gimnasio» y la semana pasa a torso/pierna (con 5 días: torso L-X-V y pierna M-J).
+  - **Torso A / Torso B:** dominadas, fondos, remo, flexiones y core, con tus habilidades al principio. A y B cambian el orden.
+  - **Pierna A** (hack, extensión, curl femoral, aductor, gemelo de pie) y **Pierna B** (peso muerto, goblet en hack, curl femoral, extensión, abductor, gemelo sentado).
+  - Apuntas el peso de cada ejercicio y la app usa **progresión doble con carga**: cuando haces el tope del rango en todas las series, te sube el peso (+5 kg o +2,5 kg) y vuelves al mínimo del rango. Si no llegas al mínimo con Difícil, te baja ~10 %.
+  - Calentamiento propio de pierna, XP por cada subida de peso y logros de pierna.
   - La pantalla Hoy te dice qué toca, si es día de descanso y cuál es el próximo entreno. Puedes editar el entreno antes de empezar.
 - **Gamificación (pixel art, estilo RPG retro de 16 bits):**
   - **Héroe en pixel art** cuyo físico crece con tu progreso real (bíceps, hombros, piernas y abdominales).
   - **Atributos** con rango de E a S: Tirón, Empuje, Piernas, Core, Equilibrio y Aguante.
   - **Experiencia (XP) y nivel**, con títulos de Novato a Mito. Ganas XP con cada serie, cada entreno, cada paso superado y cada logro.
-  - **Tabla de 43 logros** de bronce, plata, oro y leyenda, con progreso visible. Premian constancia, progreso, hitos reales (primera dominada, pino libre, front lever…) y buenos hábitos.
+  - **Tabla de 46 logros** de bronce, plata, oro y leyenda, con progreso visible. Premian constancia, progreso, hitos reales (primera dominada, pino libre, front lever…) y buenos hábitos.
   - **33 artículos** con iconos de 16×16 para equipar (cintas, gafas, muñequeras, capas, medallas, auras, corona…). Se desbloquean por nivel o por logro. También puedes elegir piel, pelo y peinado.
   - Al terminar cada entreno ves la XP ganada, si subes de nivel y los logros y artículos nuevos.
 - **Descansos según el paso:** unos 3 min en series de 1–5 reps, 1,5–2 min en las de 6–12, 2,5–3 min en holds de brazos rectos, 45–60 s entre intentos de pino libre y 60 s en core.
@@ -74,6 +80,7 @@ Respeta el ajuste del iPhone «Reducir movimiento». Tiene tema oscuro y claro a
 El razonamiento y las fuentes de cada decisión están en:
 - [`docs/investigacion-principios.md`](docs/investigacion-principios.md): descansos, series, RIR, estancamiento, descarga, calentamiento y seguridad.
 - [`docs/investigacion-progresiones.md`](docs/investigacion-progresiones.md): revisión ruta por ruta.
+- [`docs/investigacion-pierna-gym.md`](docs/investigacion-pierna-gym.md): rutina de pierna en el gimnasio, plan torso/pierna y cuántas habilidades trabajar a la vez.
 
 ## Pruebas funcionales (e2e)
 
@@ -84,7 +91,8 @@ La carpeta [`tests/e2e`](tests/e2e) tiene una batería de pruebas con [Playwrigh
 | `onboarding.spec.js` | Configuración inicial: niveles, objetivos (máx. 3), días y primer entreno del día |
 | `workout.spec.js` | Entreno completo: calentamiento, series, cronómetro de isometrías, descanso, valoración durante el descanso, resumen con EXP. También recargar a mitad de entreno y descartar |
 | `progression.spec.js` | Fácil, Normal y Difícil: subida del objetivo, cambio de paso, 2 sesiones en habilidades, recalibrado, reinicio por estancamiento y descanso según el paso |
-| `plan.spec.js` | Recomendación de días, cambio de días disponibles, reglas de brazos rectos, día de descanso y «Misión cumplida» |
+| `plan.spec.js` | Recomendación de días, nivel con habilidades, cambio de días disponibles, reglas de brazos rectos, día de descanso y «Misión cumplida» |
+| `gym.spec.js` | Pierna en el gimnasio: semana torso/pierna, recomendación de 5 días, pesos con coma, subida y bajada de peso y cambio de peso durante el entreno |
 | `gamification.spec.js` | Héroe en pixel art, atributos, logros desbloqueados, artículos bloqueados y desbloqueados, apariencia y nombre |
 | `navigation.spec.js` | Rutas, visor de vídeo, búsqueda en YouTube, cambio manual de nivel, calendario, progreso y pestañas |
 | `deload.spec.js` | Sugerencia y efecto de la semana de descarga |
@@ -113,7 +121,9 @@ Todo el contenido de las progresiones está en [`js/data/roadmaps.js`](js/data/r
 - cambiar o añadir vídeos en [`js/data/videos.js`](js/data/videos.js) (clave `ruta/paso` e id del vídeo de YouTube);
 - añadir, quitar o reordenar pasos;
 - crear rutas nuevas;
-- cambiar las plantillas de Día A y Día B (`DAY_TEMPLATES`) y el calentamiento (`WARMUP`).
+- cambiar las plantillas de Día A y Día B y de Torso A y B (`DAY_TEMPLATES`) y el calentamiento (`WARMUP`).
+
+Los ejercicios de gimnasio y los días de pierna están en [`js/data/gym.js`](js/data/gym.js): rango de reps, series, descanso, subida de peso y qué ejercicios lleva cada día.
 
 Si añades archivos nuevos, inclúyelos también en la lista `ASSETS` de `sw.js` y sube el valor de `VERSION`.
 
@@ -130,6 +140,7 @@ js/logic.js             Generación de entrenos, subidas de nivel y estadística
 js/data/roadmaps.js     Contenido: rutas, plantillas y calentamiento
 js/data/videos.js       Vídeo de técnica de cada paso
 js/data/legacy.js       Nombres de pasos de la v1 (migración del progreso)
+js/data/gym.js          Pierna en el gimnasio: ejercicios con peso, Pierna A/B y su calentamiento
 js/fx.js                Efectos de cómic (onomatopeyas, latidos, destellos)
 js/game.js              XP, niveles, atributos, logros y artículos
 js/avatar.js            Héroe en pixel art (generado por capas)

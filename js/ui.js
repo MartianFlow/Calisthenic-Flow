@@ -42,6 +42,24 @@ export function unitLabel(type, value) {
   return `${value} ${value === 1 ? 'rep' : 'reps'}`;
 }
 
+// Peso con coma decimal: 62,5 kg. Sin peso apuntado: «— kg».
+export function fmtKg(kg) {
+  if (kg == null || kg === '' || Number.isNaN(Number(kg))) return '— kg';
+  return `${String(Math.round(Number(kg) * 100) / 100).replace('.', ',')} kg`;
+}
+
+// Valor de un campo de peso: «62,5». Vacío si no hay peso.
+export const kgInput = (kg) => (kg == null ? '' : String(kg).replace('.', ','));
+
+// Lee lo que se escribe en un campo de peso («62,5», «62.5», «60 kg»).
+// Devuelve null si está vacío y NaN si no es un número.
+export function parseKg(text) {
+  const raw = String(text ?? '').replace(/kg/i, '').replace(',', '.').trim();
+  if (raw === '') return null;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : NaN;
+}
+
 export function targetLabel(stepOrItem) {
   const sets = Array.isArray(stepOrItem.sets) ? stepOrItem.plannedSets : stepOrItem.sets;
   const side = stepOrItem.side ? ' por lado' : '';

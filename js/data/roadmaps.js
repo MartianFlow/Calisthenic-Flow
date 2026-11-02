@@ -423,8 +423,12 @@ export const ROADMAP_BY_ID = Object.fromEntries(ROADMAPS.map((r) => [r.id, r]));
 // Plantillas de fuerza (reparto del RR: tirón y empuje vertical/horizontal + pierna y bisagra).
 // Se alternan A / B; las habilidades objetivo (máx. 2 por sesión) van al principio.
 export const DAY_TEMPLATES = {
-  A: { label: 'Día A', focus: 'Tirón vertical · Fondos · Piernas · Core', ids: ['dominadas', 'fondos', 'piernas', 'core'] },
-  B: { label: 'Día B', focus: 'Tirón horizontal · Flexiones · Isquios · Core', ids: ['remo', 'flexiones', 'bisagra', 'core'] },
+  A: { label: 'Día A', badge: 'A', focus: 'Tirón vertical · Fondos · Piernas · Core', ids: ['dominadas', 'fondos', 'piernas', 'core'] },
+  B: { label: 'Día B', badge: 'B', focus: 'Tirón horizontal · Flexiones · Isquios · Core', ids: ['remo', 'flexiones', 'bisagra', 'core'] },
+  // Con la pierna en el gimnasio: días de torso con los 4 patrones (como la RR) y
+  // el orden alternado, porque lo que va primero es lo que más fuerza gana (Nunes 2021).
+  TA: { label: 'Torso A', badge: 'TA', focus: 'Dominadas y fondos primero · Remo · Flexiones · Core', ids: ['dominadas', 'fondos', 'remo', 'flexiones', 'core'] },
+  TB: { label: 'Torso B', badge: 'TB', focus: 'Remo y flexiones primero · Dominadas · Fondos · Core', ids: ['remo', 'flexiones', 'dominadas', 'fondos', 'core'] },
 };
 
 // Calentamiento de 8–10 min (RR, GMB; McCrary 2015, Ribeiro 2020/21).

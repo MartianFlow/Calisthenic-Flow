@@ -1,9 +1,10 @@
 // Entreno en curso: series, cronómetro de isometrías y temporizador de descanso.
 
-import { ROADMAP_BY_ID, WARMUP } from '../data/roadmaps.js';
+import { ROADMAP_BY_ID } from '../data/roadmaps.js';
+import { LIFT_BY_ID } from '../data/gym.js';
 import { getState, update } from '../store.js';
-import { itemComplete, finishActiveSession, lastPerformance, nextUnrated, RATINGS } from '../logic.js';
-import { esc, icon, fmtClock, unitLabel, toast } from '../ui.js';
+import { itemComplete, finishActiveSession, lastPerformance, lastLift, nextUnrated, itemName, warmupList, RATINGS } from '../logic.js';
+import { esc, icon, fmtClock, unitLabel, toast, fmtKg, kgInput, parseKg } from '../ui.js';
 import { navigate } from '../router.js';
 import { audio, vibrate, wakeLock } from '../device.js';
 import { videoCard } from '../video.js';
@@ -22,21 +23,22 @@ export function takeCelebration() { const v = pendingCelebration; pendingCelebra
 function chips(a) {
   const warm = `<button class="chip ${a.warmupDone ? 'done' : ''} ${!a.warmupDone ? 'current' : ''}" data-action="session-goto" data-index="-1">Calent.</button>`;
   const items = a.items.map((item, i) => {
-    const r = ROADMAP_BY_ID[item.roadmapId];
+    const name = item.liftId ? LIFT_BY_ID[item.liftId]?.name : ROADMAP_BY_ID[item.roadmapId]?.name;
     const cls = [itemComplete(item) ? 'done' : '', a.warmupDone && a.current === i ? 'current' : ''].join(' ');
-    return `<button class="chip ${cls}" data-action="session-goto" data-index="${i}">${itemComplete(item) ? icon('check', 14) : ''}${esc(r.name)}</button>`;
+    return `<button class="chip ${cls}" data-action="session-goto" data-index="${i}">${itemComplete(item) ? icon('check', 14) : ''}${esc(name || '')}</button>`;
   }).join('');
   return `<nav class="chips" aria-label="Ejercicios">${warm}${items}</nav>`;
 }
 
 function warmupCard(a) {
+  const legs = a.warmupKind === 'pierna';
   return `
     <section class="card exercise">
       <div class="eyebrow">Antes de empezar</div>
-      <h2>Calentamiento</h2>
-      <p class="muted">5-6 minutos para preparar muñecas, hombros y caderas. Marca cada ejercicio al terminarlo.</p>
+      <h2>Calentamiento${legs ? ' de pierna' : ''}</h2>
+      <p class="muted">${legs ? '8-10 minutos para subir la temperatura y preparar tobillos y caderas.' : '5-6 minutos para preparar muñecas, hombros y caderas.'} Marca cada ejercicio al terminarlo.</p>
       <ul class="checklist">
-        ${WARMUP.map((w, i) => {
+        ${warmupList(a).map((w, i) => {
           const on = a.warmupChecks.includes(i);
           return `<li><button class="check-item ${on ? 'on' : ''}" data-action="warmup-check" data-i="${i}">
             <span class="box">${on ? icon('check', 16) : ''}</span>
@@ -63,21 +65,84 @@ function setRow(item, set, i) {
         <span class="val ${met ? 'met' : ''}">${set.value}<small>${unit}</small></span>
         <button class="step-btn" data-action="set-inc" data-set="${i}" aria-label="Más">${icon('plus', 18)}</button>
       </div>
-      ${item.type === 'hold' && !set.done
-        ? `<button class="icon-btn timer-btn" data-action="hold-start" data-set="${i}" aria-label="Cronometrar">${icon('timer', 20)}</button>`
-        : '<span class="spacer"></span>'}
+      ${item.liftId
+        ? `<span class="set-kg">${esc(fmtKg(set.kg).replace(' kg', ''))}<small>kg</small></span>`
+        : item.type === 'hold' && !set.done
+          ? `<button class="icon-btn timer-btn" data-action="hold-start" data-set="${i}" aria-label="Cronometrar">${icon('timer', 20)}</button>`
+          : '<span class="spacer"></span>'}
       <button class="check-btn ${set.done ? 'on' : ''}" data-action="set-toggle" data-set="${i}" aria-label="${set.done ? 'Desmarcar serie' : 'Serie hecha'}">${icon('check', 22)}</button>
     </li>`;
 }
 
+// Pie común: añadir/quitar series, valoración y navegación.
+function cardFooter(a, item) {
+  const isLast = a.current === a.items.length - 1;
+  const anyDone = item.sets.some((s) => s.done);
+  return `
+      <div class="row between">
+        <button class="link" data-action="set-add">${icon('plus', 16)} Añadir serie</button>
+        ${item.sets.length > 1 ? `<button class="link muted" data-action="set-remove">Quitar última</button>` : ''}
+      </div>
+      ${anyDone ? `
+        <div class="rate-inline">
+          <span class="muted small">¿Qué tal te ha parecido?</span>
+          ${ratingButtons(a.current, item.rating, true)}
+        </div>` : ''}
+      <div class="row gap nav-row">
+        <button class="btn ghost" data-action="session-prev" ${a.current === 0 ? 'disabled' : ''}>${icon('back', 18)} Anterior</button>
+        ${isLast
+          ? `<button class="btn primary grow" data-action="session-finish">${icon('check', 18)} Finalizar entreno</button>`
+          : `<button class="btn ghost grow" data-action="session-next">Siguiente ${icon('next', 18)}</button>`}
+      </div>`;
+}
+
+// Ejercicio de gimnasio: peso + repeticiones dentro de un rango.
+function liftCard(state, a, item) {
+  const lift = LIFT_BY_ID[item.liftId];
+  const last = lastLift(state, item.liftId);
+  const kg = item.kg;
+  const lastText = last
+    ? last.sets.map((v, i) => `${fmtKg(last.loads[i])} × ${v}`).join(' · ')
+    : '';
+  return `
+    <section class="card exercise lift-card">
+      <div class="eyebrow">Gimnasio · ${esc(lift.muscle)}</div>
+      <h2>${esc(lift.name)}</h2>
+      <div class="target-line">
+        <span class="pill accent">${icon('target', 16)} Hoy: ${item.plannedSets} × ${esc(unitLabel('reps', item.goal))} · ${esc(fmtKg(kg))}</span>
+        <span class="muted small">Descanso ${fmtClock(item.rest)}</span>
+      </div>
+      <div class="muted small">Rango ${lift.min}–${lift.max} reps dejando ${esc(lift.rir)} en reserva. Cuando hagas ${lift.max} en todas las series, sube ${esc(fmtKg(lift.inc))}.</div>
+      ${lastText ? `<div class="muted small">Última vez: ${esc(lastText)}</div>` : ''}
+      <div class="load-row">
+        <span class="load-label">Peso</span>
+        <div class="stepper">
+          <button class="step-btn" data-action="load-dec" aria-label="Menos peso">${icon('minus', 18)}</button>
+          <label class="load-field">
+            <input class="load-input" type="text" inputmode="decimal" autocomplete="off" value="${esc(kgInput(kg))}" placeholder="—" data-change="load-set" aria-label="Peso en kg">
+            <small>kg</small>
+          </label>
+          <button class="step-btn" data-action="load-inc" aria-label="Más peso">${icon('plus', 18)}</button>
+        </div>
+      </div>
+      ${kg == null ? '<p class="muted small">Apunta el peso con el que trabajas: la app te dirá cuándo subirlo.</p>' : ''}
+      ${videoCard({ name: lift.name, video: lift.video || null, query: `${lift.name} técnica gimnasio` })}
+      <details class="cues">
+        <summary>${icon('info', 18)} Claves técnicas</summary>
+        <ul>${lift.cues.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>
+      </details>
+      <ol class="sets">${item.sets.map((s, i) => setRow(item, s, i)).join('')}</ol>
+      ${cardFooter(a, item)}
+    </section>`;
+}
+
 function exerciseCard(state, a) {
   const item = a.items[a.current];
+  if (item.liftId) return liftCard(state, a, item);
   const roadmap = ROADMAP_BY_ID[item.roadmapId];
   const step = roadmap.steps[item.stepIndex];
   const last = lastPerformance(state, item.roadmapId, item.stepIndex);
-  const isLast = a.current === a.items.length - 1;
   const goal = item.goal ?? item.target;
-  const anyDone = item.sets.some((s) => s.done);
   return `
     <section class="card exercise">
       <div class="eyebrow">${esc(roadmap.name)} · paso ${item.stepIndex + 1}/${roadmap.steps.length}</div>
@@ -95,21 +160,7 @@ function exerciseCard(state, a) {
       </details>
       ${item.side ? '<p class="muted small">Haz cada serie con los dos lados y apunta el lado más débil.</p>' : ''}
       <ol class="sets">${item.sets.map((s, i) => setRow(item, s, i)).join('')}</ol>
-      <div class="row between">
-        <button class="link" data-action="set-add">${icon('plus', 16)} Añadir serie</button>
-        ${item.sets.length > 1 ? `<button class="link muted" data-action="set-remove">Quitar última</button>` : ''}
-      </div>
-      ${anyDone ? `
-        <div class="rate-inline">
-          <span class="muted small">¿Qué tal te ha parecido?</span>
-          ${ratingButtons(a.current, item.rating, true)}
-        </div>` : ''}
-      <div class="row gap nav-row">
-        <button class="btn ghost" data-action="session-prev" ${a.current === 0 ? 'disabled' : ''}>${icon('back', 18)} Anterior</button>
-        ${isLast
-          ? `<button class="btn primary grow" data-action="session-finish">${icon('check', 18)} Finalizar entreno</button>`
-          : `<button class="btn ghost grow" data-action="session-next">Siguiente ${icon('next', 18)}</button>`}
-      </div>
+      ${cardFooter(a, item)}
     </section>`;
 }
 
@@ -128,11 +179,10 @@ function ratePanel(a) {
   lastPrompt = a.ratePrompt;
   const item = a.items[a.ratePrompt];
   if (!item) return '';
-  const step = ROADMAP_BY_ID[item.roadmapId].steps[item.stepIndex];
   return `
     <div class="rate-panel">
       <div class="rate-q ${appear ? 'appear' : ''}">${a.finishing ? '<span class="eyebrow">Antes de terminar</span>' : ''}
-        ¿Qué tal te ha parecido <strong>${esc(step.name)}</strong>?</div>
+        ¿Qué tal te ha parecido <strong>${esc(itemName(item))}</strong>?</div>
       ${ratingButtons(a.ratePrompt, item.rating)}
       <button class="link muted" data-action="rate-later">${a.finishing ? 'Omitir' : 'Ahora no'}</button>
     </div>`;
@@ -296,6 +346,33 @@ function adjust(el, delta) {
   });
 }
 
+// Cambia el peso del ejercicio actual (y de las series que faltan por hacer).
+function setLoad(s, kg) {
+  const item = s.active.items[s.active.current];
+  if (!item?.liftId) return;
+  item.kg = kg;
+  for (const set of item.sets) if (!set.done) set.kg = kg;
+}
+
+function changeLoad(dir) {
+  update((s) => {
+    const item = s.active.items[s.active.current];
+    const lift = LIFT_BY_ID[item?.liftId];
+    if (!lift) return;
+    const base = Number(item.kg) || 0;
+    setLoad(s, Math.max(0, Math.round((base + dir * lift.inc) * 100) / 100));
+  });
+  bump(document.querySelector('.load-field'));
+}
+
+export const changes = {
+  'load-set'(el) {
+    const kg = parseKg(el.value);
+    if (Number.isNaN(kg)) { toast('Escribe el peso en kg, por ejemplo 62,5'); return; }
+    update((s) => setLoad(s, kg));
+  },
+};
+
 function finish({ skipChecks = false } = {}) {
   const a = getState().active;
   if (!a) return;
@@ -328,7 +405,8 @@ function finish({ skipChecks = false } = {}) {
     if (rec) rec.game = reward;
   }, { silent: true });
   wakeLock.release();
-  pendingCelebration = session.levelUps.length > 0 || reward.levelAfter > reward.levelBefore || reward.achievements.length > 0;
+  const loadUps = session.items.some((it) => it.outcome?.kind === 'load-up');
+  pendingCelebration = session.levelUps.length > 0 || loadUps || reward.levelAfter > reward.levelBefore || reward.achievements.length > 0;
   navigate(`#/resumen/${session.id}`, { replace: true });
 }
 
@@ -413,9 +491,13 @@ export const actions = {
     update((s) => {
       const item = s.active.items[s.active.current];
       const last = item.sets[item.sets.length - 1];
-      item.sets.push({ value: last ? last.value : item.target, done: false });
+      const set = { value: last ? last.value : item.goal ?? item.target, done: false };
+      if (item.liftId) set.kg = item.kg;
+      item.sets.push(set);
     });
   },
+  'load-inc'() { changeLoad(1); },
+  'load-dec'() { changeLoad(-1); },
   'set-remove'() {
     update((s) => {
       const item = s.active.items[s.active.current];

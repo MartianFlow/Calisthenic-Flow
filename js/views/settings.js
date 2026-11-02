@@ -7,7 +7,7 @@ import { esc, icon, targetLabel, toast } from '../ui.js';
 import { navigate } from '../router.js';
 import { audio } from '../device.js';
 import { recommendDays, DEFAULT_DAYS } from '../schedule.js';
-import { dayChips, daysSegmented } from './plan.js';
+import { dayChips, daysSegmented, legsSegmented } from './plan.js';
 
 const MAX_GOALS = 3;
 const skills = () => ROADMAPS.filter((r) => r.category === 'habilidad');
@@ -66,6 +66,8 @@ export function render() {
     <section class="card">
       <h3>Plan semanal</h3>
       <a class="btn ghost" href="#/plan">${icon('route', 18)} ${state.settings.schedule ? `${st.daysPerWeek} días por semana · ver plan` : 'Crear plan semanal'}</a>
+      <div class="field"><span>Pierna</span>${legsSegmented(state)}</div>
+      ${st.legs === 'gym' ? '<p class="muted small">Tus pesos de pierna se apuntan en «Plan semanal» o durante el entreno.</p>' : ''}
       <div class="field"><span>Sesiones con la meta cumplida para subir en habilidades</span>${segmented('passesToLevelUp', [[1, '1'], [2, '2'], [3, '3']], st.passesToLevelUp)}</div>
       <p class="muted small">En los básicos de fuerza basta 1 sesión. En habilidades de brazos rectos se recomiendan 2, porque los tendones se adaptan más despacio que el músculo.</p>
       ${deloadActive(state)
@@ -133,6 +135,7 @@ export function renderOnboarding() {
       <div class="eyebrow">Paso 3</div>
       <h2>¿Qué días puedes entrenar?</h2>
       ${dayChips(state.settings.schedule?.days || DEFAULT_DAYS)}
+      <div class="field"><span>¿Dónde entrenas pierna?</span>${legsSegmented(state)}</div>
       <div class="field"><span>Días de entreno por semana <span class="muted small">(★ recomendado: ${rec.days})</span></span>${daysSegmented(state, rec)}</div>
       <p class="muted small">${esc(rec.reasons[0])} Podrás ver y ajustar tu semana en «Plan semanal».</p>
     </section>

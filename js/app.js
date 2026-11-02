@@ -51,7 +51,7 @@ const actions = {
   },
 };
 
-const changes = { ...home.changes, ...progress.changes, ...settings.changes };
+const changes = { ...home.changes, ...progress.changes, ...settings.changes, ...session.changes, ...planView.changes };
 
 const viewEl = document.getElementById('view');
 const tabbar = document.getElementById('tabbar');

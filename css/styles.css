@@ -765,6 +765,28 @@ select {
 }
 textarea { resize: vertical; min-height: 84px; }
 
+/* Peso (kg) de los ejercicios de gimnasio */
+.load-row { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 8px; background: var(--surface-2); border: 2.5px solid var(--border); box-shadow: 3px 3px 0 var(--shadow); }
+.load-label { font-family: var(--display); font-size: 22px; letter-spacing: 0.04em; width: 56px; flex: none; }
+.load-field { display: inline-flex; align-items: baseline; justify-content: center; gap: 3px; min-width: 112px; }
+.load-field small { font-size: 16px; color: var(--muted); font-weight: 700; }
+.load-input {
+  width: 92px; text-align: center; font-family: var(--display); font-size: 36px; line-height: 1; padding: 4px 2px;
+  border: 2.5px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text);
+  -moz-appearance: textfield; appearance: textfield;
+}
+.load-input::-webkit-outer-spin-button, .load-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.load-input:focus { outline: 3px solid var(--pink); outline-offset: 1px; }
+.load-field.small { min-width: 0; }
+.load-field.small .load-input { width: 78px; font-size: 26px; }
+.set-kg { width: 44px; flex: none; text-align: center; font-family: var(--display); font-size: 18px; line-height: 1; color: var(--muted); }
+.set-kg small { display: block; font-size: 12px; }
+.lift-card .val { min-width: 62px; }
+.lift-weights { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.lift-weights li { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; border: 2.5px solid var(--border); background: var(--surface-2); }
+.lift-weights .block { display: block; }
+.legs-card h4 { font-family: var(--display); font-weight: 400; font-size: 20px; letter-spacing: 0.04em; margin: 6px 0 0; }
+
 .segmented { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
 .segmented button {
   min-height: 46px; border-radius: 8px; border: 2.5px solid var(--border); background: var(--surface-2); color: var(--text);
@@ -1026,6 +1048,10 @@ a.px-panel:active { transform: translate(4px, 4px); box-shadow: 0 0 0 4px #000, 
 }
 .type-badge.t-A { background: var(--yellow); } .type-badge.t-B { background: var(--cyan); } .type-badge.t-S { background: var(--pink); }
 .type-badge.t-R { background: transparent; color: var(--muted); border-style: dashed; border-color: var(--muted); }
+.type-badge.t-TA, .type-badge.t-TB, .type-badge.t-PA, .type-badge.t-PB { font-size: 17px; letter-spacing: -0.02em; }
+.type-badge.t-TA { background: var(--yellow); } .type-badge.t-TB { background: var(--cyan); }
+.type-badge.t-PA { background: var(--lime); } .type-badge.t-PB { background: #ff9a3d; }
+.mini-chip.lift { background: color-mix(in srgb, var(--lime) 30%, var(--surface)); }
 .mini-chips { display: flex; flex-wrap: wrap; gap: 5px; }
 .mini-chip { font-size: 12px; font-weight: 800; padding: 3px 7px; border-radius: 5px; border: 2px solid var(--border); background: var(--surface); }
 .mini-chip small { font-weight: 600; color: var(--muted); }
@@ -1036,6 +1062,7 @@ a.px-panel:active { transform: translate(4px, 4px); box-shadow: 0 0 0 4px #000, 
 .split-legend strong { font-family: var(--display); font-weight: 400; font-size: 20px; letter-spacing: 0.04em; display: block; }
 .day.planned .dot { border-style: solid; border-color: color-mix(in srgb, var(--text) 45%, transparent); color: var(--text); }
 .day.planned .dot b { font-family: var(--display); font-weight: 400; font-size: 18px; }
+.day.planned .dot b { white-space: nowrap; letter-spacing: -0.03em; }
 .plan.rest { box-shadow: var(--pop) var(--pop) 0 var(--cyan), calc(var(--pop) + 3px) calc(var(--pop) + 3px) 0 var(--border); }
 .plan.rest .small { font-weight: 600; }
 .next-up { display: flex; align-items: center; gap: 6px; font-weight: 700; padding: 10px; border-radius: 8px; background: var(--surface-2); border: 2.5px dashed var(--border); }

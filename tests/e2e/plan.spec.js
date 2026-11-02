@@ -9,6 +9,27 @@ test.describe('Plan semanal', () => {
     await expect(page.locator('.week-row:not(.type-R)')).toHaveCount(3);
   });
 
+  test('las habilidades en las que avanzas cuentan para el nivel', async ({ page }) => {
+    // Básicos al ~54 % → intermedio (sin necesidad de entrenos registrados)
+    const basics = { dominadas: 5, remo: 4, flexiones: 5, fondos: 4, piernas: 5, bisagra: 3, core: 5 };
+    const progress = Object.fromEntries(Object.entries(basics).map(([id, step]) => [id, { step, passes: 0, done: false }]));
+    await seed(page, makeState({ progress }));
+    await page.goto('/#/plan');
+    await expect(page.locator('.rec-card')).toContainText('Intermedio');
+    // Con front lever, planche y muscle-up a mitad de ruta pasa a avanzado
+    await page.evaluate((key) => {
+      const s = JSON.parse(localStorage.getItem(key));
+      Object.assign(s.progress, {
+        frontlever: { step: 4, passes: 0, done: false },
+        planche: { step: 3, passes: 0, done: false },
+        muscleup: { step: 4, passes: 0, done: false },
+      });
+      localStorage.setItem(key, JSON.stringify(s));
+    }, 'calisthenic-flow:v1');
+    await page.reload();
+    await expect(page.locator('.rec-card')).toContainText('Avanzado');
+  });
+
   test('cambiar los días disponibles recoloca la semana', async ({ page }) => {
     await seed(page, makeState());
     await page.goto('/#/plan');

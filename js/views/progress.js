@@ -2,9 +2,11 @@
 // También el resumen tras terminar un entreno y el detalle de entrenos pasados.
 
 import { ROADMAP_BY_ID } from '../data/roadmaps.js';
+import { LIFT_BY_ID } from '../data/gym.js';
 import { getState, update } from '../store.js';
 import { totals, weekStreak, weeklySeries, globalProgress, outcomeText, RATINGS } from '../logic.js';
-import { esc, icon, fmtDuration, fmtDate, fmtLongDate, fmtTime, unitLabel } from '../ui.js';
+import { dayLabel } from '../schedule.js';
+import { esc, icon, fmtDuration, fmtDate, fmtLongDate, fmtTime, unitLabel, fmtKg } from '../ui.js';
 import { weeklyBars } from '../charts.js';
 import { navigate } from '../router.js';
 import { takeCelebration } from './session.js';
@@ -38,7 +40,7 @@ function historyList(state) {
   return `<ul class="history">${list.map((s) => `
     <li><a href="#/sesion/${s.id}" class="history-row">
       <div class="grow">
-        <div class="history-title">${esc(fmtDate(s.startedAt))} · ${s.dayType === 'libre' ? 'Libre' : `Día ${esc(s.dayType)}`}</div>
+        <div class="history-title">${esc(fmtDate(s.startedAt))} · ${esc(dayLabel(s.dayType))}</div>
         <div class="muted small">${fmtDuration(s.duration)} · ${s.items.length} ${s.items.length === 1 ? 'ejercicio' : 'ejercicios'}</div>
       </div>
       ${s.levelUps.length ? `<span class="pill accent tiny">${icon('star', 13)} +${s.levelUps.length}</span>` : ''}
@@ -77,20 +79,55 @@ export function render() {
   `;
 }
 
-const OUTCOME_ICON = { levelup: 'star', completed: 'trophy', pass: 'check', consolidate: 'target', up: 'plus', down: 'minus', keep: 'target' };
+const OUTCOME_ICON = {
+  levelup: 'star', completed: 'trophy', pass: 'check', consolidate: 'target', up: 'plus', down: 'minus', keep: 'target',
+  'load-up': 'star', 'load-down': 'minus', reset: 'minus', 'no-kg': 'edit',
+};
+// Clase de color del resultado (las subidas de peso se pintan como subidas de nivel).
+const OUTCOME_CLASS = { 'load-up': 'levelup', 'load-down': 'down', 'no-kg': 'keep' };
+
+function ratingChip(item) {
+  return item.rating && RATINGS[item.rating]
+    ? `<span class="rate-chip ${item.rating}">${esc(RATINGS[item.rating].label)}</span>`
+    : '<span class="pill tiny">Sin valorar</span>';
+}
+
+function outcomeLine(item) {
+  if (item.outcome) {
+    const k = item.outcome.kind;
+    return `<div class="outcome ${OUTCOME_CLASS[k] || k}">${icon(OUTCOME_ICON[k] || 'target', 15)}<span>${esc(outcomeText(item))}</span></div>`;
+  }
+  return item.met ? `<div class="outcome pass">${icon('check', 15)}<span>Objetivo cumplido</span></div>` : '';
+}
+
+// Ejercicio de gimnasio: peso × repeticiones de cada serie.
+function liftBlock(item) {
+  const lift = LIFT_BY_ID[item.liftId];
+  const loads = item.loads || [];
+  return `
+    <li class="summary-item lift">
+      <div class="row between">
+        <div class="grow">
+          <div class="eyebrow">Gimnasio · ${esc(lift?.muscle || '')}</div>
+          <div class="ex-title">${esc(lift?.name || item.liftId)}</div>
+        </div>
+        ${ratingChip(item)}
+      </div>
+      <div class="set-pills">${item.sets.map((v, i) => `<span class="set-pill ${v >= item.goal ? 'met' : ''}">${esc(fmtKg(loads[i]))} × ${v}</span>`).join('')}
+        <span class="muted tiny">objetivo ${item.goal} reps (rango ${item.min}–${item.max})</span></div>
+      ${outcomeLine(item)}
+    </li>`;
+}
 
 // Bloque de un ejercicio registrado: series, valoración y qué cambia después.
 export function itemBlock(item) {
+  if (item.liftId) return liftBlock(item);
   const r = ROADMAP_BY_ID[item.roadmapId];
   if (!r) return '';
   const step = r.steps[item.stepIndex];
   const goal = item.goal ?? item.target;
-  const rating = item.rating && RATINGS[item.rating]
-    ? `<span class="rate-chip ${item.rating}">${esc(RATINGS[item.rating].label)}</span>`
-    : '<span class="pill tiny">Sin valorar</span>';
-  const outcome = item.outcome
-    ? `<div class="outcome ${item.outcome.kind}">${icon(OUTCOME_ICON[item.outcome.kind] || 'target', 15)}<span>${esc(outcomeText(item))}</span></div>`
-    : item.met ? '<div class="outcome pass">' + icon('check', 15) + '<span>Objetivo cumplido</span></div>' : '';
+  const rating = ratingChip(item);
+  const outcome = outcomeLine(item);
   return `
     <li class="summary-item">
       <div class="row between">
@@ -178,12 +215,14 @@ export function renderSummary({ id }) {
   const state = getState();
   const s = state.sessions.find((x) => x.id === id);
   if (!s) return '<div class="empty"><p>Entreno no encontrado.</p><a class="btn ghost" href="#/">Volver</a></div>';
+  const loadUps = s.items.filter((it) => it.outcome?.kind === 'load-up').length;
   if (takeCelebration()) {
-    setTimeout(() => { flash(); burst(null, { text: '¡NIVEL!', big: true }); }, 350);
+    setTimeout(() => { flash(); burst(null, { text: s.levelUps.length ? '¡NIVEL!' : '¡MÁS PESO!', big: true }); }, 350);
   }
+  const title = s.levelUps.length ? '¡SUBES DE<br>NIVEL!' : loadUps ? '¡MÁS<br>PESO!' : '¡HECHO!';
   return `
     <header class="page-head center">
-      <div class="burst-title ${s.levelUps.length ? '' : 'pink'}">${s.levelUps.length ? '¡SUBES DE<br>NIVEL!' : '¡HECHO!'}</div>
+      <div class="burst-title ${s.levelUps.length || loadUps ? '' : 'pink'}">${title}</div>
       <h1>¡Entreno completado!</h1>
       <p class="muted">${esc(fmtLongDate(s.startedAt))}</p>
     </header>
@@ -200,7 +239,7 @@ export function renderDetail({ id }) {
   return `
     <header class="page-head">
       <a class="back" href="#/progreso">${icon('back', 18)} Progreso</a>
-      <div class="eyebrow">${s.dayType === 'libre' ? 'Entreno libre' : `Día ${esc(s.dayType)}`} · ${fmtTime(s.startedAt)}</div>
+      <div class="eyebrow">${esc(dayLabel(s.dayType))} · ${fmtTime(s.startedAt)}</div>
       <h1>${esc(fmtLongDate(s.startedAt))}</h1>
     </header>
     ${sessionBody(s, state)}

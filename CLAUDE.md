@@ -18,7 +18,13 @@ Documento de referencia para continuar el trabajo en sesiones futuras. Resume qu
   8. Plan semanal recomendado según sus objetivos.
   9. Pruebas e2e.
   10. Héroe, artículos y logros en **pixel art estilo Zelda**. Se hizo un estilo RPG retro **original**, sin copiar elementos de Zelda (nada de rupias, Trifuerza ni la ropa de Link).
-- Después de la última sesión dijo que tiene **preguntas y ajustes pendientes**.
+  11. Nivel sin mínimo de 8 entrenos y contando las habilidades.
+  12. **Pierna en el gimnasio.** Se considera avanzado y entrena 5 días, 2 de ellos de pierna.
+      - Su rutina de pierna: sentadilla hack, peso muerto, sentadilla goblet en hack, extensión de cuádriceps, curl femoral, aductor, abductor, gemelo sentado y gemelo de pie.
+      - Se repartió en Pierna A y Pierna B, y el torso pasó a Torso A y Torso B.
+- **Dudas abiertas sobre su caso:**
+  - Si su peso muerto es rumano o convencional (el rango 5–8 es provisional).
+  - Si hacía los 9 ejercicios en cada sesión (se repartieron en 2 días por volumen).
 
 ## Despliegue
 
@@ -27,7 +33,7 @@ Documento de referencia para continuar el trabajo en sesiones futuras. Resume qu
   - El usuario debía activarlo a mano y dijo "listo", pero no se ha podido verificar: github.io está bloqueado desde el entorno cloud.
 - **Instalación en el iPhone:** Safari → Compartir → Añadir a pantalla de inicio.
 - **Actualizaciones:** el service worker sirve primero la caché y actualiza en segundo plano, así que los cambios se ven la **segunda vez** que se abre la app.
-  - **Al añadir archivos**, hay que incluirlos en `ASSETS` de `sw.js` y subir `VERSION` (ahora `cf-v5`).
+  - **Al añadir archivos**, hay que incluirlos en `ASSETS` de `sw.js` y subir `VERSION` (ahora `cf-v6`).
 
 ## Arquitectura
 
@@ -44,8 +50,8 @@ js/app.js                Rutas hash, delegación de eventos (data-action / data-
 js/router.js             Router por hash
 js/store.js              Estado en localStorage (clave 'calisthenic-flow:v1'), normalize + migración v1→v2
 js/logic.js              Sesiones, progresión doble, descansos, descarga, estadísticas
-js/schedule.js           Plan semanal (recomendación de días, reparto A/B/S, reglas de brazos rectos, todayInfo)
-js/game.js               XP, niveles/títulos, atributos, 43 logros, 33 artículos, syncAchievements
+js/schedule.js           Plan semanal (nivel, recomendación de días, reparto A/B/S o torso/pierna, reglas de brazos rectos, todayInfo, dayLabel)
+js/game.js               XP, niveles/títulos, atributos, 46 logros, 33 artículos, syncAchievements
 js/avatar.js             Héroe en pixel art 40×48 generado por capas (API avatarSVG)
 js/pixel.js              Motor de pixel art (Grid, contorno/sombreado automáticos, toSVG) + iconos 16×16
 js/fx.js                 Efectos de cómic (onomatopeyas, bump/beat, flash, stagger)
@@ -56,9 +62,10 @@ js/charts.js             Gráficas SVG (barras semanales, línea de progreso)
 js/data/roadmaps.js      Contenido: 14 rutas / 116 pasos, DAY_TEMPLATES, WARMUP
 js/data/videos.js        Vídeo por paso (clave 'ruta/key') — 87 de 116
 js/data/legacy.js        Nombres de pasos v1 para migrar progreso
+js/data/gym.js           Pierna en el gimnasio: 9 ejercicios con kg (LIFTS), LEG_DAYS (PA/PB) y LEG_WARMUP
 js/views/*.js            home, session, roadmaps, progress (+resumen/detalle), calendar, settings (+onboarding), hero (+logros/equipo), plan
-docs/                    Investigación con fuentes (principios y progresiones)
-tests/e2e/               36 pruebas Playwright + fixtures.js
+docs/                    Investigación con fuentes (principios, progresiones y pierna en el gimnasio)
+tests/e2e/               43 pruebas Playwright + fixtures.js
 .github/workflows/e2e.yml  CI: Chromium + WebKit en cada push
 ```
 
@@ -76,8 +83,9 @@ tests/e2e/               36 pruebas Playwright + fixtures.js
 
 ```js
 { version: 2, onboarded,
-  settings: { goals[≤3], daysPerWeek, passesToLevelUp (habilidades), sound, warmup, schedule: { days[7 bool] } | null },
+  settings: { goals[≤3], daysPerWeek, passesToLevelUp (habilidades), sound, warmup, legs: 'calistenia'|'gym', schedule: { days[7 bool] } | null },
   progress: { [rutaId]: { step, passes, done, work, stall, resets } },   // work = objetivo por serie actual
+  lifts: { [liftId]: { kg, reps, stall } },                              // pierna en el gimnasio: peso y reps objetivo
   levelLog[], sessions[], active, plan, lastDayType, deload: { start, until }, deloadSnoozeUntil,
   game: { name, unlocked: { achId: isoDate }, equipped: { slot: itemId }, look: { skin, hair, hairStyle }, videosWatched } }
 ```
@@ -85,6 +93,10 @@ tests/e2e/               36 pruebas Playwright + fixtures.js
 Cada sesión del historial guarda:
 - `items[]`, y cada uno lleva `roadmapId`, `stepIndex`, `type`, `target`, `goal`, `sets[]`, `rating`, `met`, `goalMet` y `outcome`.
 - `levelUps`, `deload`, `warmupFull` y `game`. Este último tiene `xp`, `levelBefore`, `levelAfter`, `achievements` e `items`.
+- Los ejercicios de gimnasio llevan `liftId` en vez de `roadmapId`/`stepIndex`, y además `min`, `max`, `goal`, `sets` (reps), `loads` (kg por serie) y `outcome`.
+  - Los `outcome` posibles son `load-up`, `up`, `keep`, `consolidate`, `down`, `load-down`, `reset`, `no-kg` y `deload`.
+  - Para pintar cualquier ítem usa `itemName()` (logic.js) y `itemBlock()` (progress.js), que ya distinguen los dos tipos.
+- `dayType` puede ser `A`, `B`, `S`, `TA`, `TB`, `PA`, `PB` o `libre`; para mostrarlo usa `dayLabel()` (schedule.js).
 
 ## Reglas de entrenamiento (basadas en la investigación de `docs/`)
 
@@ -115,14 +127,32 @@ Cada sesión del historial guarda:
   - **Cuándo se sugiere:** cada 5 o más semanas con al menos 8 sesiones, o cuando hay 2 o más rutas con `stall ≥ 2`.
   - **Qué hace:** 7 días con una serie menos, objetivo al 65 % y sin cambios de progreso.
 - **Habilidades por sesión:** máximo 2; con 3 objetivos se rotan. Las de brazos rectos van como mucho 3 días por semana y nunca en días seguidos.
+- **Nivel** (`trainingLevel`, schedule.js): media de la fracción recorrida en cada ruta que se entrena.
+  - Sin mínimo de entrenos.
+  - Cuentan los 7 básicos; `piernas` y `bisagra` no cuentan con la pierna en el gimnasio.
+  - Cuentan las habilidades que son objetivo o en las que hay progreso. Su escala va de la base de sus prerrequisitos al 100 %: `base + frac·(1−base)`.
+  - Cortes [criterio propio]: < 30 % principiante, < 60 % intermedio, el resto avanzado.
 - **Plan semanal:**
-  - **Días recomendados:** principiante 3; intermedio 3, o 4 con objetivos; avanzado 4 o 5.
+  - **Días recomendados:** principiante 3; intermedio 3, o 4 con objetivos; avanzado 4 o 5. Con la pierna en el gimnasio: 4, o 5 si es avanzado.
   - **Tipos de día:**
     - **A:** dominadas, fondos, piernas y core.
     - **B:** remo, flexiones, bisagra y core.
     - **S:** habilidades y core; solo con 5 o más días y objetivos.
   - **Plantilla de 3 días:** A-B-A en las semanas ISO pares y B-A-B en las impares. Por eso el 2/11/2026 (lunes, semana 45) toca B.
   - **Elección de días:** `pickDays` busca la máxima separación entre los días disponibles.
+- **Pierna en el gimnasio** (`settings.legs = 'gym'`, investigación en `docs/investigacion-pierna-gym.md`):
+  - **Plantilla** (`gymWeekTemplate`): T-P-T-P-T con 5 días. T alterna TA/TB (empieza por TB en las semanas impares) y P alterna PA/PB.
+  - **Torso A/B:** dominadas, fondos, remo, flexiones y core, con el orden de las parejas cambiado. Las habilidades solo van en los días de torso.
+  - **Pierna A:** hack 4×6–10, extensión, curl, aductor y gemelo de pie 4×8–12.
+  - **Pierna B:** peso muerto 3×5–8, goblet 3×10–15, curl, extensión ×2, abductor y gemelo sentado. `LEG_DAYS.PB.sets` cambia las series solo en ese día.
+  - **Progresión doble con carga** (`applyLiftProgress`):
+    - Tope del rango con Fácil o Normal: +`inc` kg y vuelta al mínimo. Con Difícil: consolidar, salvo en las máquinas `failureOk`, que suben igual.
+    - Por debajo del tope: +2 reps con Fácil y +1 con Normal.
+    - Difícil sin llegar al mínimo del rango: −10 % (`lighterLoad`).
+    - 3 sesiones sin avanzar: −10 % y vuelta al mínimo. Cuenta el peso de la serie más ligera.
+  - **Descarga:** una serie menos, −10 % y el mínimo del rango.
+  - **Calentamiento:** `LEG_WARMUP` cuando todos los ejercicios son de gimnasio (`active.warmupKind = 'pierna'`).
+  - **Pesos:** se escriben en el Plan semanal o durante el entreno con `type="text" inputmode="decimal"`, para aceptar la coma (`parseKg` y `kgInput` en ui.js). Con `type=number`, iOS rompe la coma.
 - **Calentamiento:** 9 elementos, entre ellos preparación de muñecas, flexiones escapulares, soporte y series de aproximación.
 - **Rutas:**
   - **Fuerza:** dominadas, remo, flexiones, fondos (sin fondos en banco), piernas y bisagra (isquios; nueva ruta hasta el curl nórdico), además de core.
@@ -134,14 +164,15 @@ Cada sesión del historial guarda:
 - **XP por sesión:**
   - 40 por terminarla, 4 por cada serie y 3 por cada ejercicio valorado.
   - 1 por minuto, hasta 60.
-  - 120 por cada paso superado y 600 por cada ruta completada.
+  - 120 por cada paso superado, 600 por cada ruta completada y 30 por cada subida de peso.
 - **XP por logros según rareza:** bronce 50, plata 150, oro 400, leyenda 1000.
 - **Niveles:** `xpForLevel(L) = 150·(L−1)^1.6`.
   - **Títulos:** Novato (1), Aprendiz (3), Callejero (5), Atleta (8), Acróbata (12), Gimnasta (16), Maestro (20), Leyenda (25), Mito (30).
 - **Atributos** (rango E–S): Tirón, Empuje, Piernas, Core, Equilibrio y Aguante.
   - Se calculan con la fracción de cada ruta. Las rutas básicas pesan el doble.
   - Aguante = √(minutos / 3000) · 100.
-- **Logros:** 43 en 4 categorías (constancia, progreso, hitos y hábitos).
+  - Piernas usa también las subidas de peso del gimnasio: √(subidas / 60) · 100, y se queda con el valor mayor.
+- **Logros:** 46 en 4 categorías (constancia, progreso, hitos y hábitos). Tres son de pierna: `dia-pierna`, `pierna-25` y `mas-peso`.
   - Se definen en `game.js` con `check(stats) → [actual, meta]`.
   - Se sincronizan al cargar la app (sin celebración), al terminar un entreno (con celebración en el resumen) y al ver vídeos.
 - **Artículos:** 33, en los huecos head, face, top, neck, wrists, bottom, feet, back y aura.
@@ -177,8 +208,8 @@ Cada sesión del historial guarda:
   - **Errores:** falla si hay errores de JS.
   - **Ayudantes:** `seed()` (vía addInitScript, solo en el frame superior y una vez por pestaña), `makeState()`, `pastSession()`, `trainOnly()`, `completeCurrentExercise()` (solo las series del ejercicio actual) y `rate()`.
 - **Configuración:** `reducedMotion: 'reduce'` (las animaciones infinitas hacen que los elementos no sean "estables"). Los artículos bloqueados llevan `aria-disabled` y para pulsarlos hay que usar `click({ force: true })`.
-- **Resultados:** 36 pruebas; en local se ejecutaron 3 veces seguidas sin resultados inestables.
-  - **En CI:** pasan las 36 en Chromium y 35 en WebKit. La prueba sin conexión se salta en WebKit por una limitación de Playwright: `setOffline` con service worker da un error interno al recargar.
+- **Resultados:** 43 pruebas. `gym.spec.js` cubre el modo de pierna en el gimnasio.
+  - **En CI:** pasan todas en Chromium y todas menos una en WebKit. La prueba sin conexión se salta en WebKit por una limitación de Playwright: `setOffline` con service worker da un error interno al recargar.
 - **CI:** `.github/workflows/e2e.yml`.
   - Usa checkout@v5 y setup-node@v5, e instala con `npx playwright install --with-deps chromium webkit`.
   - Se puede consultar con las herramientas MCP de GitHub (`actions_list`, `get_job_logs`).
@@ -211,6 +242,8 @@ Cada sesión del historial guarda:
 - **La investigación solo usó resúmenes de búsqueda.** Los puntos dudosos están marcados como `[criterio propio]` o `[sin fuente verificada]` en `docs/`.
 - **El aviso sonoro del descanso** solo suena con la app en pantalla: iOS suspende las PWA en segundo plano y no hay notificaciones push.
 - **Ideas no hechas:**
+  - que el pino (equilibrio, poca fatiga) no cuente para el límite de 2 habilidades por sesión;
+  - un editor de ejercicios de gimnasio desde la app (ahora se cambian en `js/data/gym.js`);
   - superseries de antagonistas, que ahorrarían un 30–40 % de tiempo;
   - artículos de lectura sobre técnica (el usuario dijo "artículos" y se interpretó como objetos para equipar);
   - pregunta de dificultad por serie en vez de por ejercicio.

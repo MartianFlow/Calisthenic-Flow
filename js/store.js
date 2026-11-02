@@ -19,8 +19,10 @@ export function defaultState() {
       passesToLevelUp: 2,   // sesiones cumpliendo el objetivo para subir de paso
       sound: true,
       warmup: true,
+      legs: 'calistenia',   // 'calistenia' | 'gym' (pierna en el gimnasio con pesos)
     },
     progress: {},           // id → { step, passes, done }
+    lifts: {},              // ejercicio de gimnasio → { kg, reps, stall }
     levelLog: [],           // { date, roadmapId, from, to }
     sessions: [],           // historial de entrenos
     active: null,           // entreno en curso
@@ -92,6 +94,13 @@ export function normalize(data) {
   s.levelLog = Array.isArray(s.levelLog) ? s.levelLog : [];
   s.sessions = Array.isArray(s.sessions) ? s.sessions : [];
   s.settings.goals = (s.settings.goals || []).filter((id) => ROADMAP_BY_ID[id]);
+  if (!['calistenia', 'gym'].includes(s.settings.legs)) s.settings.legs = 'calistenia';
+  s.lifts = s.lifts && typeof s.lifts === 'object' ? s.lifts : {};
+  for (const [id, l] of Object.entries(s.lifts)) {
+    if (!l || typeof l !== 'object') { delete s.lifts[id]; continue; }
+    l.kg = l.kg == null || Number.isNaN(Number(l.kg)) ? null : Number(l.kg);
+    l.stall = Math.max(0, l.stall | 0);
+  }
   s.game = { ...base.game, ...(data.game || {}) };
   s.game.look = { ...base.game.look, ...(s.game.look || {}) };
   s.game.unlocked ||= {};
