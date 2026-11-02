@@ -1,0 +1,224 @@
+// Ajustes, copia de seguridad y bienvenida (configuración inicial).
+
+import { ROADMAPS, ROADMAP_BY_ID } from '../data/roadmaps.js';
+import { getState, update, replaceState, resetState, getProgress } from '../store.js';
+import { prereqStatus } from '../logic.js';
+import { esc, icon, targetLabel, toast } from '../ui.js';
+import { navigate } from '../router.js';
+import { audio } from '../device.js';
+
+const MAX_GOALS = 3;
+const skills = () => ROADMAPS.filter((r) => r.category === 'habilidad');
+const basics = () => ROADMAPS.filter((r) => r.category === 'fuerza');
+
+function segmented(key, options, current) {
+  return `<div class="segmented" role="radiogroup">${options.map(([value, label]) => `
+    <button role="radio" aria-checked="${value === current}" class="${value === current ? 'on' : ''}"
+      data-action="set-setting" data-key="${key}" data-value="${value}">${esc(label)}</button>`).join('')}</div>`;
+}
+
+function toggle(key, on, label, hint = '') {
+  return `
+    <button class="toggle-row" data-action="toggle-setting" data-key="${key}" role="switch" aria-checked="${on}">
+      <span class="grow"><span>${esc(label)}</span>${hint ? `<span class="muted small block">${esc(hint)}</span>` : ''}</span>
+      <span class="switch ${on ? 'on' : ''}"><span></span></span>
+    </button>`;
+}
+
+function goalPicker(state) {
+  return `<div class="goal-picker">${skills().map((r) => {
+    const on = state.settings.goals.includes(r.id);
+    const missing = prereqStatus(r).filter((p) => !p.ok).length;
+    return `<button class="goal-chip ${on ? 'on' : ''}" data-action="toggle-goal-setting" data-id="${r.id}" aria-pressed="${on}">
+      ${on ? icon('star', 15) : ''}${esc(r.name)}${missing && !on ? ` <span class="muted">${icon('lock', 12)}</span>` : ''}
+    </button>`;
+  }).join('')}</div>`;
+}
+
+function levelSelect(r) {
+  const p = getProgress(r.id);
+  return `
+    <label class="field level-field">
+      <span>${esc(r.name)} <span class="muted small">${esc(r.group)}</span></span>
+      <select data-change="set-level-select" data-id="${r.id}">
+        ${r.steps.map((s, i) => `<option value="${i}" ${i === p.step ? 'selected' : ''}>${i + 1}. ${esc(s.name)} (${esc(targetLabel(s))})</option>`).join('')}
+      </select>
+    </label>`;
+}
+
+export function render() {
+  const state = getState();
+  const st = state.settings;
+  return `
+    <header class="page-head">
+      <div class="eyebrow">Configuración</div>
+      <h1>Ajustes</h1>
+    </header>
+
+    <section class="card">
+      <h3>Habilidades objetivo</h3>
+      <p class="muted small">Hasta ${MAX_GOALS}. Se practican al inicio de cada entreno, cuando estás fresco. ${icon('lock', 12)} = se recomienda más base antes.</p>
+      ${goalPicker(state)}
+    </section>
+
+    <section class="card">
+      <h3>Plan semanal</h3>
+      <div class="field"><span>Días de entreno por semana</span>${segmented('daysPerWeek', [2, 3, 4, 5, 6].map((n) => [n, String(n)]), st.daysPerWeek)}</div>
+      <div class="field"><span>Sesiones cumpliendo el objetivo para subir de nivel</span>${segmented('passesToLevelUp', [[1, '1'], [2, '2'], [3, '3']], st.passesToLevelUp)}</div>
+      <p class="muted small">Con 2 sesiones te aseguras de que el paso está consolidado antes de avanzar.</p>
+    </section>
+
+    <section class="card">
+      <h3>Entreno</h3>
+      ${toggle('warmup', st.warmup, 'Calentamiento guiado', 'Lista de movilidad antes de los ejercicios')}
+      ${toggle('sound', st.sound, 'Sonido al acabar el descanso', 'El iPhone debe tener el modo silencio desactivado')}
+      <button class="btn ghost small" data-action="test-sound">${icon('timer', 16)} Probar sonido</button>
+    </section>
+
+    <section class="card">
+      <h3>Tus datos</h3>
+      <p class="muted small">Todo se guarda solo en este iPhone. Haz una copia de vez en cuando por si cambias de móvil o borras la app.</p>
+      <div class="row gap wrap">
+        <button class="btn ghost" data-action="export-data">${icon('download', 18)} Exportar copia</button>
+        <label class="btn ghost">${icon('upload', 18)} Importar copia<input type="file" accept="application/json,.json" data-change="import-data" hidden></label>
+      </div>
+      <button class="btn danger-outline small" data-action="reset-data">${icon('trash', 16)} Borrar todos los datos</button>
+    </section>
+
+    <section class="card">
+      <h3>Instalar en el iPhone</h3>
+      <ol class="muted small steps-list">
+        <li>Abre esta página en <strong>Safari</strong>.</li>
+        <li>Pulsa el botón <strong>Compartir</strong>.</li>
+        <li>Elige <strong>Añadir a pantalla de inicio</strong>.</li>
+      </ol>
+      <p class="muted tiny">Calisthenic Flow · v1.0</p>
+    </section>
+  `;
+}
+
+export function renderOnboarding() {
+  const state = getState();
+  const goals = state.settings.goals.map((id) => ROADMAP_BY_ID[id]).filter(Boolean);
+  return `
+    <header class="page-head">
+      <div class="badge-big">${icon('route', 34)}</div>
+      <h1>Calisthenic Flow</h1>
+      <p class="muted">Tu hoja de ruta de calistenia: progresiones paso a paso, entrenos recomendados según tu nivel y registro de tu evolución.</p>
+    </header>
+
+    <section class="card">
+      <div class="eyebrow">Paso 1</div>
+      <h2>Tu nivel en los básicos</h2>
+      <p class="muted small">En cada ruta, elige el <strong>primer ejercicio que todavía no puedas completar</strong> con el objetivo indicado. Si dudas, quédate un paso por debajo: subirás rápido.</p>
+      ${basics().map(levelSelect).join('')}
+    </section>
+
+    <section class="card">
+      <div class="eyebrow">Paso 2</div>
+      <h2>¿Qué habilidades quieres conseguir?</h2>
+      <p class="muted small">Elige hasta ${MAX_GOALS}. Puedes cambiarlas cuando quieras.</p>
+      ${goalPicker(state)}
+      ${goals.map(levelSelect).join('')}
+    </section>
+
+    <section class="card">
+      <div class="eyebrow">Paso 3</div>
+      <h2>¿Cuántos días por semana?</h2>
+      ${segmented('daysPerWeek', [2, 3, 4, 5, 6].map((n) => [n, String(n)]), state.settings.daysPerWeek)}
+      <p class="muted small">Los entrenos alternan Día A y Día B (cuerpo completo). Con 3 días por semana progresarás de forma constante.</p>
+    </section>
+
+    <button class="btn primary block" data-action="finish-onboarding">${icon('check', 18)} Empezar</button>
+    <p class="muted tiny center">Tus datos se guardan solo en este dispositivo.</p>
+  `;
+}
+
+function downloadBackup(json) {
+  const date = new Date().toISOString().slice(0, 10);
+  const name = `calisthenic-flow-${date}.json`;
+  const file = new File([json], name, { type: 'application/json' });
+  if (navigator.canShare?.({ files: [file] })) {
+    navigator.share({ files: [file], title: 'Copia de Calisthenic Flow' }).catch(() => {});
+    return;
+  }
+  const url = URL.createObjectURL(file);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+export const actions = {
+  'set-setting'(el) {
+    const key = el.dataset.key;
+    const value = Number(el.dataset.value);
+    update((s) => { s.settings[key] = value; });
+  },
+  'toggle-setting'(el) {
+    const key = el.dataset.key;
+    update((s) => { s.settings[key] = !s.settings[key]; });
+  },
+  'toggle-goal-setting'(el) {
+    const id = el.dataset.id;
+    const goals = getState().settings.goals;
+    if (!goals.includes(id) && goals.length >= MAX_GOALS) {
+      toast(`Máximo ${MAX_GOALS} objetivos. Quita uno primero.`);
+      return;
+    }
+    update((s) => {
+      const g = s.settings.goals;
+      s.settings.goals = g.includes(id) ? g.filter((x) => x !== id) : [...g, id];
+      s.plan = null;
+    });
+  },
+  'test-sound'() {
+    audio.unlock();
+    const wasOn = getState().settings.sound;
+    if (!wasOn) { toast('Activa el sonido primero'); return; }
+    audio.beep({ times: 3 });
+  },
+  'export-data'() {
+    downloadBackup(JSON.stringify({ app: 'calisthenic-flow', exportedAt: new Date().toISOString(), data: getState() }, null, 2));
+  },
+  'reset-data'() {
+    if (!confirm('¿Borrar TODOS tus datos (historial, niveles y ajustes)? No se puede deshacer.')) return;
+    if (!confirm('¿Seguro? Si no tienes copia, se perderá todo.')) return;
+    resetState();
+    navigate('#/bienvenida', { replace: true });
+  },
+  'finish-onboarding'() {
+    update((s) => {
+      s.onboarded = true;
+      for (const r of ROADMAPS) if (!s.progress[r.id]) s.progress[r.id] = { step: 0, passes: 0, done: false };
+    });
+    navigate('#/', { replace: true });
+  },
+};
+
+export const changes = {
+  'set-level-select'(el) {
+    const id = el.dataset.id;
+    const step = Number(el.value);
+    update((s) => { s.progress[id] = { step, passes: 0, done: false }; s.plan = null; }, { silent: true });
+  },
+  async 'import-data'(el) {
+    const file = el.files?.[0];
+    el.value = '';
+    if (!file) return;
+    try {
+      const parsed = JSON.parse(await file.text());
+      const data = parsed?.app === 'calisthenic-flow' ? parsed.data : parsed;
+      if (!data || typeof data !== 'object' || !Array.isArray(data.sessions)) throw new Error('formato');
+      if (!confirm(`Se importarán ${data.sessions.length} entrenos y reemplazarán tus datos actuales. ¿Continuar?`)) return;
+      replaceState({ ...data, active: null, onboarded: true });
+      toast('Copia importada');
+      navigate('#/', { replace: true });
+    } catch {
+      toast('No se pudo leer el archivo de copia');
+    }
+  },
+};
