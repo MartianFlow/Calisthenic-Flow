@@ -9,8 +9,10 @@ import * as session from './views/session.js';
 import * as roadmaps from './views/roadmaps.js';
 import * as progress from './views/progress.js';
 import * as settings from './views/settings.js';
+import * as calendar from './views/calendar.js';
 
 addRoute('/', home.render, { tab: 'hoy' });
+addRoute('/calendario', calendar.render, { tab: 'calendario' });
 addRoute('/rutas', roadmaps.renderList, { tab: 'rutas' });
 addRoute('/ruta/:id', roadmaps.renderDetail, { tab: 'rutas' });
 addRoute('/entreno', session.render, { tab: null, tick: session.tick });
@@ -26,6 +28,7 @@ const actions = {
   ...roadmaps.actions,
   ...progress.actions,
   ...settings.actions,
+  ...calendar.actions,
   'chart-tip'(el) {
     const fig = el.closest('.chart');
     if (!fig) return;

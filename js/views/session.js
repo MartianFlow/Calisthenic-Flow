@@ -2,8 +2,8 @@
 
 import { ROADMAP_BY_ID, WARMUP } from '../data/roadmaps.js';
 import { getState, update } from '../store.js';
-import { itemComplete, finishActiveSession, lastPerformance } from '../logic.js';
-import { esc, icon, fmtClock, targetLabel, unitLabel } from '../ui.js';
+import { itemComplete, finishActiveSession, lastPerformance, nextUnrated, RATINGS } from '../logic.js';
+import { esc, icon, fmtClock, unitLabel, toast } from '../ui.js';
 import { navigate } from '../router.js';
 import { audio, vibrate, wakeLock } from '../device.js';
 
@@ -45,7 +45,7 @@ function warmupCard(a) {
 
 function setRow(item, set, i) {
   const unit = item.type === 'hold' ? 's' : 'reps';
-  const met = Number(set.value) >= item.target;
+  const met = Number(set.value) >= (item.goal ?? item.target);
   return `
     <li class="set ${set.done ? 'done' : ''}">
       <span class="set-n">${i + 1}</span>
@@ -67,14 +67,17 @@ function exerciseCard(state, a) {
   const step = roadmap.steps[item.stepIndex];
   const last = lastPerformance(state, item.roadmapId, item.stepIndex);
   const isLast = a.current === a.items.length - 1;
+  const goal = item.goal ?? item.target;
+  const anyDone = item.sets.some((s) => s.done);
   return `
     <section class="card exercise">
       <div class="eyebrow">${esc(roadmap.name)} · paso ${item.stepIndex + 1}/${roadmap.steps.length}</div>
       <h2>${esc(step.name)}</h2>
       <div class="target-line">
-        <span class="pill accent">${icon('target', 16)} ${esc(targetLabel(item))}</span>
+        <span class="pill accent">${icon('target', 16)} Hoy: ${item.plannedSets} × ${esc(unitLabel(item.type, goal))}${item.side ? ' por lado' : ''}</span>
         <span class="muted small">Descanso ${fmtClock(item.rest)}</span>
       </div>
+      ${goal < item.target ? `<div class="muted small">Meta del paso: ${item.plannedSets} × ${esc(unitLabel(item.type, item.target))}. Tu valoración decide cuánto sube el objetivo.</div>` : ''}
       ${last ? `<div class="muted small">Última vez: ${last.map((v) => unitLabel(item.type, v)).join(' · ')}</div>` : ''}
       <details class="cues">
         <summary>${icon('info', 18)} Técnica</summary>
@@ -86,6 +89,11 @@ function exerciseCard(state, a) {
         <button class="link" data-action="set-add">${icon('plus', 16)} Añadir serie</button>
         ${item.sets.length > 1 ? `<button class="link muted" data-action="set-remove">Quitar última</button>` : ''}
       </div>
+      ${anyDone ? `
+        <div class="rate-inline">
+          <span class="muted small">¿Qué tal te ha parecido?</span>
+          ${ratingButtons(a.current, item.rating, true)}
+        </div>` : ''}
       <div class="row gap nav-row">
         <button class="btn ghost" data-action="session-prev" ${a.current === 0 ? 'disabled' : ''}>${icon('back', 18)} Anterior</button>
         ${isLast
@@ -95,22 +103,47 @@ function exerciseCard(state, a) {
     </section>`;
 }
 
-function restBar(a) {
-  if (!a.rest) return '';
-  const remaining = Math.max(0, (a.rest.endsAt - Date.now()) / 1000);
+function ratingButtons(index, current, compact = false) {
+  return `<div class="rate-opts ${compact ? 'compact' : ''}" role="radiogroup" aria-label="Dificultad">${Object.entries(RATINGS).map(([key, r]) => `
+    <button class="rate-btn ${key} ${current === key ? 'on' : ''}" role="radio" aria-checked="${current === key}"
+      data-action="rate" data-item="${index}" data-value="${key}">
+      <strong>${esc(r.label)}</strong>${compact ? '' : `<small>${esc(r.hint)}</small>`}
+    </button>`).join('')}</div>`;
+}
+
+function ratePanel(a) {
+  if (a.ratePrompt == null) return '';
+  const item = a.items[a.ratePrompt];
+  if (!item) return '';
+  const step = ROADMAP_BY_ID[item.roadmapId].steps[item.stepIndex];
   return `
-    <div class="rest-bar" role="timer">
-      <div class="rest-progress"><span data-tick="rest-bar" style="width:${(remaining / a.rest.total) * 100}%"></span></div>
-      <div class="row between">
-        <div>
-          <div class="eyebrow">Descanso</div>
-          <div class="rest-clock" data-tick="rest">${fmtClock(Math.ceil(remaining))}</div>
-        </div>
-        <div class="row gap">
-          <button class="btn ghost small" data-action="rest-add">+15 s</button>
-          <button class="btn primary small" data-action="rest-skip">Saltar</button>
-        </div>
-      </div>
+    <div class="rate-panel">
+      <div class="rate-q">${a.finishing ? '<span class="eyebrow">Antes de terminar</span>' : ''}
+        ¿Qué tal te ha parecido <strong>${esc(step.name)}</strong>?</div>
+      ${ratingButtons(a.ratePrompt, item.rating)}
+      <button class="link muted" data-action="rate-later">${a.finishing ? 'Omitir' : 'Ahora no'}</button>
+    </div>`;
+}
+
+function bottomSheet(a) {
+  const rating = ratePanel(a);
+  if (!a.rest && !rating) return '';
+  const remaining = a.rest ? Math.max(0, (a.rest.endsAt - Date.now()) / 1000) : 0;
+  return `
+    <div class="rest-bar ${rating ? 'with-rate' : ''}" ${a.rest ? 'role="timer"' : ''}>
+      ${a.rest ? `
+        <div class="rest-progress"><span data-tick="rest-bar" style="width:${(remaining / a.rest.total) * 100}%"></span></div>
+        <div class="row between">
+          <div>
+            <div class="eyebrow">Descanso</div>
+            <div class="rest-clock" data-tick="rest">${fmtClock(Math.ceil(remaining))}</div>
+          </div>
+          <div class="row gap">
+            <button class="btn ghost small" data-action="rest-add">+15 s</button>
+            <button class="btn primary small" data-action="rest-skip">Saltar</button>
+          </div>
+        </div>` : ''}
+      ${rating}
     </div>`;
 }
 
@@ -123,7 +156,7 @@ function holdOverlay(a) {
       <div class="eyebrow">${esc(step.name)} · serie ${a.hold.set + 1}</div>
       <div class="hold-phase" data-tick="hold-phase">Prepárate</div>
       <div class="hold-clock" data-tick="hold">3</div>
-      <div class="muted">Objetivo: ${item.target} s</div>
+      <div class="muted">Objetivo: ${item.goal ?? item.target} s</div>
       <button class="btn primary huge" data-action="hold-stop">Parar</button>
       <button class="btn ghost" data-action="hold-cancel">Cancelar</button>
     </div>`;
@@ -153,7 +186,7 @@ export function render() {
     <div class="center session-foot">
       <button class="link muted" data-action="session-discard">Descartar entreno</button>
     </div>
-    ${restBar(a)}
+    ${bottomSheet(a)}
     ${holdOverlay(a)}
   `;
 }
@@ -194,14 +227,15 @@ export function tick(ctx) {
         audio.beep({ times: 1, freq: 660 });
       }
       const secs = Math.floor(ms / 1000);
-      if (secs >= item.target && beeped.holdTarget !== a.hold.startsAt) {
+      const goal = item.goal ?? item.target;
+      if (secs >= goal && beeped.holdTarget !== a.hold.startsAt) {
         beeped.holdTarget = a.hold.startsAt;
         audio.beep({ times: 2, freq: 1046 });
         vibrate(200);
       }
       if (phase) {
-        phase.textContent = secs >= item.target ? '¡Objetivo conseguido!' : '¡Aguanta!';
-        phase.classList.toggle('met', secs >= item.target);
+        phase.textContent = secs >= goal ? '¡Objetivo conseguido!' : '¡Aguanta!';
+        phase.classList.toggle('met', secs >= goal);
       }
       if (clock) clock.textContent = String(secs);
     }
@@ -220,8 +254,10 @@ function completeSet(s, itemIndex, setIndex) {
   const allDone = a.items.every(itemComplete);
   if (!allDone) startRest(s, item);
   else a.rest = null;
-  // Si el ejercicio queda completo, pasa al siguiente pendiente.
+  // Si el ejercicio queda completo, pregunta la dificultad (durante el descanso)
+  // y pasa al siguiente ejercicio pendiente.
   if (itemComplete(item)) {
+    if (!item.rating) a.ratePrompt = itemIndex;
     const next = a.items.findIndex((it, i) => i > itemIndex && !itemComplete(it));
     const any = next >= 0 ? next : a.items.findIndex((it) => !itemComplete(it));
     if (any >= 0) a.current = any;
@@ -236,19 +272,39 @@ function adjust(el, delta) {
   });
 }
 
-function finish() {
+function finish({ skipChecks = false } = {}) {
   const a = getState().active;
   if (!a) return;
-  const anyDone = a.items.some((it) => it.sets.some((s) => s.done));
-  if (!anyDone) {
-    if (confirm('No has completado ninguna serie. ¿Descartar este entreno?')) discard();
-    return;
+  if (!skipChecks) {
+    const anyDone = a.items.some((it) => it.sets.some((s) => s.done));
+    if (!anyDone) {
+      if (confirm('No has completado ninguna serie. ¿Descartar este entreno?')) discard();
+      return;
+    }
+    const pending = a.items.some((it) => !itemComplete(it));
+    if (pending && !confirm('Quedan series sin completar. ¿Terminar el entreno igualmente?')) return;
+    // Antes de cerrar, pide la valoración de los ejercicios que falten.
+    const unrated = nextUnrated(a);
+    if (unrated != null) {
+      update((s) => { s.active.finishing = true; s.active.ratePrompt = unrated; s.active.rest = null; });
+      return;
+    }
   }
-  const pending = a.items.some((it) => !itemComplete(it));
-  if (pending && !confirm('Quedan series sin completar. ¿Terminar el entreno igualmente?')) return;
   const session = finishActiveSession();
   wakeLock.release();
   navigate(`#/resumen/${session.id}`, { replace: true });
+}
+
+// Si estaba valorando para terminar y vuelve a los ejercicios, cancela el cierre.
+function exitFinishing(s) {
+  if (!s.active.finishing) return;
+  s.active.finishing = false;
+  s.active.ratePrompt = null;
+}
+
+function afterRating() {
+  const a = getState().active;
+  if (a?.finishing && a.ratePrompt == null) finish({ skipChecks: true });
 }
 
 function discard() {
@@ -266,13 +322,14 @@ export const actions = {
   'session-goto'(el) {
     const i = Number(el.dataset.index);
     update((s) => {
+      exitFinishing(s);
       if (i < 0) s.active.warmupDone = false;
       else { s.active.warmupDone = true; s.active.current = i; }
     });
     window.scrollTo({ top: 0 });
   },
   'session-prev'() {
-    update((s) => { s.active.current = Math.max(0, s.active.current - 1); });
+    update((s) => { exitFinishing(s); s.active.current = Math.max(0, s.active.current - 1); });
     window.scrollTo({ top: 0 });
   },
   'session-next'() {
@@ -321,6 +378,30 @@ export const actions = {
       const item = s.active.items[s.active.current];
       if (item.sets.length > 1) item.sets.pop();
     });
+  },
+  'rate'(el) {
+    const i = Number(el.dataset.item);
+    const value = el.dataset.value;
+    update((s) => {
+      const a = s.active;
+      a.items[i].rating = value;
+      a.items[i].rateSkipped = false;
+      if (a.ratePrompt === i) a.ratePrompt = a.finishing ? nextUnrated(a) : null;
+    });
+    toast(`Anotado: ${RATINGS[value].label}`);
+    afterRating();
+  },
+  'rate-later'() {
+    update((s) => {
+      const a = s.active;
+      if (a.finishing && a.ratePrompt != null) {
+        a.items[a.ratePrompt].rateSkipped = true;
+        a.ratePrompt = nextUnrated(a);
+      } else {
+        a.ratePrompt = null;
+      }
+    });
+    afterRating();
   },
   'rest-add'() {
     update((s) => {

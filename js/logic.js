@@ -51,23 +51,60 @@ export function estimateMinutes(state, ids, withWarmup = state.settings.warmup) 
   return Math.max(5, Math.round(sec / 60 / 5) * 5);
 }
 
+// ─────────────────────── Objetivo de trabajo (progresión doble) ───────────────────────
+//
+// Cada paso tiene una META (p. ej. 3 × 8). Hasta llegar a ella se trabaja con un
+// OBJETIVO DE HOY que empieza en ~60 % de la meta y sube según cómo valores el ejercicio:
+//   · Fácil   → sube mucho   · Normal → sube un poco   · Difícil → se mantiene
+// Al alcanzar la meta: Fácil = pasas al siguiente ejercicio de la escala;
+// Normal = cuenta como sesión superada (al llegar a N subes de nivel);
+// Difícil = consolidas ese nivel antes de avanzar.
+
+export const RATINGS = {
+  facil: { label: 'Fácil', hint: 'Me sobraba' },
+  normal: { label: 'Normal', hint: 'Costó, con buena técnica' },
+  dificil: { label: 'Difícil', hint: 'Al límite' },
+};
+
+export function defaultWork(step) {
+  return Math.max(1, Math.round(step.target * 0.6));
+}
+
+export function increments(step) {
+  if (step.type === 'hold') {
+    const small = Math.max(2, Math.round(step.target * 0.1));
+    return { small, big: small * 2 };
+  }
+  return { small: 1, big: 2 };
+}
+
+// Objetivo por serie para la próxima sesión de una ruta.
+// Sin objetivo guardado se parte de lo último registrado en ese paso, o del ~60 % de la meta.
+export function workFor(id) {
+  const { step, index, progress } = stepOf(id);
+  let w = progress.work;
+  if (w == null) {
+    const last = lastPerformance(getState(), id, index);
+    w = last ? Math.min(...last) : defaultWork(step);
+  }
+  return Math.min(step.target, Math.max(1, w));
+}
+
 export function createSession(state, plan) {
   const items = plan.ids.filter((id) => ROADMAP_BY_ID[id]).map((id) => {
     const { roadmap, step, index } = stepOf(id);
-    const last = lastPerformance(state, id, index);
-    const sets = Array.from({ length: step.sets }, (_, i) => ({
-      value: last ? (last[i] ?? last[last.length - 1]) : step.target,
-      done: false,
-    }));
+    const goal = workFor(id);
     return {
       roadmapId: id,
       stepIndex: index,
       type: step.type,
       target: step.target,
+      goal,
       plannedSets: step.sets,
       side: !!step.side,
       rest: roadmap.rest,
-      sets,
+      rating: null,
+      sets: Array.from({ length: step.sets }, () => ({ value: goal, done: false })),
     };
   });
   const now = Date.now();
@@ -80,8 +117,10 @@ export function createSession(state, plan) {
     warmupChecks: [],
     items,
     current: 0,
-    rest: null,   // { endsAt, total }
-    hold: null,   // { item, set, startsAt }
+    rest: null,        // { endsAt, total }
+    hold: null,        // { item, set, startsAt }
+    ratePrompt: null,  // índice del ejercicio pendiente de valorar
+    finishing: false,  // valorando los últimos ejercicios antes de terminar
     notes: '',
   };
 }
@@ -90,12 +129,73 @@ export function itemComplete(item) {
   return item.sets.length > 0 && item.sets.every((s) => s.done);
 }
 
-export function itemMet(item) {
+function allPlannedAtLeast(item, value) {
   const done = item.sets.filter((s) => s.done);
-  return done.length >= item.plannedSets && done.every((s) => Number(s.value) >= item.target);
+  return done.length >= item.plannedSets && done.every((s) => Number(s.value) >= value);
 }
 
-// Cierra el entreno activo, lo guarda en el historial y aplica subidas de nivel.
+export const goalMet = (item) => allPlannedAtLeast(item, item.goal ?? item.target);
+export const stepMet = (item) => allPlannedAtLeast(item, item.target);
+
+// Siguiente ejercicio con series hechas que aún no se ha valorado.
+export function nextUnrated(active) {
+  const i = active.items.findIndex((it) => it.sets.some((s) => s.done) && !it.rating && !it.rateSkipped);
+  return i >= 0 ? i : null;
+}
+
+// Aplica la valoración y el rendimiento de un ejercicio a su progreso.
+// Devuelve el resultado para mostrarlo en el resumen y el calendario.
+function applyProgress(p, roadmap, item, required) {
+  const step = roadmap.steps[item.stepIndex];
+  const rating = item.rating || 'normal'; // sin valorar cuenta como normal
+  const goal = item.goal ?? step.target;
+  const inc = increments(step);
+  const isLast = p.step >= roadmap.steps.length - 1;
+
+  const levelUp = (reason) => {
+    if (isLast) {
+      p.work = step.target;
+      if (p.done) return { kind: 'keep', next: step.target };
+      p.done = true;
+      return { kind: 'completed', reason };
+    }
+    p.step += 1;
+    p.passes = 0;
+    p.work = defaultWork(roadmap.steps[p.step]);
+    return { kind: 'levelup', reason, to: p.step, next: p.work };
+  };
+
+  if (stepMet(item)) {
+    p.work = step.target;
+    if (rating === 'facil') return levelUp('facil');
+    if (rating === 'normal') {
+      p.passes += 1;
+      if (p.passes >= required) return levelUp('passes');
+      return { kind: 'pass', passes: p.passes, required, next: step.target };
+    }
+    return { kind: 'consolidate', next: step.target };
+  }
+
+  if (goalMet(item)) {
+    if (rating === 'dificil') {
+      p.work = goal;
+      return { kind: 'keep', next: goal };
+    }
+    const next = Math.min(step.target, goal + (rating === 'facil' ? inc.big : inc.small));
+    p.work = next;
+    return { kind: 'up', from: goal, next };
+  }
+
+  if (rating === 'dificil') {
+    const next = Math.max(1, goal - inc.small);
+    p.work = next;
+    return next < goal ? { kind: 'down', from: goal, next } : { kind: 'keep', next: goal };
+  }
+  p.work = goal;
+  return { kind: 'keep', next: goal };
+}
+
+// Cierra el entreno activo, lo guarda en el historial y aplica la progresión.
 export function finishActiveSession() {
   const state = getState();
   const active = state.active;
@@ -123,37 +223,33 @@ export function finishActiveSession() {
     for (const item of active.items) {
       const done = item.sets.filter((x) => x.done);
       if (!done.length) continue;
-      const met = itemMet(item);
       const entry = {
         roadmapId: item.roadmapId,
         stepIndex: item.stepIndex,
         type: item.type,
         target: item.target,
+        goal: item.goal ?? item.target,
         plannedSets: item.plannedSets,
         side: item.side,
         sets: done.map((x) => Number(x.value) || 0),
-        met,
+        met: stepMet(item),
+        goalMet: goalMet(item),
+        rating: item.rating || null,
       };
       session.items.push(entry);
-      if (!met) continue;
 
       const roadmap = ROADMAP_BY_ID[item.roadmapId];
       const p = (s.progress[item.roadmapId] ||= { step: 0, passes: 0, done: false });
       if (p.step !== item.stepIndex) continue; // el nivel se cambió a mano durante el entreno
-      p.passes += 1;
-      entry.passes = p.passes;
-      entry.required = required;
-      if (p.passes < required) continue;
-
-      if (p.step < roadmap.steps.length - 1) {
-        session.levelUps.push({ roadmapId: item.roadmapId, from: p.step, to: p.step + 1 });
-        s.levelLog.push({ date: dateIso, roadmapId: item.roadmapId, from: p.step, to: p.step + 1 });
-        p.step += 1;
-        p.passes = 0;
-      } else if (!p.done) {
-        p.done = true;
-        session.levelUps.push({ roadmapId: item.roadmapId, from: p.step, to: p.step, completed: true });
-        s.levelLog.push({ date: dateIso, roadmapId: item.roadmapId, from: p.step, to: p.step, completed: true });
+      const outcome = applyProgress(p, roadmap, item, required);
+      entry.outcome = outcome;
+      if (outcome.kind === 'levelup' || outcome.kind === 'completed') {
+        const from = item.stepIndex;
+        const to = outcome.kind === 'levelup' ? outcome.to : from;
+        const record = { roadmapId: item.roadmapId, from, to, reason: outcome.reason };
+        if (outcome.kind === 'completed') record.completed = true;
+        session.levelUps.push(record);
+        s.levelLog.push({ date: dateIso, ...record });
       }
     }
     s.sessions.push(session);
@@ -162,6 +258,31 @@ export function finishActiveSession() {
     if (active.dayType === 'A' || active.dayType === 'B') s.lastDayType = active.dayType;
   });
   return session;
+}
+
+// Texto corto que explica qué cambia tras un ejercicio.
+export function outcomeText(entry) {
+  const o = entry.outcome;
+  if (!o) return '';
+  const r = ROADMAP_BY_ID[entry.roadmapId];
+  const unit = (v) => (entry.type === 'hold' ? `${v} s` : `${v} ${v === 1 ? 'rep' : 'reps'}`);
+  const sets = entry.plannedSets;
+  switch (o.kind) {
+    case 'levelup':
+      return `${o.reason === 'facil' ? 'Te resultó fácil: s' : 'S'}ubes a «${r.steps[o.to].name}» (empiezas con ${r.steps[o.to].sets} × ${unit(o.next)})`;
+    case 'completed':
+      return '¡Ruta completada!';
+    case 'pass':
+      return `Meta del paso cumplida (${o.passes}/${o.required}). Repite para subir de nivel`;
+    case 'consolidate':
+      return `Meta cumplida, pero costó: consolida ${sets} × ${unit(o.next)} antes de avanzar`;
+    case 'up':
+      return `Próxima vez: ${sets} × ${unit(o.next)} (antes ${unit(o.from)})`;
+    case 'down':
+      return `Bajamos a ${sets} × ${unit(o.next)} para consolidar`;
+    default:
+      return `Próxima vez: mantén ${sets} × ${unit(o.next)}`;
+  }
 }
 
 // ───────────────────────────── Estadísticas ─────────────────────────────

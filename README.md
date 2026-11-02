@@ -10,7 +10,10 @@ Es una **web app instalable (PWA)**: se añade a la pantalla de inicio del iPhon
   - **Fuerza:** Dominadas, Remo invertido, Flexiones, Fondos, Piernas (hasta la pistol squat), Core (hasta el dragon flag).
   - **Habilidades:** Muscle-up, Pino, Flexión de pino, L-sit, Front lever, Planche, Back lever.
 - **Entreno recomendado del día:** alterna Día A y Día B de cuerpo completo con tus ejercicios de fuerza en tu nivel actual. Las habilidades que marques como objetivo (hasta 3) van al principio de cada sesión. Puedes editar el plan antes de empezar.
-- **Subida de nivel automática:** cuando completas todas las series llegando al objetivo en 2 sesiones (configurable), pasas al siguiente paso de la ruta.
+- **Progresión según cómo te sientes:** al terminar cada ejercicio, mientras corre el descanso, la app pregunta si te pareció **Fácil, Normal o Difícil**.
+  - Mientras no llegas a la meta del paso, el objetivo de la próxima sesión sube mucho (Fácil), un poco (Normal) o se mantiene (Difícil; baja un poco si no llegaste).
+  - Al alcanzar la meta: **Fácil** te pasa directamente al siguiente ejercicio de la escala; **Normal** cuenta como sesión superada (con 2, configurable, subes de nivel); **Difícil** consolida ese nivel antes de avanzar.
+- **Calendario:** marca los días entrenados y las subidas de nivel. Al tocar un día ves qué entrenaste, tus series, cómo valoraste cada ejercicio y qué cambió en tu progreso.
 - **Durante el entreno:** calentamiento guiado, contador +/− por serie, cronómetro con cuenta atrás para isometrías, temporizador de descanso con aviso sonoro y pantalla siempre encendida.
 - **Progreso:** tiempo total, racha de semanas cumpliendo tu objetivo, minutos por semana, historial de subidas de nivel, gráfica de tu mejor serie en cada paso e historial completo de entrenos con notas.
 - **Copia de seguridad:** exporta e importa tus datos en JSON desde Ajustes.
@@ -59,5 +62,5 @@ js/app.js               Rutas, eventos y temporizadores
 js/store.js             Estado guardado en localStorage
 js/logic.js             Generación de entrenos, subidas de nivel y estadísticas
 js/data/roadmaps.js     Contenido: rutas, plantillas y calentamiento
-js/views/*.js           Pantallas: Hoy, Entreno, Rutas, Progreso y Ajustes
+js/views/*.js           Pantallas: Hoy, Calendario, Entreno, Rutas, Progreso y Ajustes
 ```

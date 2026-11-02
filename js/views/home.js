@@ -4,7 +4,7 @@ import { ROADMAPS, ROADMAP_BY_ID, DAY_TEMPLATES } from '../data/roadmaps.js';
 import { getState, update } from '../store.js';
 import {
   currentPlan, defaultIds, estimateMinutes, stepOf, createSession, startOfWeek,
-  sessionsInWeek, roadmapPercent, lastPerformance,
+  sessionsInWeek, roadmapPercent, lastPerformance, workFor,
 } from '../logic.js';
 import { esc, icon, targetLabel, fmtClock, progressBar, unitLabel } from '../ui.js';
 import { navigate } from '../router.js';
@@ -32,6 +32,7 @@ function weekStrip(state) {
         <span class="pill ${list.length >= goal ? 'ok' : ''}">${list.length}/${goal} entrenos</span>
       </div>
       <div class="days">${dots}</div>
+      <a class="link" href="#/calendario">${icon('calendar', 16)} Ver calendario</a>
     </section>`;
 }
 
@@ -39,6 +40,7 @@ function exerciseRow(state, id, idx) {
   const { roadmap, step, index } = stepOf(id);
   const last = lastPerformance(state, id, index);
   const isGoal = state.settings.goals.includes(id);
+  const goal = workFor(id);
   return `
     <li class="ex-row">
       <span class="num">${idx + 1}</span>
@@ -47,7 +49,8 @@ function exerciseRow(state, id, idx) {
         <div class="muted small">${esc(roadmap.name)} · paso ${index + 1}/${roadmap.steps.length}${isGoal ? ' · <span class="accent-text">objetivo</span>' : ''}</div>
         ${last ? `<div class="muted small">Última vez: ${last.map((v) => unitLabel(step.type, v)).join(' · ')}</div>` : ''}
       </div>
-      <div class="ex-target">${esc(targetLabel(step))}</div>
+      <div class="ex-target">${step.sets} × ${esc(unitLabel(step.type, goal))}${step.side ? '<small> /lado</small>' : ''}
+        ${goal < step.target ? `<div class="muted tiny">meta ${step.target}${step.type === 'hold' ? ' s' : ''}</div>` : ''}</div>
       ${editing ? `
         <div class="edit-btns">
           <button class="icon-btn up" data-action="plan-move" data-id="${id}" data-dir="-1" aria-label="Subir" ${idx === 0 ? 'disabled' : ''}>${icon('back', 18)}</button>

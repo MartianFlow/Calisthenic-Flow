@@ -3,7 +3,7 @@
 
 import { ROADMAP_BY_ID } from '../data/roadmaps.js';
 import { getState, update } from '../store.js';
-import { totals, weekStreak, weeklySeries, globalProgress } from '../logic.js';
+import { totals, weekStreak, weeklySeries, globalProgress, outcomeText, RATINGS } from '../logic.js';
 import { esc, icon, fmtDuration, fmtDate, fmtLongDate, fmtTime, unitLabel } from '../ui.js';
 import { weeklyBars } from '../charts.js';
 import { navigate } from '../router.js';
@@ -72,30 +72,32 @@ export function render() {
   `;
 }
 
-function itemBlock(item, state) {
+const OUTCOME_ICON = { levelup: 'star', completed: 'trophy', pass: 'check', consolidate: 'target', up: 'plus', down: 'minus', keep: 'target' };
+
+// Bloque de un ejercicio registrado: series, valoración y qué cambia después.
+export function itemBlock(item) {
   const r = ROADMAP_BY_ID[item.roadmapId];
   if (!r) return '';
   const step = r.steps[item.stepIndex];
-  let status = '';
-  if (item.met && item.required) {
-    status = item.passes >= item.required
-      ? '<span class="pill ok tiny">Objetivo cumplido</span>'
-      : `<span class="pill ok tiny">Objetivo cumplido · ${item.passes}/${item.required}</span>`;
-  } else if (item.met) {
-    status = '<span class="pill ok tiny">Objetivo cumplido</span>';
-  } else {
-    status = `<span class="pill tiny">Objetivo: ${item.target}${item.type === 'hold' ? ' s' : ' reps'}</span>`;
-  }
+  const goal = item.goal ?? item.target;
+  const rating = item.rating && RATINGS[item.rating]
+    ? `<span class="rate-chip ${item.rating}">${esc(RATINGS[item.rating].label)}</span>`
+    : '<span class="pill tiny">Sin valorar</span>';
+  const outcome = item.outcome
+    ? `<div class="outcome ${item.outcome.kind}">${icon(OUTCOME_ICON[item.outcome.kind] || 'target', 15)}<span>${esc(outcomeText(item))}</span></div>`
+    : item.met ? '<div class="outcome pass">' + icon('check', 15) + '<span>Objetivo cumplido</span></div>' : '';
   return `
     <li class="summary-item">
       <div class="row between">
-        <div>
+        <div class="grow">
           <div class="eyebrow">${esc(r.name)} · paso ${item.stepIndex + 1}</div>
           <div class="ex-title">${esc(step.name)}</div>
         </div>
-        ${status}
+        ${rating}
       </div>
-      <div class="set-pills">${item.sets.map((v) => `<span class="set-pill ${v >= item.target ? 'met' : ''}">${unitLabel(item.type, v)}</span>`).join('')}</div>
+      <div class="set-pills">${item.sets.map((v) => `<span class="set-pill ${v >= goal ? 'met' : ''}">${unitLabel(item.type, v)}</span>`).join('')}
+        <span class="muted tiny">objetivo ${unitLabel(item.type, goal)}</span></div>
+      ${outcome}
     </li>`;
 }
 
@@ -109,6 +111,7 @@ function sessionBody(s, state) {
         <div>
           <div class="eyebrow">${esc(r.name)}</div>
           <div><strong>${l.completed ? '¡Ruta completada!' : `Nuevo nivel: ${esc(r.steps[l.to].name)}`}</strong></div>
+          ${l.reason === 'facil' && !l.completed ? '<div class="muted small">Te resultó fácil, así que avanzas directamente.</div>' : ''}
           ${!l.completed ? `<div class="muted small">Paso ${l.to + 1} de ${r.steps.length}</div>` : ''}
         </div>
       </div>`;
@@ -121,7 +124,7 @@ function sessionBody(s, state) {
     ${levelUps ? `<section class="card celebrate">${levelUps}</section>` : ''}
     <section class="card">
       <h3>Ejercicios</h3>
-      <ul class="summary-list">${s.items.map((it) => itemBlock(it, state)).join('') || '<li class="muted">Sin series registradas.</li>'}</ul>
+      <ul class="summary-list">${s.items.map((it) => itemBlock(it)).join('') || '<li class="muted">Sin series registradas.</li>'}</ul>
     </section>
     <section class="card">
       <label class="field">

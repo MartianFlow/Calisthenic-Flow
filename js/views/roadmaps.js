@@ -3,9 +3,9 @@
 import { ROADMAPS, ROADMAP_BY_ID, CATEGORIES } from '../data/roadmaps.js';
 import { getState, update, setStep } from '../store.js';
 import {
-  stepOf, roadmapPercent, globalProgress, prereqStatus, roadmapHistory, createSession,
+  stepOf, roadmapPercent, globalProgress, prereqStatus, roadmapHistory, createSession, workFor,
 } from '../logic.js';
-import { esc, icon, targetLabel, progressBar, toast } from '../ui.js';
+import { esc, icon, targetLabel, progressBar, toast, unitLabel } from '../ui.js';
 import { progressLine } from '../charts.js';
 import { navigate } from '../router.js';
 import { audio, wakeLock } from '../device.js';
@@ -96,6 +96,7 @@ export function renderDetail({ id }) {
   const required = state.settings.passesToLevelUp;
   const history = roadmapHistory(state, id).filter((h) => h.stepIndex === index);
   const unit = step.type === 'hold' ? 's' : 'reps';
+  const work = workFor(id);
 
   return `
     <header class="page-head">
@@ -116,10 +117,17 @@ export function renderDetail({ id }) {
         <div class="route-level big">${progress.done ? icon('trophy', 28) : `<span>${index + 1}</span><small>/${r.steps.length}</small>`}</div>
       </div>
       ${progressBar(roadmapPercent(id))}
-      ${!progress.done ? `
+      ${!progress.done && work < step.target ? `
+        <div class="work-box">
+          <div><span class="muted small">Tu objetivo ahora</span><strong>${step.sets} × ${esc(unitLabel(step.type, work))}</strong></div>
+          ${icon('next', 18)}
+          <div><span class="muted small">Meta del paso</span><strong>${esc(targetLabel(step))}</strong></div>
+        </div>
+        <p class="muted small">Tras cada ejercicio valoras si fue Fácil, Normal o Difícil: el objetivo sube más o menos según tu respuesta hasta llegar a la meta.</p>` : ''}
+      ${!progress.done && work >= step.target ? `
         <div class="passes">
           ${Array.from({ length: required }, (_, i) => `<span class="pass ${i < progress.passes ? 'on' : ''}">${icon('check', 14)}</span>`).join('')}
-          <span class="muted small">Objetivo cumplido en ${progress.passes} de ${required} ${required === 1 ? 'sesión' : 'sesiones'} para subir de nivel</span>
+          <span class="muted small">Meta cumplida (Normal) en ${progress.passes} de ${required} ${required === 1 ? 'sesión' : 'sesiones'} para subir. Si te resulta Fácil, subes directamente.</span>
         </div>` : ''}
       <div class="row gap wrap">
         <button class="btn primary" data-action="train-only" data-id="${id}">${icon('play', 18)} Entrenar solo esta ruta</button>
