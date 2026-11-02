@@ -6,6 +6,8 @@ import { prereqStatus, deloadActive } from '../logic.js';
 import { esc, icon, targetLabel, toast } from '../ui.js';
 import { navigate } from '../router.js';
 import { audio } from '../device.js';
+import { recommendDays, DEFAULT_DAYS } from '../schedule.js';
+import { dayChips, daysSegmented } from './plan.js';
 
 const MAX_GOALS = 3;
 const skills = () => ROADMAPS.filter((r) => r.category === 'habilidad');
@@ -63,7 +65,7 @@ export function render() {
 
     <section class="card">
       <h3>Plan semanal</h3>
-      <div class="field"><span>Días de entreno por semana</span>${segmented('daysPerWeek', [2, 3, 4, 5, 6].map((n) => [n, String(n)]), st.daysPerWeek)}</div>
+      <a class="btn ghost" href="#/plan">${icon('route', 18)} ${state.settings.schedule ? `${st.daysPerWeek} días por semana · ver plan` : 'Crear plan semanal'}</a>
       <div class="field"><span>Sesiones con la meta cumplida para subir en habilidades</span>${segmented('passesToLevelUp', [[1, '1'], [2, '2'], [3, '3']], st.passesToLevelUp)}</div>
       <p class="muted small">En los básicos de fuerza basta 1 sesión. En habilidades de brazos rectos se recomiendan 2, porque los tendones se adaptan más despacio que el músculo.</p>
       ${deloadActive(state)
@@ -96,13 +98,14 @@ export function render() {
         <li>Pulsa el botón <strong>Compartir</strong>.</li>
         <li>Elige <strong>Añadir a pantalla de inicio</strong>.</li>
       </ol>
-      <p class="muted tiny">Calisthenic Flow · v1.0</p>
+      <p class="muted tiny">Calisthenic Flow · v2.0</p>
     </section>
   `;
 }
 
 export function renderOnboarding() {
   const state = getState();
+  const rec = recommendDays(state);
   const goals = state.settings.goals.map((id) => ROADMAP_BY_ID[id]).filter(Boolean);
   return `
     <header class="page-head">
@@ -128,9 +131,10 @@ export function renderOnboarding() {
 
     <section class="card">
       <div class="eyebrow">Paso 3</div>
-      <h2>¿Cuántos días por semana?</h2>
-      ${segmented('daysPerWeek', [2, 3, 4, 5, 6].map((n) => [n, String(n)]), state.settings.daysPerWeek)}
-      <p class="muted small">Los entrenos alternan Día A y Día B (cuerpo completo). Con 3 días por semana progresarás de forma constante.</p>
+      <h2>¿Qué días puedes entrenar?</h2>
+      ${dayChips(state.settings.schedule?.days || DEFAULT_DAYS)}
+      <div class="field"><span>Días de entreno por semana <span class="muted small">(★ recomendado: ${rec.days})</span></span>${daysSegmented(state, rec)}</div>
+      <p class="muted small">${esc(rec.reasons[0])} Podrás ver y ajustar tu semana en «Plan semanal».</p>
     </section>
 
     <button class="btn primary block" data-action="finish-onboarding">${icon('check', 18)} Empezar</button>
@@ -160,7 +164,7 @@ export const actions = {
   'set-setting'(el) {
     const key = el.dataset.key;
     const value = Number(el.dataset.value);
-    update((s) => { s.settings[key] = value; });
+    update((s) => { s.settings[key] = value; if (key === 'daysPerWeek') s.plan = null; });
   },
   'toggle-setting'(el) {
     const key = el.dataset.key;
@@ -197,6 +201,7 @@ export const actions = {
   'finish-onboarding'() {
     update((s) => {
       s.onboarded = true;
+      s.settings.schedule ||= { days: [...DEFAULT_DAYS] };
       for (const r of ROADMAPS) if (!s.progress[r.id]) s.progress[r.id] = { step: 0, passes: 0, done: false };
     });
     navigate('#/', { replace: true });

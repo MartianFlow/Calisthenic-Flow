@@ -8,6 +8,7 @@ import { navigate } from '../router.js';
 import { audio, vibrate, wakeLock } from '../device.js';
 import { videoCard } from '../video.js';
 import { burst, bump, beat, replay } from '../fx.js';
+import { totalXP, levelInfo, syncAchievements, itemsUnlockedBy } from '../game.js';
 
 const HOLD_COUNTDOWN = 3000;
 const beeped = { holdStart: null, holdTarget: null };
@@ -313,9 +314,21 @@ function finish({ skipChecks = false } = {}) {
       return;
     }
   }
+  const xpBefore = totalXP(getState());
   const session = finishActiveSession();
+  // Recompensas del héroe: XP, nivel, logros y artículos nuevos.
+  let reward = null;
+  update((s) => {
+    const fresh = syncAchievements(s);
+    const xpAfter = totalXP(s);
+    const levelBefore = levelInfo(xpBefore).level;
+    const levelAfter = levelInfo(xpAfter).level;
+    reward = { xp: xpAfter - xpBefore, levelBefore, levelAfter, achievements: fresh, items: itemsUnlockedBy(levelBefore, levelAfter, fresh) };
+    const rec = s.sessions.find((x) => x.id === session.id);
+    if (rec) rec.game = reward;
+  }, { silent: true });
   wakeLock.release();
-  pendingCelebration = session.levelUps.length > 0;
+  pendingCelebration = session.levelUps.length > 0 || reward.levelAfter > reward.levelBefore || reward.achievements.length > 0;
   navigate(`#/resumen/${session.id}`, { replace: true });
 }
 

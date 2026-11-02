@@ -28,6 +28,13 @@ export function defaultState() {
     lastDayType: null,
     deload: null,           // { start, until } semana de descarga
     deloadSnoozeUntil: null,
+    game: {                 // héroe: logros desbloqueados, equipo y apariencia
+      name: 'Tu héroe',
+      unlocked: {},
+      equipped: {},
+      look: { skin: 1, hair: 0, hairStyle: 'puntas' },
+      videosWatched: 0,
+    },
   };
 }
 
@@ -85,6 +92,10 @@ export function normalize(data) {
   s.levelLog = Array.isArray(s.levelLog) ? s.levelLog : [];
   s.sessions = Array.isArray(s.sessions) ? s.sessions : [];
   s.settings.goals = (s.settings.goals || []).filter((id) => ROADMAP_BY_ID[id]);
+  s.game = { ...base.game, ...(data.game || {}) };
+  s.game.look = { ...base.game.look, ...(s.game.look || {}) };
+  s.game.unlocked ||= {};
+  s.game.equipped ||= {};
   for (const id of Object.keys(s.progress)) {
     const r = ROADMAP_BY_ID[id];
     if (!r) { delete s.progress[id]; continue; }

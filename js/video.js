@@ -2,7 +2,10 @@
 // El reproductor se abre en una capa propia fuera de la vista principal para que
 // no se corte cuando la pantalla del entreno se actualiza (descansos, series…).
 
-import { esc, icon } from './ui.js';
+import { esc, icon, toast } from './ui.js';
+import { update } from './store.js';
+import { syncAchievements, ACH_BY_ID } from './game.js';
+import { burst } from './fx.js';
 
 const thumb = (id) => `https://i.ytimg.com/vi/${encodeURIComponent(id)}/mqdefault.jpg`;
 const watchUrl = (v) => `https://www.youtube.com/watch?v=${encodeURIComponent(v.id)}${v.start ? `&t=${v.start}s` : ''}`;
@@ -69,6 +72,15 @@ export function closeVideo() {
 export const actions = {
   'video-open'(el) {
     openVideo({ id: el.dataset.id, start: el.dataset.start, title: el.dataset.title, name: el.dataset.name });
+    let fresh = [];
+    update((s) => {
+      s.game.videosWatched = (s.game.videosWatched || 0) + 1;
+      fresh = syncAchievements(s);
+    }, { silent: true });
+    if (fresh.length) {
+      toast(`¡Logro desbloqueado: ${ACH_BY_ID[fresh[0]].name}!`);
+      burst(null, { text: '¡LOGRO!', big: true });
+    }
   },
   'video-close'() { closeVideo(); },
 };

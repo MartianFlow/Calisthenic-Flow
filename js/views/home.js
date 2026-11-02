@@ -1,30 +1,35 @@
-// Pantalla "Hoy": próximo entreno recomendado, semana actual y objetivos.
+// Pantalla "Hoy": qué toca según tu plan semanal, tu héroe, la semana y tus objetivos.
 
-import { ROADMAPS, ROADMAP_BY_ID, DAY_TEMPLATES } from '../data/roadmaps.js';
+import { ROADMAPS, ROADMAP_BY_ID } from '../data/roadmaps.js';
 import { getState, update } from '../store.js';
 import {
-  currentPlan, defaultIds, estimateMinutes, stepOf, createSession, startOfWeek,
+  defaultIds, estimateMinutes, stepOf, createSession, startOfWeek,
   sessionsInWeek, roadmapPercent, lastPerformance, workFor, deloadActive, deloadSuggestion, startDeload,
 } from '../logic.js';
-import { esc, icon, targetLabel, fmtClock, progressBar, unitLabel, fmtDate } from '../ui.js';
+import { todayInfo, buildWeek, DAY_INFO, WEEKDAYS, WD_SHORT, weekdayIndex } from '../schedule.js';
+import { esc, icon, fmtClock, progressBar, unitLabel, fmtDate } from '../ui.js';
 import { navigate } from '../router.js';
 import { audio, wakeLock } from '../device.js';
+import { heroMini } from './hero.js';
 
 let editing = false;
-
-const DAY_LETTERS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
 function weekStrip(state) {
   const ws = startOfWeek(Date.now());
   const list = sessionsInWeek(state, ws);
-  const today = (new Date().getDay() + 6) % 7;
-  const trainedDays = new Set(list.map((s) => (new Date(s.startedAt).getDay() + 6) % 7));
+  const today = weekdayIndex();
+  const trainedDays = new Set(list.map((s) => weekdayIndex(s.startedAt)));
   const goal = state.settings.daysPerWeek;
-  const dots = DAY_LETTERS.map((l, i) => `
-    <div class="day ${trainedDays.has(i) ? 'on' : ''} ${i === today ? 'today' : ''}">
-      <span class="dot">${trainedDays.has(i) ? icon('check', 14) : ''}</span>
+  const week = buildWeek(state);
+  const dots = WD_SHORT.map((l, i) => {
+    const type = week?.[i]?.type;
+    const planned = type && type !== 'R';
+    return `
+    <div class="day ${trainedDays.has(i) ? 'on' : ''} ${i === today ? 'today' : ''} ${planned ? 'planned' : ''}">
+      <span class="dot">${trainedDays.has(i) ? icon('check', 14) : planned ? `<b>${type}</b>` : ''}</span>
       <span class="lbl">${l}</span>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   return `
     <section class="card week">
       <div class="row between">
@@ -32,7 +37,10 @@ function weekStrip(state) {
         <span class="pill ${list.length >= goal ? 'ok' : ''}">${list.length}/${goal} entrenos</span>
       </div>
       <div class="days">${dots}</div>
-      <a class="link" href="#/calendario">${icon('calendar', 16)} Ver calendario</a>
+      <div class="row between wrap">
+        <a class="link" href="#/plan">${icon('route', 16)} ${week ? 'Plan semanal' : 'Crear plan semanal'}</a>
+        <a class="link" href="#/calendario">${icon('calendar', 16)} Calendario</a>
+      </div>
     </section>`;
 }
 
@@ -59,16 +67,37 @@ function exerciseRow(state, id, idx) {
     </li>`;
 }
 
-function planCard(state) {
-  const plan = currentPlan(state);
-  const tpl = DAY_TEMPLATES[plan.dayType];
+function nextLabel(info) {
+  if (!info.next) return '';
+  return `${info.nextWeek ? 'La semana que viene, ' : ''}${WEEKDAYS[info.next.weekday].toLowerCase()}: ${DAY_INFO[info.next.type].label}`;
+}
+
+function restCard(info) {
+  const done = info.mode === 'done';
+  return `
+    <section class="card plan rest">
+      <span class="eyebrow">${done ? '¡Hecho por hoy!' : 'Hoy toca descanso'}</span>
+      <h2>${done ? 'Misión cumplida' : 'Recupera'}</h2>
+      <p class="small">${done ? 'Buen trabajo. El músculo crece mientras descansas.' : esc(DAY_INFO.R.focus)}</p>
+      ${info.next ? `<div class="next-up">${icon('next', 16)} Próximo: <strong>${esc(nextLabel(info))}</strong></div>` : ''}
+      <div class="row gap wrap">
+        <button class="btn ghost" data-action="train-anyway">${icon('play', 18)} ${done ? 'Entrenar otra vez' : 'Entrenar igualmente'}</button>
+        <a class="btn ghost" href="#/plan">${icon('route', 18)} Ver plan</a>
+      </div>
+    </section>`;
+}
+
+function planCard(state, info) {
+  const plan = info.plan;
+  const tpl = DAY_INFO[plan.dayType];
   const minutes = estimateMinutes(state, plan.ids);
   const available = ROADMAPS.filter((r) => !plan.ids.includes(r.id));
+  const eyebrow = info.mode === 'scheduled' ? `Hoy toca · ${WEEKDAYS[weekdayIndex()]}` : plan.custom ? 'Entreno editado' : 'Próximo entreno';
   return `
     <section class="card plan">
       <div class="row between">
         <div>
-          <div class="eyebrow">Próximo entreno</div>
+          <div class="eyebrow">${esc(eyebrow)}</div>
           <h2>${tpl ? esc(tpl.label) : 'Entreno personalizado'}${plan.custom ? ' <span class="pill">editado</span>' : ''}</h2>
           ${tpl ? `<div class="muted small">${esc(tpl.focus)}</div>` : ''}
         </div>
@@ -85,7 +114,7 @@ function planCard(state) {
             </select>
           </label>
           <div class="row gap">
-            <button class="btn ghost" data-action="plan-switch">${icon('swap', 18)} Cambiar a ${plan.dayType === 'A' ? 'día B' : 'día A'}</button>
+            <button class="btn ghost" data-action="plan-switch">${icon('swap', 18)} Cambiar de día</button>
             <button class="btn ghost" data-action="plan-reset">Restablecer</button>
           </div>
         </div>` : ''}
@@ -102,7 +131,7 @@ function goalsCard(state) {
     return `
       <section class="card">
         <h3>Tus objetivos</h3>
-        <p class="muted">Elige hasta 3 habilidades (muscle-up, pino, front lever…) y se añadirán al principio de cada entreno.</p>
+        <p class="muted">Elige hasta 3 habilidades (muscle-up, pino, front lever…) y se añadirán al principio de tus entrenos.</p>
         <a class="btn ghost" href="#/rutas">${icon('target', 18)} Elegir habilidades</a>
       </section>`;
   }
@@ -153,14 +182,12 @@ function deloadCard(state) {
 export function render() {
   const state = getState();
   const active = state.active;
+  const info = todayInfo(state);
   const hour = new Date().getHours();
   const hello = hour < 13 ? 'Buenos días' : hour < 20 ? 'Buenas tardes' : 'Buenas noches';
-  return `
-    <header class="page-head">
-      <div class="eyebrow">${hello}</div>
-      <h1>Hoy</h1>
-    </header>
-    ${active ? `
+  let main;
+  if (active) {
+    main = `
       <section class="card resume">
         <div class="row between">
           <div>
@@ -169,7 +196,19 @@ export function render() {
           </div>
           <button class="btn primary" data-action="go-session">${icon('play', 18)} Continuar</button>
         </div>
-      </section>` : planCard(state)}
+      </section>`;
+  } else if (info.mode === 'rest' || info.mode === 'done') {
+    main = restCard(info);
+  } else {
+    main = planCard(state, info);
+  }
+  return `
+    <header class="page-head row between">
+      <div class="col"><div class="eyebrow">${hello}</div><h1>Hoy</h1></div>
+      <a class="icon-btn" href="#/ajustes" aria-label="Ajustes">${icon('gear')}</a>
+    </header>
+    ${main}
+    ${heroMini(state)}
     ${deloadCard(state)}
     ${weekStrip(state)}
     ${goalsCard(state)}
@@ -178,7 +217,7 @@ export function render() {
 
 function mutatePlan(fn) {
   update((s) => {
-    const base = currentPlan(s);
+    const base = todayInfo(s).plan;
     const plan = { dayType: base.dayType, ids: [...base.ids], custom: true };
     fn(plan, s);
     s.plan = plan;
@@ -188,13 +227,19 @@ function mutatePlan(fn) {
 export const actions = {
   'start-session'() {
     const state = getState();
-    const plan = currentPlan(state);
+    const plan = todayInfo(state).plan;
     if (!plan.ids.length) return;
     audio.unlock();
     editing = false;
     update((s) => { s.active = createSession(s, plan); });
     wakeLock.request();
     navigate('#/entreno');
+  },
+  'train-anyway'() {
+    update((s) => {
+      const base = todayInfo(s).plan;
+      s.plan = { dayType: base.dayType, ids: [...base.ids], custom: false };
+    });
   },
   'go-session'() {
     audio.unlock();
@@ -216,9 +261,13 @@ export const actions = {
   },
   'plan-switch'() {
     update((s) => {
-      const base = currentPlan(s);
-      const dayType = base.dayType === 'A' ? 'B' : 'A';
-      s.plan = { dayType, ids: defaultIds(s, dayType), custom: false };
+      const base = todayInfo(s).plan;
+      const order = s.settings.goals.length ? ['A', 'B', 'S'] : ['A', 'B'];
+      const dayType = order[(order.indexOf(base.dayType) + 1) % order.length] || 'A';
+      const ids = dayType === 'S'
+        ? [...s.settings.goals.filter((id) => ROADMAP_BY_ID[id]).slice(0, 3), 'core']
+        : defaultIds(s, dayType);
+      s.plan = { dayType, ids, custom: false };
     });
   },
   'plan-reset'() {

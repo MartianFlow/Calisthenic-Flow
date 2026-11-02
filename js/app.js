@@ -12,6 +12,10 @@ import * as roadmaps from './views/roadmaps.js';
 import * as progress from './views/progress.js';
 import * as settings from './views/settings.js';
 import * as calendar from './views/calendar.js';
+import * as hero from './views/hero.js';
+import * as planView from './views/plan.js';
+import { syncAchievements } from './game.js';
+import { update } from './store.js';
 
 addRoute('/', home.render, { tab: 'hoy' });
 addRoute('/calendario', calendar.render, { tab: 'calendario' });
@@ -22,6 +26,10 @@ addRoute('/resumen/:id', progress.renderSummary, { tab: 'progreso' });
 addRoute('/progreso', progress.render, { tab: 'progreso' });
 addRoute('/sesion/:id', progress.renderDetail, { tab: 'progreso' });
 addRoute('/ajustes', settings.render, { tab: 'ajustes' });
+addRoute('/heroe', hero.render, { tab: 'heroe' });
+addRoute('/logros', hero.renderAchievements, { tab: 'heroe' });
+addRoute('/equipo', hero.renderEquipment, { tab: 'heroe' });
+addRoute('/plan', planView.render, { tab: 'hoy' });
 addRoute('/bienvenida', settings.renderOnboarding, { tab: null });
 
 const actions = {
@@ -32,6 +40,8 @@ const actions = {
   ...settings.actions,
   ...calendar.actions,
   ...video.actions,
+  ...hero.actions,
+  ...planView.actions,
   'chart-tip'(el) {
     const fig = el.closest('.chart');
     if (!fig) return;
@@ -69,6 +79,7 @@ function render() {
   // Animación de entrada solo al cambiar de pantalla (no en cada actualización).
   if (route.path !== lastPath) {
     window.scrollTo(0, 0);
+    document.getElementById('toast')?.classList.remove('show');
     lastPath = route.path;
     stagger(viewEl);
     viewEl.classList.remove('enter');
@@ -118,6 +129,8 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
+// Logros conseguidos con el historial existente (sin celebración).
+update((s) => { if (s.onboarded) syncAchievements(s); }, { silent: true });
 render();
 
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {

@@ -9,6 +9,8 @@ import { weeklyBars } from '../charts.js';
 import { navigate } from '../router.js';
 import { takeCelebration } from './session.js';
 import { burst, flash } from '../fx.js';
+import { ACH_BY_ID, ITEM_BY_ID, RARITY, titleFor, totalXP, levelInfo } from '../game.js';
+import { heroAvatar, levelBar } from './hero.js';
 
 function tile(label, value, sub = '') {
   return `<div class="tile"><div class="eyebrow">${esc(label)}</div><div class="tile-num">${value}</div>${sub ? `<div class="muted tiny">${sub}</div>` : ''}</div>`;
@@ -136,6 +138,37 @@ function sessionBody(s, state) {
     </section>`;
 }
 
+function rewardCard(s, state) {
+  const g = s.game;
+  if (!g) return '';
+  const ach = g.achievements.map((id) => ACH_BY_ID[id]).filter(Boolean);
+  const items = g.items.map((id) => ITEM_BY_ID[id]).filter(Boolean);
+  const lvl = levelInfo(totalXP(state));
+  return `
+    <section class="card reward-card">
+      <div class="reward-top">
+        <div class="reward-hero">${heroAvatar(state, 110)}</div>
+        <div class="grow">
+          <div class="xp-gain">+${g.xp}<small> XP</small></div>
+          ${g.levelAfter > g.levelBefore
+            ? `<div class="lvl-up">${icon('star', 16)} ¡Tu héroe sube a nivel ${g.levelAfter}!</div><span class="hero-title">${esc(titleFor(g.levelAfter))}</span>`
+            : `<div class="muted small">Nivel ${lvl.level} · ${esc(titleFor(lvl.level))}</div>`}
+          ${levelBar(lvl)}
+        </div>
+      </div>
+      ${ach.length ? `
+        <span class="eyebrow">Logros desbloqueados</span>
+        <ul class="reward-list">${ach.map((a) => `
+          <li><span class="ach-badge ${a.rarity} done">${icon('trophy', 18)}</span>
+            <div class="grow"><strong>${esc(a.name)}</strong><div class="muted small">${esc(a.desc)}</div></div>
+            <span class="rarity ${a.rarity}">+${RARITY[a.rarity].xp} XP</span></li>`).join('')}</ul>` : ''}
+      ${items.length ? `
+        <span class="eyebrow">Nuevos artículos</span>
+        <div class="equip-chips">${items.map((it) => `<span class="equip-chip"><i style="background:${it.color}"></i>${esc(it.name)}</span>`).join('')}</div>
+        <a class="btn primary small" href="#/equipo">${icon('star', 16)} Equipar</a>` : ''}
+    </section>`;
+}
+
 export function renderSummary({ id }) {
   const state = getState();
   const s = state.sessions.find((x) => x.id === id);
@@ -149,6 +182,7 @@ export function renderSummary({ id }) {
       <h1>¡Entreno completado!</h1>
       <p class="muted">${esc(fmtLongDate(s.startedAt))}</p>
     </header>
+    ${rewardCard(s, state)}
     ${sessionBody(s, state)}
     <a class="btn primary block" href="#/">Volver a Hoy</a>
   `;

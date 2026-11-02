@@ -12,7 +12,19 @@ Es una **web app instalable (PWA)**: se añade a la pantalla de inicio del iPhon
   - **Fuerza:** Dominadas, Remo invertido, Flexiones, Fondos, Piernas (hasta pistol y camarón), Isquios y cadera (hasta el curl nórdico) y Core (hasta el dragon flag).
   - **Habilidades:** Muscle-up, Pino, Flexión de pino, L-sit, Front lever, Planche y Back lever, con prerrequisitos de fuerza.
 - **Vídeo de técnica por ejercicio** (87 de 116 pasos), que se ve dentro de la app. Los pasos sin vídeo tienen un botón para buscarlo en YouTube.
-- **Entreno recomendado del día:** alterna Día A (dominadas, fondos, piernas, core) y Día B (remo, flexiones, isquios, core). Las habilidades objetivo van al principio, con un máximo de 2 por sesión (si eliges 3, se rotan). Puedes editar el plan antes de empezar.
+- **Plan semanal recomendado:** según tu nivel (principiante, intermedio o avanzado), tus habilidades objetivo y los días que tienes libres, la app te recomienda cuántos días entrenar y reparte la semana:
+  - Día A: tirón vertical, fondos, piernas y core.
+  - Día B: tirón horizontal, flexiones, isquios y core.
+  - Día S: habilidades y core; aparece con 5 o más días y objetivos.
+  - Deja descanso entre sesiones y nunca pone habilidades de brazos rectos en días seguidos ni más de 3 días por semana.
+  - La pantalla Hoy te dice qué toca, si es día de descanso y cuál es el próximo entreno. Puedes editar el entreno antes de empezar.
+- **Gamificación:**
+  - **Héroe digital** de cómic cuyo físico crece con tu progreso real (bíceps, hombros, piernas y abdominales).
+  - **Atributos** con rango de E a S: Tirón, Empuje, Piernas, Core, Equilibrio y Aguante.
+  - **Experiencia (XP) y nivel**, con títulos de Novato a Mito. Ganas XP con cada serie, cada entreno, cada paso superado y cada logro.
+  - **Tabla de 43 logros** de bronce, plata, oro y leyenda, con progreso visible. Premian constancia, progreso, hitos reales (primera dominada, pino libre, front lever…) y buenos hábitos.
+  - **33 artículos** para equipar (cintas, gafas, muñequeras, capas, medallas, auras, corona…). Se desbloquean por nivel o por logro. También puedes elegir piel, pelo y peinado.
+  - Al terminar cada entreno ves la XP ganada, si subes de nivel y los logros y artículos nuevos.
 - **Descansos según el paso:** unos 3 min en series de 1–5 reps, 1,5–2 min en las de 6–12, 2,5–3 min en holds de brazos rectos, 45–60 s entre intentos de pino libre y 60 s en core.
 - **Progresión según cómo te sientes:** al terminar cada ejercicio, mientras corre el descanso, la app pregunta si te pareció **Fácil, Normal o Difícil**.
   - La valoración equivale a las reps que te quedaban en reserva: Fácil = 3 o más, Normal = 1–2 (la zona ideal), Difícil = ninguna o perdiste técnica.
@@ -89,8 +101,11 @@ js/data/roadmaps.js     Contenido: rutas, plantillas y calentamiento
 js/data/videos.js       Vídeo de técnica de cada paso
 js/data/legacy.js       Nombres de pasos de la v1 (migración del progreso)
 js/fx.js                Efectos de cómic (onomatopeyas, latidos, destellos)
+js/game.js              XP, niveles, atributos, logros y artículos
+js/avatar.js            Personaje digital en SVG
+js/schedule.js          Plan semanal recomendado
 js/video.js             Visor de vídeos de YouTube
-js/views/*.js           Pantallas: Hoy, Calendario, Entreno, Rutas, Progreso y Ajustes
+js/views/*.js           Pantallas: Hoy, Calendario, Entreno, Rutas, Héroe, Plan, Progreso y Ajustes
 fonts/                  Tipografía Bangers (SIL Open Font License 1.1, de Vernon Adams)
 docs/                   Investigación con fuentes
 ```

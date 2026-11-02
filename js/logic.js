@@ -1,6 +1,6 @@
 // Lógica de entrenamiento: generación de rutinas, subida de nivel y estadísticas.
 
-import { ROADMAPS, ROADMAP_BY_ID, DAY_TEMPLATES } from './data/roadmaps.js';
+import { ROADMAPS, ROADMAP_BY_ID, DAY_TEMPLATES, WARMUP } from './data/roadmaps.js';
 import { getState, getProgress, update } from './store.js';
 
 const MAX_REASONABLE_SESSION = 3 * 60 * 60 * 1000;
@@ -292,6 +292,7 @@ export function finishActiveSession() {
     duration: Math.round(duration / 1000),
     dayType: active.dayType,
     deload: !!active.deload,
+    warmupFull: (active.warmupChecks || []).length >= WARMUP.length,
     items: [],
     levelUps: [],
     notes: active.notes || '',
