@@ -55,7 +55,10 @@ test.describe('Datos del usuario', () => {
 test.describe('Sin conexión', () => {
   test.use({ serviceWorkers: 'allow' });
 
-  test('la app abre sin internet una vez instalada', async ({ page, context }) => {
+  test('la app abre sin internet una vez instalada', async ({ page, context, browserName }) => {
+    // Limitación de Playwright: en WebKit (Linux) recargar con setOffline y un service
+    // worker activo da «WebKit encountered an internal error». Se comprueba en Chromium.
+    test.skip(browserName === 'webkit', 'Playwright no puede emular sin conexión con service worker en WebKit');
     await seed(page, makeState());
     await page.goto('/');
     await page.evaluate(async () => {
