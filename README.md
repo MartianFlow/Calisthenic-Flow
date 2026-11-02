@@ -54,7 +54,7 @@ Es una **web app instalable (PWA)**: se añade a la pantalla de inicio del iPhon
 2. Abre esa dirección en **Safari** en el iPhone.
 3. Pulsa **Compartir** y luego **Añadir a pantalla de inicio**.
 
-Cuando se publiquen cambios, la app se actualiza sola: los verás la segunda vez que la abras.
+Cuando se publiquen cambios, la app se actualiza sola al abrirla o al volver a ella si hay conexión. La versión instalada se ve al final de Ajustes, donde también hay un botón «Actualizar la app».
 
 > Los datos viven en el almacenamiento de la app en ese iPhone. Si borras la app de la pantalla de inicio o los datos de Safari, se pierden, así que exporta una copia de vez en cuando desde Ajustes.
 
@@ -128,7 +128,7 @@ Todo el contenido de las progresiones está en [`js/data/roadmaps.js`](js/data/r
 
 Los ejercicios de gimnasio y los días de pierna están en [`js/data/gym.js`](js/data/gym.js): rango de reps, series, descanso, subida de peso y qué ejercicios lleva cada día.
 
-Si añades archivos nuevos, inclúyelos también en la lista `ASSETS` de `sw.js` y sube el valor de `VERSION`.
+Si añades archivos nuevos, inclúyelos también en la lista `ASSETS` de `sw.js`. En cada publicación sube la versión en `sw.js` (`VERSION`) y en `js/version.js` (`APP_VERSION`), que deben coincidir: así los iPhone con la app instalada detectan la versión nueva y se recargan solos.
 
 ## Estructura
 
@@ -146,6 +146,7 @@ js/data/legacy.js       Nombres de pasos de la v1 (migración del progreso)
 js/data/gym.js          Pierna en el gimnasio: ejercicios con peso, día de pierna y su calentamiento
 js/theme.js             Tema claro u oscuro elegido en Ajustes
 js/fx.js                Efectos de cómic (onomatopeyas, latidos, destellos)
+js/version.js           Versión de la app (la misma que en sw.js)
 js/game.js              XP, niveles, atributos, logros y artículos
 js/avatar.js            Héroe en pixel art (generado por capas)
 js/pixel.js             Motor de pixel art e iconos 16×16

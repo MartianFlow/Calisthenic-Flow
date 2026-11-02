@@ -9,6 +9,7 @@ import { audio } from '../device.js';
 import { recommendDays, DEFAULT_DAYS } from '../schedule.js';
 import { dayChips, daysSegmented, legsSegmented } from './plan.js';
 import { THEMES, applyTheme } from '../theme.js';
+import { versionLabel } from '../version.js';
 
 const MAX_GOALS = 3;
 const skills = () => ROADMAPS.filter((r) => r.category === 'habilidad');
@@ -108,7 +109,9 @@ export function render() {
         <li>Pulsa el botón <strong>Compartir</strong>.</li>
         <li>Elige <strong>Añadir a pantalla de inicio</strong>.</li>
       </ol>
-      <p class="muted tiny">Calisthenic Flow · v2.0</p>
+      <p class="muted small">La app se actualiza sola cuando hay conexión. Si alguna vez ves algo antiguo, pulsa «Actualizar la app».</p>
+      <button class="btn ghost small" data-action="app-update">${icon('download', 16)} Actualizar la app</button>
+      <p class="muted tiny" data-app-version>Calisthenic Flow · ${esc(versionLabel())}</p>
     </section>
   `;
 }
@@ -176,6 +179,14 @@ export const actions = {
     const key = el.dataset.key;
     const value = Number(el.dataset.value);
     update((s) => { s.settings[key] = value; if (key === 'daysPerWeek') s.plan = null; });
+  },
+  async 'app-update'() {
+    toast('Buscando la última versión…');
+    try {
+      const reg = await navigator.serviceWorker?.getRegistration?.();
+      await reg?.update();
+    } catch { /* sin conexión: se recarga con la copia guardada */ }
+    location.reload();
   },
   'set-theme'(el) {
     const value = el.dataset.value;

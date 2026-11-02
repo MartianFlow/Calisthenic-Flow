@@ -33,8 +33,15 @@ Documento de referencia para continuar el trabajo en sesiones futuras. Resume qu
 - **Publicación:** GitHub Pages con *Deploy from a branch → main → / (root)*, en `https://martianflow.github.io/Calisthenic-Flow/`.
   - El usuario debía activarlo a mano y dijo "listo", pero no se ha podido verificar: github.io está bloqueado desde el entorno cloud.
 - **Instalación en el iPhone:** Safari → Compartir → Añadir a pantalla de inicio.
-- **Actualizaciones:** el service worker sirve primero la caché y actualiza en segundo plano, así que los cambios se ven la **segunda vez** que se abre la app.
-  - **Al añadir archivos**, hay que incluirlos en `ASSETS` de `sw.js` y subir `VERSION` (ahora `cf-v8`).
+- **Actualizaciones** (cambiado en la versión 9, porque el usuario seguía viendo la versión vieja en su iPhone):
+  - El service worker usa **primero la red** con `cache: 'no-cache'` y cae a la caché si no hay conexión o pasan 3 s.
+  - Instala con `cache: 'reload'`, para no coger archivos de la caché HTTP de GitHub Pages (10 min).
+  - Al volver a la app (`visibilitychange`) se llama a `reg.update()`. Si una versión nueva toma el control (`controllerchange`), la app se recarga sola; durante un entreno espera a salir de `/entreno`.
+  - En Ajustes se ve la versión («versión 9») y hay un botón «Actualizar la app».
+  - **En cada publicación hay que subir la versión en dos sitios:** `VERSION` de `sw.js` y `APP_VERSION` de `js/version.js`. Ahora es `cf-v9`, y una prueba de `data.spec.js` comprueba que coincidan.
+  - Sin subir la versión, al abrir la app en frío ya se ve lo nuevo (red primero), pero al volver de segundo plano no se recarga sola.
+  - **Al añadir archivos**, hay que incluirlos también en `ASSETS` de `sw.js`. Si falta uno, la instalación falla entera.
+  - **Paso de la versión 8 a la 9 en el iPhone:** el service worker antiguo servía primero la caché, así que la versión nueva se ve a la **segunda** apertura. Hay que cerrar la app del todo desde el selector de apps.
 
 ## Arquitectura
 
@@ -48,6 +55,7 @@ css/styles.css           Todo el estilo: tema cómic + tema pixel (sección "Hé
 fonts/                   Bangers (cómic), Press Start 2P y VT323 (pixel) — OFL, autoalojadas
 icons/                   Iconos de la app (explosión amarilla con barras)
 js/app.js                Rutas hash, delegación de eventos (data-action / data-change), tick 250 ms, sync de logros al cargar, aplica el tema
+js/version.js            APP_VERSION (igual que VERSION de sw.js) y versionLabel() para Ajustes
 js/theme.js              Tema claro/oscuro: applyTheme (data-theme en <html> + meta theme-color). index.html lo aplica antes de pintar
 js/router.js             Router por hash
 js/store.js              Estado en localStorage (clave 'calisthenic-flow:v1'), normalize + migración v1→v2
@@ -67,7 +75,7 @@ js/data/legacy.js        Nombres de pasos v1 para migrar progreso
 js/data/gym.js           Pierna en el gimnasio: 9 ejercicios con kg (LIFTS), LEG_DAYS (P = rutina completa) y LEG_WARMUP
 js/views/*.js            home, session, roadmaps, progress (+resumen/detalle), calendar, settings (+onboarding), hero (+logros/equipo), plan, exercise (ficha de gimnasio)
 docs/                    Investigación con fuentes (principios, progresiones y pierna en el gimnasio)
-tests/e2e/               48 pruebas Playwright + fixtures.js
+tests/e2e/               49 pruebas Playwright + fixtures.js
 .github/workflows/e2e.yml  CI: Chromium + WebKit en cada push
 ```
 
@@ -221,7 +229,7 @@ Cada sesión del historial guarda:
   - **Errores:** falla si hay errores de JS.
   - **Ayudantes:** `seed()` (vía addInitScript, solo en el frame superior y una vez por pestaña), `makeState()`, `pastSession()`, `trainOnly()`, `completeCurrentExercise()` (solo las series del ejercicio actual) y `rate()`.
 - **Configuración:** `reducedMotion: 'reduce'` (las animaciones infinitas hacen que los elementos no sean "estables"). Los artículos bloqueados llevan `aria-disabled` y para pulsarlos hay que usar `click({ force: true })`.
-- **Resultados:** 48 pruebas.
+- **Resultados:** 49 pruebas.
   - `gym.spec.js` cubre el modo de pierna en el gimnasio.
   - En `navigation.spec.js` están las del tema forzado, con `colorScheme` claro y oscuro.
   - **En CI:** pasan todas en Chromium y todas menos una en WebKit. La prueba sin conexión se salta en WebKit por una limitación de Playwright: `setOffline` con service worker da un error interno al recargar.
@@ -268,5 +276,6 @@ Cada sesión del historial guarda:
 
 1. Hacer los cambios, probar en el iPhone emulado (Playwright) y revisar las capturas en claro y oscuro.
 2. Ejecutar `npx playwright test --project=iphone-chromium` y, cuando cambie una regla o una pantalla, añadir o ajustar la prueba correspondiente.
-3. Hacer commit en español (con las líneas de atribución que pida el sistema), push a `main` y revisar la ejecución de CI con las herramientas MCP de GitHub.
-4. Explicar al usuario en español qué cambió y cómo verlo en el iPhone (los cambios se ven la segunda vez que abre la app).
+3. Hacer commit en español (con las líneas de atribución que pida el sistema), push a `main` y revisar la ejecución de CI con las herramientas MCP de GitHub o con `curl` a la API pública (`api.github.com/repos/MartianFlow/Calisthenic-Flow/actions/runs`).
+4. Subir `VERSION` (sw.js) y `APP_VERSION` (js/version.js) en cada publicación.
+5. Explicar al usuario en español qué cambió y cómo verlo en el iPhone: se actualiza sola al abrirla o al volver a ella, y la versión se ve en Ajustes.

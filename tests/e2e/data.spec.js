@@ -79,3 +79,15 @@ test.describe('Sin conexión', () => {
     await context.setOffline(false);
   });
 });
+
+test.describe('Versión de la app', () => {
+  test('Ajustes muestra la versión y coincide con la del service worker', async ({ page, request }) => {
+    const version = fs.readFileSync('js/version.js', 'utf8').match(/APP_VERSION = '(cf-v\d+)'/)[1];
+    const sw = await (await request.get('/sw.js')).text();
+    expect(sw).toContain(`const VERSION = '${version}'`);
+    await seed(page, makeState());
+    await page.goto('/#/ajustes');
+    await expect(page.locator('[data-app-version]')).toContainText(version.replace('cf-v', 'versión '));
+    await expect(page.locator('[data-action="app-update"]')).toBeVisible();
+  });
+});

@@ -61,6 +61,7 @@ const viewEl = document.getElementById('view');
 const tabbar = document.getElementById('tabbar');
 let currentRoute = null;
 let lastPath = null;
+let pendingReload = false; // hay una versión nueva esperando a que acabe el entreno
 let enterTimer = null;
 
 function render() {
@@ -72,6 +73,7 @@ function render() {
     hash = '#/bienvenida';
   }
   const route = resolve(hash) || resolve('#/');
+  if (pendingReload && route.path !== '/entreno') { location.reload(); return; }
   currentRoute = route;
   viewEl.innerHTML = route.view(route.params);
   document.body.classList.toggle('no-tabs', route.options.tab === null);
@@ -138,7 +140,21 @@ document.addEventListener('visibilitychange', () => {
 update((s) => { if (s.onboarded) syncAchievements(s); }, { silent: true });
 render();
 
+// Actualizaciones. Al volver a la app (iOS la retoma sin recargar) se comprueba si
+// hay versión nueva; cuando la nueva toma el control, la app se recarga sola. Todo
+// el estado está en localStorage, así que no se pierde nada. Durante un entreno se
+// espera a salir de la pantalla del entreno.
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-  navigator.serviceWorker.register('./sw.js').catch((err) => console.warn('SW', err));
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController || pendingReload) return;
+    pendingReload = true;
+    if (currentRoute?.path !== '/entreno') location.reload();
+  });
+  navigator.serviceWorker.register('./sw.js').then((reg) => {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') reg.update().catch(() => {});
+    });
+  }).catch((err) => console.warn('SW', err));
 }
 navigator.storage?.persist?.().catch(() => {});

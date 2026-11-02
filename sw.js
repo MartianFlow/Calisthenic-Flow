@@ -1,14 +1,17 @@
 // Service worker: guarda la app en caché para que funcione sin conexión.
-// Estrategia: responde desde caché y actualiza en segundo plano
-// (los cambios publicados se ven la siguiente vez que abras la app).
+// Estrategia: primero la red (siempre la última versión publicada) y, si no hay
+// conexión o tarda más de 3 s, la copia guardada. Cada respuesta de la red
+// actualiza la copia. VERSION debe coincidir con APP_VERSION de js/version.js.
 
-const VERSION = 'cf-v8';
+const VERSION = 'cf-v9';
+const NETWORK_TIMEOUT = 3000;
 const ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
   './css/styles.css',
   './js/app.js',
+  './js/version.js',
   './js/router.js',
   './js/store.js',
   './js/logic.js',
@@ -43,8 +46,14 @@ const ASSETS = [
   './icons/icon-512.png',
 ];
 
+// cache: 'reload' evita la caché HTTP del navegador (GitHub Pages la deja 10 min):
+// así una versión nueva nunca se instala con archivos de la anterior.
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(VERSION).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
+  event.waitUntil(
+    caches.open(VERSION)
+      .then((cache) => cache.addAll(ASSETS.map((url) => new Request(url, { cache: 'reload' }))))
+      .then(() => self.skipWaiting()),
+  );
 });
 
 self.addEventListener('activate', (event) => {
@@ -59,7 +68,8 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) return;
 
-  const network = fetch(request)
+  // 'no-cache': pregunta siempre al servidor (si no cambió, responde 304 y es rápido).
+  const network = fetch(request, { cache: 'no-cache' })
     .then(async (response) => {
       if (response && response.ok) {
         const cache = await caches.open(VERSION);
@@ -70,12 +80,16 @@ self.addEventListener('fetch', (event) => {
     .catch(() => null);
   event.waitUntil(network);
 
+  const fromCache = async () => (await caches.match(request, { ignoreSearch: true }))
+    || (request.mode === 'navigate' ? caches.match('./index.html') : undefined);
+
   event.respondWith((async () => {
-    const cached = await caches.match(request, { ignoreSearch: true });
+    const timeout = new Promise((resolve) => setTimeout(() => resolve('timeout'), NETWORK_TIMEOUT));
+    const response = await Promise.race([network, timeout]);
+    if (response && response !== 'timeout' && response.ok) return response;
+    const cached = await fromCache();
     if (cached) return cached;
-    const response = await network;
-    if (response) return response;
-    if (request.mode === 'navigate') return (await caches.match('./index.html')) || Response.error();
-    return Response.error();
+    const late = response === 'timeout' ? await network : response;
+    return late || Response.error();
   })());
 });
