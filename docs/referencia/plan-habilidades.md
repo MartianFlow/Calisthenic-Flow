@@ -63,8 +63,20 @@ El usuario quiere **centrarse en aprender una sola habilidad y mantener o mejora
   - Spiering et al. 2021, *J Strength Cond Res*, «Maintaining physical performance: the minimal dose…»: la fuerza se mantiene con 1 sesión por semana y pocas series si se conserva la intensidad.
   - Bickel et al. 2011, *Med Sci Sports Exerc*: los adultos jóvenes mantuvieron la fuerza con 1/3 del volumen, 1 día por semana, durante 32 semanas.
   - En habilidades, el equilibrio y la técnica necesitan algo de práctica frecuente, así que 1–2 días por semana es criterio propio prudente.
+- **Sin ninguna habilidad todavía (quiere la primera)** — también lo pidió el usuario:
+  - **Mantener es opcional:** la pregunta de la bienvenida y de Ajustes tiene la respuesta «Aún no domino ninguna», y entonces `maintain = []`.
+  - **Recomendar la primera habilidad** según su nivel y los prerrequisitos (`prereqStatus`). Una etiqueta «Recomendada para empezar» en las que ya puede entrenar o están cerca:
+    - de entrada, el pino (con flexiones 3×8 ya puede: pared y pica) y el L-sit (pide core y soporte);
+    - el front lever, la planche, el muscle-up y el back lever, cuando cumpla sus prerrequisitos de fuerza.
+    - Elegir otra igualmente está permitido.
+  - **Si al foco le faltan prerrequisitos:**
+    - se entrena igual desde su primer paso, que es una variante fácil (tuck, lean, pared o pica);
+    - Hoy muestra un aviso con qué básicos le acercan: «Para el front lever: llega a Dominadas 3×8 y Hollow 3×30 s»;
+    - esas rutas básicas, en vez de recortarse con la sustitución del punto G, ganan prioridad (una serie más o ir las primeras tras la habilidad). Esto es criterio propio, coherente con la Recommended Routine, que antepone la base de fuerza.
+  - **Dosis para principiantes:** en los primeros pasos (posiciones fáciles), 3 series y como mucho un complementario. El volumen completo del plan (más series en aguantes difíciles) solo a partir de los pasos avanzados, donde la tabla C ya lo sube.
+  - **Al conseguir la habilidad** (ruta completada, o cuando el usuario diga «ya la tengo»): mensaje de celebración que propone **pasarla a mantener y elegir una nueva para aprender**, con un toque. Así se pasa de «ninguna» a «foco + mantenimiento» sin tocar Ajustes.
 - **Pantallas:**
-  - **Ajustes** («Habilidades»): «Quiero aprender», con una sola opción (el foco), y «Quiero mantener», hasta 2.
+  - **Ajustes** («Habilidades»): «Quiero aprender», con una sola opción (el foco), y «Quiero mantener», hasta 2 (o «Aún no domino ninguna»).
   - **Bienvenida**: el paso de objetivos se convierte en esas dos preguntas, y el resumen muestra «Foco» y «Mantener».
   - **Rutas**: la ficha de cada habilidad ofrece «Hacer foco», «Mantener» o «Quitar» en vez de solo «objetivo».
   - **Hoy y Plan**: marcar el foco con otra etiqueta, por ejemplo «foco» en rosa y «mantener» en cian.
@@ -73,7 +85,8 @@ El usuario quiere **centrarse en aprender una sola habilidad y mantener o mejora
   - cada habilidad de mantenimiento sale 1–2 veces por semana y como mucho una por sesión;
   - la migración desde `goals`;
   - la bienvenida y Ajustes con foco y mantenimiento;
-  - el pino como foco: práctica en todos los días de entreno.
+  - el pino como foco: práctica en todos los días de entreno;
+  - sin ninguna habilidad: solo foco, la etiqueta «Recomendada para empezar», el aviso de prerrequisitos en Hoy y, al completar la ruta, la propuesta de pasarla a mantener y elegir otra.
 
 ## Orden de trabajo propuesto
 

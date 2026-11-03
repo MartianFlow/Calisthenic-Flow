@@ -79,6 +79,7 @@ El contexto de la persona y de sus peticiones. Las decisiones técnicas que sale
 23. **¿Las rutinas actuales son la mejor forma de mejorar en las habilidades?** Investigación con fuentes en `docs/investigacion-habilidades.md`: el calendario acierta, pero faltan complementarios por habilidad, volumen en los aguantes difíciles, descanso propio de las habilidades y práctica frecuente del pino. Propone 14 cambios.
     - **Decisión del usuario:** hacer todos menos el n.º 2. El descanso sigue fijo en 80 s para todo. Pidió documentarlo para hacerlo después de compactar la sesión: plan en `plan-habilidades.md`.
 24. **«Quiero centrarme en aprender una sola habilidad y mantener o fortalecer las que ya sé»**: en su caso, aprender el pino libre y mantener o mejorar el muscle-up y el front lever. Diseño en `plan-habilidades.md` («Petición 24»), por hacer junto al resto del plan después de compactar.
+    - Pidió también cubrir a quien **no tiene ninguna habilidad** y quiere aprender la primera: mantener opcional, primera habilidad recomendada según nivel y prerrequisitos, aviso de qué básicos le faltan y, al conseguirla, proponer pasarla a mantener y elegir otra.
 
 ## Pendiente de confirmar con el usuario
 
