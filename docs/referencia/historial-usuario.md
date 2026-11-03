@@ -76,7 +76,8 @@ El contexto de la persona y de sus peticiones. Las decisiones técnicas que sale
       - **«Mover»**: la pasa a otro día y, si ese día tiene entreno, se intercambian.
     - Los cambios valen solo esta semana y se deshacen con un toque.
     - En Hoy se elige cualquier rutina del plan con un toque, en los días de descanso y al editar. Sustituye a «Cambiar de día», que iba rotando.
-23. **¿Las rutinas actuales son la mejor forma de mejorar en las habilidades?** Investigación con fuentes en `docs/investigacion-habilidades.md`: el calendario acierta, pero faltan complementarios por habilidad, volumen en los aguantes difíciles, descanso propio de las habilidades y práctica frecuente del pino. Propone 14 cambios; falta que elija cuáles.
+23. **¿Las rutinas actuales son la mejor forma de mejorar en las habilidades?** Investigación con fuentes en `docs/investigacion-habilidades.md`: el calendario acierta, pero faltan complementarios por habilidad, volumen en los aguantes difíciles, descanso propio de las habilidades y práctica frecuente del pino. Propone 14 cambios.
+    - **Decisión del usuario:** hacer todos menos el n.º 2. El descanso sigue fijo en 80 s para todo. Pidió documentarlo para hacerlo después de compactar la sesión: plan en `plan-habilidades.md`.
 
 ## Pendiente de confirmar con el usuario
 

@@ -22,7 +22,7 @@ Ver el final de `historial-usuario.md`: la versión 15 en su iPhone, el cronóme
 
 ## Ideas no hechas
 
-- **Propuestas de la investigación de habilidades** (`docs/investigacion-habilidades.md`, «Catorce cambios para la app»): pendiente de que el usuario elija cuáles hacer. El n.º 2 (más descanso en las habilidades aunque el descanso sea fijo) choca con sus 80 s: preguntárselo.
+- **Cambios de la investigación de habilidades:** decididos (todos menos el n.º 2; el descanso sigue en 80 s) y por hacer. Plan detallado en `plan-habilidades.md`.
 
 - Que el pino (equilibrio, poca fatiga) no cuente para el límite de 2 habilidades por sesión.
 - Un editor de ejercicios de gimnasio en la app. Ahora se cambian en `js/data/gym.js`.

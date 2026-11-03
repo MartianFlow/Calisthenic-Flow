@@ -9,6 +9,7 @@ App **personal** de calistenia (PWA) que el usuario usa a diario en su **iPhone*
 - **Trabajo directo en `main`** del repositorio `MartianFlow/Calisthenic-Flow`. Sin pull requests salvo que los pida.
 - **Explícale los cambios sin jerga**, con lo que verá en el iPhone y cómo actualizar. Si algo solo se puede comprobar en su móvil, pídele una captura.
 - **Estado actual:** versión 15 (`cf-v15`). Lo pendiente de confirmar está en `docs/referencia/historial-usuario.md`.
+- **Siguiente trabajo, ya decidido por el usuario:** los cambios de entrenamiento de habilidades de `docs/referencia/plan-habilidades.md` (todos menos el descanso, que sigue fijo en 80 s).
 
 ## Cómo está hecha
 
@@ -60,6 +61,7 @@ App **personal** de calistenia (PWA) que el usuario usa a diario en su **iPhone*
 | `reglas-entrenamiento.md` | Progresión doble, descansos, descarga, nivel, plan semanal y pierna en el gimnasio |
 | `gamificacion.md` | XP, niveles, atributos, logros, artículos y héroe |
 | `diseno.md` | Temas, estilo cómic y pixel, y reglas de maquetación en móvil |
+| `plan-habilidades.md` | **Plan pendiente:** complementarios, alternancia, pino aparte, más series y otros cambios en las habilidades |
 | `pendiente.md` | Vídeos que faltan, ideas no hechas y huecos de pruebas |
 
 La investigación con fuentes está en `docs/investigacion-*.md`.
