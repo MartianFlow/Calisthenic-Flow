@@ -335,13 +335,15 @@ a.card:active, .goal:active { transform: translate(var(--pop), var(--pop)); box-
 .tabbar a { z-index: 1; }
 .tabbar.has-ind a.on svg { background: transparent; border-color: transparent; box-shadow: none; }
 .tab-ind {
-  position: absolute; left: 0; top: 6px; z-index: 0; width: 32px; height: 32px; pointer-events: none;
+  /* Centro de la columna --tab de la rejilla de 5 (6 px de margen a cada lado): se adapta a cualquier ancho */
+  position: absolute; top: 6px; left: calc(6px + (100% - 12px) * (var(--tab, 0) * 2 + 1) / 10 - 16px);
+  z-index: 0; width: 32px; height: 32px; pointer-events: none;
   background: var(--yellow); border: 2.5px solid #fff; border-radius: 8px; box-shadow: 3px 3px 0 var(--pink);
-  transform: translateX(calc(var(--x, -60px) - 16px)) translateY(-3px) rotate(-6deg);
+  transform: translateY(-3px) rotate(-6deg);
   opacity: 0;
 }
 .tabbar.has-ind .tab-ind { opacity: 1; }
-.tab-ind[data-ready] { transition: transform 0.45s var(--ease-pop), opacity 0.2s; }
+.tab-ind[data-ready] { transition: left 0.45s var(--ease-pop), opacity 0.2s; }
 .tab-ind.tapped { animation: tab-squash 0.45s var(--ease-pop); }
 .tabbar a:active svg { transform: scale(0.85); }
 

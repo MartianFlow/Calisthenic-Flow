@@ -13,16 +13,19 @@ test.describe('Descanso entre series', () => {
   test('por defecto es fijo de 80 s y se puede sumar o quitar 15 s', async ({ page }) => {
     await seed(page, makeState({ progress: { dominadas: { step: 3, passes: 0, done: false } } }));
     await firstSet(page, 'dominadas');
-    await expect(page.locator('.rest-bar [data-tick="rest"]')).toHaveText('1:20');
+    // El reloj sigue corriendo mientras tanto (en WebKit, más lento, puede ir 1–2 s por detrás):
+    // el total del descanso («de 1:20») es lo que no depende del tiempo.
     await expect(page.locator('[data-tick="rest-total"]')).toHaveText('de 1:20');
+    await expect(page.locator('.rest-bar [data-tick="rest"]')).toHaveText(/^1:(20|1\d)$/);
 
     await page.locator('[data-action="rest-add"]').click();
-    await expect(page.locator('.rest-bar [data-tick="rest"]')).toHaveText('1:35');
     await expect(page.locator('[data-tick="rest-total"]')).toHaveText('de 1:35');
+    await expect(page.locator('.rest-bar [data-tick="rest"]')).toHaveText(/^1:(3\d|2\d)$/);
 
     await page.locator('[data-action="rest-sub"]').click();
     await page.locator('[data-action="rest-sub"]').click();
-    await expect(page.locator('.rest-bar [data-tick="rest"]')).toHaveText('1:05');
+    await expect(page.locator('[data-tick="rest-total"]')).toHaveText('de 1:05');
+    await expect(page.locator('.rest-bar [data-tick="rest"]')).toHaveText(/^(1:0\d|0:5\d)$/);
 
     // Quitar más de lo que queda termina el descanso (con su aviso)
     for (let i = 0; i < 5; i++) await page.locator('[data-action="rest-sub"]').click();
@@ -42,7 +45,7 @@ test.describe('Descanso entre series', () => {
     expect((await readState(page)).settings).toMatchObject({ restMode: 'fixed', restSec: 120 });
 
     await firstSet(page, 'dominadas');
-    await expect(page.locator('.rest-bar [data-tick="rest"]')).toHaveText('2:00');
+    await expect(page.locator('[data-tick="rest-total"]')).toHaveText('de 2:00');
     await expect(page.locator('.exercise .target-line')).toContainText('Descanso 2:00');
   });
 
@@ -55,7 +58,7 @@ test.describe('Descanso entre series', () => {
 
     // Negativas de dominada 3×5 (≤ 5 reps) → 3:00
     await firstSet(page, 'dominadas');
-    await expect(page.locator('.rest-bar [data-tick="rest"]')).toHaveText('3:00');
+    await expect(page.locator('[data-tick="rest-total"]')).toHaveText('de 3:00');
   });
 
   test('un valor raro guardado se corrige al cargar', async ({ page }) => {

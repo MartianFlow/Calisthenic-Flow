@@ -65,7 +65,7 @@ El usuario pidió «muchas más animaciones» para que la app se sienta más pro
 
 - **Qué hay:**
   - Transiciones entre pantallas según la dirección (`data-dir`): entre pestañas, según su orden; al entrar en un detalle, desde la derecha; al volver, desde la izquierda; el entreno, el resumen y la bienvenida, desde abajo.
-  - Pastilla amarilla deslizante en la tab bar (`.tab-ind`, colocada con `--x` desde `app.js`).
+  - Pastilla amarilla deslizante en la tab bar (`.tab-ind`): `app.js` solo pone `--tab` (0–4) y el CSS calcula `left` en porcentaje. Con píxeles medidos en JS, WebKit no la recolocaba a tiempo al cambiar el ancho y se salía de la pantalla.
   - Filas de las listas escalonadas (`staggerLists` pone `--i`), cifras que cuentan desde cero (`countUp`), segmentos de experiencia que se encienden, paneles que aparecen al bajar (`reveal`, con IntersectionObserver) y destello en el botón principal (`.cta`).
   - Rebote al tocar (`tap` / `.tapped`), interruptores que deslizan y el tema que cambia con un fundido (`fadeToTheme`).
   - En el entreno: la tarjeta entra de lado al cambiar de ejercicio, la fila de ejercicios se centra en el actual, la serie hecha destella (`.set-pop`), los últimos 5 s del descanso van en rosa (`.rest-bar.ending`) y al acabar sale «¡A POR ELLA!».

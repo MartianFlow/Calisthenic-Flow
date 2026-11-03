@@ -105,12 +105,11 @@ function placeTabIndicator(tab) {
   const a = tabbar.querySelector(`a[data-tab="${tab}"]`);
   tabbar.classList.toggle('has-ind', !!a);
   if (!a) { lastTab = null; return; }
-  tabInd.style.setProperty('--x', `${a.offsetLeft + a.offsetWidth / 2}px`);
+  tabInd.style.setProperty('--tab', [...tabbar.querySelectorAll('a')].indexOf(a));
   if (!tabInd.dataset.ready) requestAnimationFrame(() => { tabInd.dataset.ready = '1'; });
   if (lastTab && lastTab !== tab) tap(tabInd);
   lastTab = tab;
 }
-window.addEventListener('resize', () => lastTab && placeTabIndicator(lastTab));
 
 function render() {
   const state = getState();

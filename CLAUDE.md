@@ -8,7 +8,7 @@ App **personal** de calistenia (PWA) que el usuario usa a diario en su **iPhone*
 - **Privacidad:** los datos solo viven en el `localStorage` de su iPhone. Sin servidor, sin cuentas y nada de sus datos en GitHub.
 - **Trabajo directo en `main`** del repositorio `MartianFlow/Calisthenic-Flow`. Sin pull requests salvo que los pida.
 - **Explícale los cambios sin jerga**, con lo que verá en el iPhone y cómo actualizar. Si algo solo se puede comprobar en su móvil, pídele una captura.
-- **Estado actual:** versión 12 (`cf-v12`). Lo pendiente de confirmar está en `docs/referencia/historial-usuario.md`.
+- **Estado actual:** versión 13 (`cf-v13`). Lo pendiente de confirmar está en `docs/referencia/historial-usuario.md`.
 
 ## Cómo está hecha
 
