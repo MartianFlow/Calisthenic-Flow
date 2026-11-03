@@ -58,3 +58,30 @@ El estilo está en `css/styles.css`. Para revisar o corregir pantallas, sigue la
   - Si añades otra clase pixel en mayúsculas, inclúyela en `PX_CAPS`.
 - **Tab bar oculta en el entreno:** usa `visibility: hidden` para no ser accesible.
 - **Panel de descanso con valoración:** se compacta con `.rest-bar.with-rate`, y el padding inferior de la vista usa `:has()`.
+
+## Animaciones (versión 12)
+
+El usuario pidió «muchas más animaciones» para que la app se sienta más profesional. Están en `css/styles.css` («Movimiento…» y «Efectos») y en `js/fx.js`.
+
+- **Qué hay:**
+  - Transiciones entre pantallas según la dirección (`data-dir`): entre pestañas, según su orden; al entrar en un detalle, desde la derecha; al volver, desde la izquierda; el entreno, el resumen y la bienvenida, desde abajo.
+  - Pastilla amarilla deslizante en la tab bar (`.tab-ind`, colocada con `--x` desde `app.js`).
+  - Filas de las listas escalonadas (`staggerLists` pone `--i`), cifras que cuentan desde cero (`countUp`), segmentos de experiencia que se encienden, paneles que aparecen al bajar (`reveal`, con IntersectionObserver) y destello en el botón principal (`.cta`).
+  - Rebote al tocar (`tap` / `.tapped`), interruptores que deslizan y el tema que cambia con un fundido (`fadeToTheme`).
+  - En el entreno: la tarjeta entra de lado al cambiar de ejercicio, la fila de ejercicios se centra en el actual, la serie hecha destella (`.set-pop`), los últimos 5 s del descanso van en rosa (`.rest-bar.ending`) y al acabar sale «¡A POR ELLA!».
+  - Confeti al terminar un entreno y la bienvenida.
+  - Bienvenida: los pasos entran por la derecha o la izquierda, y la barra de progreso se llena por tramos.
+- **Reglas:**
+  - **Reducir movimiento:** el bloque `prefers-reduced-motion` lo quita todo y `fx.js` no hace nada. Nada puede depender de que una animación termine: con `reveal`, sin movimiento no se añade la clase.
+  - **Si el elemento ya tiene `transform`** (rotaciones de pegatina, `.rest-bar`, `.on`), anima `translate`, `scale` o `rotate` (propiedades sueltas), no `transform`: si no, al acabar salta a su posición.
+  - **`.view { overflow-x: clip }`** solo con movimiento, para que lo que entra de lado no cree scroll horizontal. Con `clip` (no `hidden`), `position: sticky` sigue funcionando. Sin movimiento no se aplica, para no esconder desbordes a la auditoría.
+  - **Animaciones infinitas** (`.cta`, el ▶ del vídeo): en las pruebas con movimiento hay que pulsar con `dispatchEvent('click')`.
+  - **La auditoría y casi todas las pruebas desactivan el movimiento.** Lo animado lo cubre `tests/e2e/motion.spec.js`, que en CI también corre en WebKit.
+
+## Cabeceras de las pestañas
+
+- Las 5 pantallas principales llevan arriba a la derecha `headActions()` (theme.js):
+  - el botón de tema muestra el sol en oscuro y la luna en claro, y alterna al momento;
+  - el engranaje abre Ajustes.
+- El engranaje antiguo (un círculo con rayos) parecía un sol y el usuario lo confundía con el modo claro: el icono `gear` ahora tiene dientes.
+- **Bangers:** la «IJ» de «FIJO» parece una «U». En ese botón hay un espacio finísimo (`&#8202;`) entre las dos letras.

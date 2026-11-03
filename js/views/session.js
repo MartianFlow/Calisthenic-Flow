@@ -3,20 +3,23 @@
 import { ROADMAP_BY_ID } from '../data/roadmaps.js';
 import { LIFT_BY_ID } from '../data/gym.js';
 import { getState, update } from '../store.js';
-import { itemComplete, finishActiveSession, lastPerformance, lastLift, nextUnrated, itemName, warmupList, RATINGS } from '../logic.js';
+import { itemComplete, finishActiveSession, lastPerformance, lastLift, nextUnrated, itemName, warmupList, restSeconds, RATINGS } from '../logic.js';
 import { esc, icon, fmtClock, unitLabel, toast, fmtKg, kgInput, parseKg, fmtSeries, fmtLiftSeries } from '../ui.js';
 import { navigate } from '../router.js';
 import { audio, vibrate, wakeLock } from '../device.js';
 import { videoCard } from '../video.js';
-import { burst, bump, beat, replay } from '../fx.js';
+import { burst, bump, beat, replay, confetti } from '../fx.js';
 import { totalXP, levelInfo, syncAchievements, itemsUnlockedBy } from '../game.js';
 
 const HOLD_COUNTDOWN = 3000;
+const REST_STEP = 15; // segundos que suman o quitan los botones del descanso
 const beeped = { holdStart: null, holdTarget: null };
 const lastSecond = { rest: null, hold: null };
 const RATING_WORDS = { facil: '¡FÁCIL!', normal: '¡BIEN!', dificil: '¡DURO!' };
 const RATING_COLORS = { facil: 'cyan', normal: '', dificil: 'pink' };
 let sheetShown = false; // para animar el panel inferior solo al aparecer
+let shownCard = null;   // ejercicio pintado la última vez, para animar el cambio de tarjeta
+let cardDir = 1;
 export let pendingCelebration = false;
 export function takeCelebration() { const v = pendingCelebration; pendingCelebration = false; return v; }
 
@@ -108,7 +111,7 @@ function liftCard(state, a, item) {
       <h2>${esc(lift.name)}</h2>
       <div class="target-line">
         <span class="pill accent">${icon('target', 16)} Hoy: ${item.plannedSets} × ${esc(unitLabel('reps', item.goal))} · ${esc(fmtKg(kg))}</span>
-        <span class="muted small">Descanso ${fmtClock(item.rest)}</span>
+        <span class="muted small">Descanso ${fmtClock(restSeconds(state, item.rest))}</span>
       </div>
       <div class="muted small">Rango ${lift.min}–${lift.max} reps dejando ${esc(lift.rir)} en reserva. Cuando hagas ${lift.max} en todas las series, sube ${esc(fmtKg(lift.inc))}.</div>
       ${lastText ? `<div class="muted small">Última vez: ${esc(lastText)}</div>` : ''}
@@ -147,7 +150,7 @@ function exerciseCard(state, a) {
       <h2>${esc(step.name)}</h2>
       <div class="target-line">
         <span class="pill accent">${icon('target', 16)} Hoy: ${item.plannedSets} × ${esc(unitLabel(item.type, goal))}${item.side ? ' por lado' : ''}</span>
-        <span class="muted small">Descanso ${fmtClock(item.rest)}</span>
+        <span class="muted small">Descanso ${fmtClock(restSeconds(state, item.rest))}</span>
       </div>
       ${goal < item.target ? `<div class="muted small">Meta del paso: ${item.plannedSets} × ${esc(unitLabel(item.type, item.target))}. Tu valoración decide cuánto sube el objetivo.</div>` : ''}
       ${last ? `<div class="muted small">Última vez: ${esc(fmtSeries(item.type, last))}</div>` : ''}
@@ -196,13 +199,14 @@ function bottomSheet(a) {
     <div class="rest-bar ${rating ? 'with-rate' : ''} ${appear ? 'appear' : ''}" ${a.rest ? 'role="timer"' : ''}>
       ${a.rest ? `
         <div class="rest-progress"><span data-tick="rest-bar" style="width:${(remaining / a.rest.total) * 100}%"></span></div>
-        <div class="row between">
-          <div>
-            <div class="eyebrow">Descanso</div>
+        <div class="rest-main">
+          <div class="rest-info">
+            <div class="rest-label"><span class="eyebrow">Descanso</span><span class="muted tiny" data-tick="rest-total">de ${fmtClock(Math.round(a.rest.total))}</span></div>
             <div class="rest-clock" data-tick="rest">${fmtClock(Math.ceil(remaining))}</div>
           </div>
-          <div class="row gap">
-            <button class="btn ghost small" data-action="rest-add">+15 s</button>
+          <div class="rest-ctrl">
+            <button class="rest-adj" data-action="rest-sub" aria-label="Quitar ${REST_STEP} segundos">−${REST_STEP}</button>
+            <button class="rest-adj" data-action="rest-add" aria-label="Añadir ${REST_STEP} segundos">+${REST_STEP}</button>
             <button class="btn primary small" data-action="rest-skip">Saltar</button>
           </div>
         </div>` : ''}
@@ -225,10 +229,33 @@ function holdOverlay(a) {
     </div>`;
 }
 
+// Al cambiar de ejercicio, la tarjeta nueva entra desde el lado hacia el que se avanza
+// y la fila de ejercicios de arriba se desplaza para dejar a la vista el actual.
+function cardWithMotion(a, html) {
+  const key = a.warmupDone ? a.current : -1;
+  const changed = shownCard?.id === a.startedAt && shownCard.key !== key;
+  if (changed) cardDir = key > shownCard.key ? 1 : -1;
+  shownCard = { id: a.startedAt, key };
+  if (!changed) return html;
+  requestAnimationFrame(centerCurrentChip);
+  return html.replace('<section class="card exercise', `<section class="card-in-${cardDir > 0 ? 'r' : 'l'} card exercise`);
+}
+
+function centerCurrentChip() {
+  const row = document.querySelector('.chips');
+  const chip = row?.querySelector('.chip.current');
+  if (!chip) return;
+  const r = chip.getBoundingClientRect();
+  const left = row.scrollLeft + r.left - row.getBoundingClientRect().left - (row.clientWidth - r.width) / 2;
+  const smooth = !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  row.scrollTo({ left: Math.max(0, left), behavior: smooth ? 'smooth' : 'auto' });
+}
+
 export function render() {
   const state = getState();
   const a = state.active;
   if (!a) {
+    shownCard = null;
     return `
       <div class="empty">
         <p>No hay ningún entreno en curso.</p>
@@ -245,7 +272,7 @@ export function render() {
       <button class="btn primary small" data-action="session-finish">Terminar</button>
     </header>
     ${chips(a)}
-    ${a.warmupDone ? exerciseCard(state, a) : warmupCard(a)}
+    ${cardWithMotion(a, a.warmupDone ? exerciseCard(state, a) : warmupCard(a))}
     <div class="center session-foot">
       <button class="link muted" data-action="session-discard">Descartar entreno</button>
     </div>
@@ -268,10 +295,12 @@ export function tick(ctx) {
       vibrate([200, 100, 200]);
       update((s) => { s.active.rest = null; }, { silent: true });
       ctx.rerender();
+      burst(null, { text: '¡A POR ELLA!', color: 'cyan' });
       return;
     }
     const clock = document.querySelector('[data-tick="rest"]');
     const sec = Math.ceil(remaining);
+    document.querySelector('.rest-bar')?.classList.toggle('ending', sec <= 5);
     if (clock && clock.textContent !== fmtClock(sec)) {
       clock.textContent = fmtClock(sec);
       if (sec <= 5 || sec % 10 === 0) beat(clock);
@@ -315,7 +344,20 @@ export function tick(ctx) {
 }
 
 function startRest(s, item) {
-  s.active.rest = { endsAt: Date.now() + item.rest * 1000, total: item.rest };
+  const sec = restSeconds(s, item.rest);
+  s.active.rest = { endsAt: Date.now() + sec * 1000, total: sec };
+}
+
+// Suma o quita segundos al descanso en marcha. Si se queda en cero, termina como siempre (con aviso).
+function adjustRest(delta) {
+  update((s) => {
+    const rest = s.active?.rest;
+    if (!rest) return;
+    const before = rest.endsAt;
+    rest.endsAt = Math.max(Date.now(), rest.endsAt + delta * 1000);
+    rest.total = Math.max(1, rest.total + (rest.endsAt - before) / 1000);
+  });
+  bump(document.querySelector('[data-tick="rest"]'));
 }
 
 function completeSet(s, itemIndex, setIndex) {
@@ -406,6 +448,7 @@ function finish({ skipChecks = false } = {}) {
   const loadUps = session.items.some((it) => it.outcome?.kind === 'load-up');
   pendingCelebration = session.levelUps.length > 0 || loadUps || reward.levelAfter > reward.levelBefore || reward.achievements.length > 0;
   navigate(`#/resumen/${session.id}`, { replace: true });
+  confetti({ count: pendingCelebration ? 70 : 36 });
 }
 
 // Si estaba valorando para terminar y vuelve a los ejercicios, cancela el cierre.
@@ -481,7 +524,10 @@ export const actions = {
     });
     if (!wasDone) {
       burst({ getBoundingClientRect: () => rect });
-      if (getState().active.current === before) replay(document.querySelectorAll('.check-btn')[i], 'stamp');
+      if (getState().active.current === before) {
+        replay(document.querySelectorAll('.check-btn')[i], 'stamp');
+        replay(document.querySelectorAll('.sets .set')[i], 'set-pop');
+      }
     }
     if (getState().active.current !== before) window.scrollTo({ top: 0 });
   },
@@ -527,13 +573,8 @@ export const actions = {
     });
     afterRating();
   },
-  'rest-add'() {
-    update((s) => {
-      if (!s.active.rest) return;
-      s.active.rest.endsAt += 15_000;
-      s.active.rest.total += 15;
-    });
-  },
+  'rest-add'() { adjustRest(REST_STEP); },
+  'rest-sub'() { adjustRest(-REST_STEP); },
   'rest-skip'() {
     update((s) => { s.active.rest = null; });
   },

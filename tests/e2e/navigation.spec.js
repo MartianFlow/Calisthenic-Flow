@@ -116,4 +116,33 @@ test.describe('Tema', () => {
       expect(await bg(page)).toBe('#fff2bd');
     });
   });
+
+  test.describe('botón de modo claro / oscuro de las cabeceras', () => {
+    test.use({ colorScheme: 'dark' });
+
+    test('cambia el tema sin salir de la pantalla, en las 5 pestañas', async ({ page }) => {
+      await seed(page, makeState());
+      await page.goto('/');
+      // En oscuro muestra el sol (pasar a claro)
+      const btn = page.locator('.page-head [data-action="theme-toggle"]');
+      await expect(btn).toHaveAttribute('aria-label', 'Cambiar a modo claro');
+      await btn.click();
+      expect(await bg(page)).toBe('#fff2bd');
+      await expect(page.getByRole('heading', { name: 'Hoy' })).toBeVisible();
+      await expect(btn).toHaveAttribute('aria-label', 'Cambiar a modo oscuro');
+      expect((await readState(page)).settings.theme).toBe('light');
+      await btn.click();
+      expect(await bg(page)).toBe('#120e18');
+      expect((await readState(page)).settings.theme).toBe('dark');
+
+      for (const tab of ['calendario', 'rutas', 'heroe', 'progreso']) {
+        await page.locator(`#tabbar a[data-tab="${tab}"]`).click();
+        await expect(page.locator('.page-head [data-action="theme-toggle"]')).toBeVisible();
+        await expect(page.locator('.page-head a[href="#/ajustes"]')).toBeVisible();
+      }
+      // El engranaje sigue llevando a Ajustes
+      await page.locator('.page-head a[href="#/ajustes"]').click();
+      await expect(page.getByRole('heading', { name: 'Ajustes' })).toBeVisible();
+    });
+  });
 });

@@ -33,18 +33,20 @@ Es una **web app instalable (PWA)**: se añade a la pantalla de inicio del iPhon
   - **Tabla de 46 logros** de bronce, plata, oro y leyenda, con progreso visible. Premian constancia, progreso, hitos reales (primera dominada, pino libre, front lever…) y buenos hábitos.
   - **33 artículos** con iconos de 16×16 para equipar (cintas, gafas, muñequeras, capas, medallas, auras, corona…). Se desbloquean por nivel o por logro. También puedes elegir piel, pelo y peinado.
   - Al terminar cada entreno ves la XP ganada, si subes de nivel y los logros y artículos nuevos.
-- **Descansos según el paso:** unos 3 min en series de 1–5 reps, 1,5–2 min en las de 6–12, 2,5–3 min en holds de brazos rectos, 45–60 s entre intentos de pino libre y 60 s en core.
+- **Descanso entre series a tu medida:** por defecto el mismo para todo (80 s), que cambias en Ajustes con −/+ o con atajos (1 min, 1:20, 1:30, 2 min, 3 min). Durante el descanso, los botones −15 y +15 lo acortan o lo alargan.
+  - Si prefieres, «Según ejercicio» usa el recomendado para cada paso: unos 3 min en series de 1–5 reps, 1,5–2 min en las de 6–12, 2,5–3 min en holds de brazos rectos, 45–60 s entre intentos de pino libre y 60 s en core.
 - **Progresión según cómo te sientes:** al terminar cada ejercicio, mientras corre el descanso, la app pregunta si te pareció **Fácil, Normal o Difícil**.
   - La valoración equivale a las reps que te quedaban en reserva: Fácil = 3 o más, Normal = 1–2 (la zona ideal), Difícil = ninguna o perdiste técnica.
   - Mientras no llegas a la meta del paso, el objetivo sube +2 (Fácil) o +1 (Normal). En holds de brazos rectos sube solo +2 s o +1 s, porque los tendones se adaptan más despacio. Con Difícil se mantiene, y si no llegaste baja a tu mínimo del día.
   - Al alcanzar la meta: **Fácil** te pasa al siguiente ejercicio de la escala. **Normal** cuenta como sesión superada: con 1 subes en fuerza, y en habilidades necesitas 2 (configurable). **Difícil** te hace consolidar ese nivel.
   - **Estancamiento:** si una ruta no avanza en 3 sesiones, el objetivo se reinicia al 80 % para volver a subir.
 - **Semana de descarga:** la app la sugiere cada 5–6 semanas o si tienes 2 rutas estancadas. Durante 7 días hay una serie menos, los objetivos bajan al 65 % y no se sube de nivel.
-- **Tema claro u oscuro:** automático según el iPhone, o elegido a mano en Ajustes → Apariencia.
+- **Tema claro u oscuro:** el botón del sol o la luna, arriba en las pantallas principales, cambia entre claro y oscuro al momento. En Ajustes → Apariencia puedes volver a «Automático», que sigue al iPhone. El engranaje de al lado abre Ajustes.
 - **Calendario:** marca los días entrenados y las subidas de nivel. Al tocar un día ves qué entrenaste, tus series, cómo valoraste cada ejercicio y qué cambió en tu progreso.
 - **Durante el entreno:** calentamiento guiado, contador +/− por serie, cronómetro con cuenta atrás para isometrías, temporizador de descanso con aviso sonoro y pantalla siempre encendida.
 - **Progreso:** tiempo total, racha de semanas cumpliendo tu objetivo, minutos por semana, historial de subidas de nivel, gráfica de tu mejor serie en cada paso e historial completo de entrenos con notas.
 - **Copia de seguridad:** exporta e importa tus datos en JSON desde Ajustes.
+- **Bienvenida paso a paso:** la primera vez, unas preguntas de una en una con una barra de progreso: tu experiencia, dónde entrenas pierna, tu nivel en cada ruta (tocando el primer ejercicio que aún no te sale, con su vídeo a mano), tus habilidades objetivo, tus días, tu descanso y tu héroe. Al final, un resumen con «Cambiar» en cada punto. También puedes importar una copia desde la portada.
 
 ## Instalarla en el iPhone
 
@@ -74,9 +76,14 @@ Estilo cómic de alto contraste, con:
 - paneles con tinta gruesa, sombras duras y tramas de semitonos;
 - onomatopeyas al completar series («¡POW!», «¡BAM!»);
 - un temporizador que late con el descanso;
-- transiciones entre pantallas y una explosión de color al subir de nivel.
+- transiciones entre pantallas que entran desde el lado de la pestaña o del detalle al que vas;
+- una pastilla amarilla que se desliza por la barra de pestañas;
+- listas que entran fila a fila, cifras que cuentan desde cero, barras que se llenan y paneles que aparecen al bajar;
+- un rebote en cada botón, interruptor o casilla que tocas;
+- en el entreno, la tarjeta del ejercicio entra de lado, la serie hecha destella y los últimos 5 s del descanso se ponen en rosa;
+- confeti al terminar un entreno y una explosión de color al subir de nivel.
 
-Respeta el ajuste del iPhone «Reducir movimiento». Tiene tema oscuro y claro automáticos.
+Respeta el ajuste del iPhone «Reducir movimiento»: con él activado no hay animaciones. Tiene tema oscuro y claro automáticos.
 
 Está probado pantalla por pantalla en anchos de 320 a 430 px, que cubren todos los iPhone. La comprobación automática busca textos que se pisen, botones que se corten, contenido que se salga de la pantalla o quede tapado por las barras, y poco contraste.
 
@@ -93,16 +100,18 @@ La carpeta [`tests/e2e`](tests/e2e) tiene una batería de pruebas con [Playwrigh
 
 | Archivo | Qué comprueba |
 |---|---|
-| `onboarding.spec.js` | Configuración inicial: niveles, objetivos (máx. 3), días y primer entreno del día |
+| `onboarding.spec.js` | Bienvenida paso a paso: experiencia, pierna, niveles, objetivos (máx. 3), días, descanso, héroe y resumen; atrás, «Cambiar», recargar a mitad e importar una copia |
+| `rest.spec.js` | Descanso fijo de 80 s por defecto, −15/+15 durante el descanso, cambiarlo en Ajustes y «Según ejercicio» |
+| `motion.spec.js` | Con las animaciones activadas: todo acaba visible, sin scroll horizontal, y las cabeceras fijas siguen en su sitio |
 | `workout.spec.js` | Entreno completo: calentamiento, series, cronómetro de isometrías, descanso, valoración durante el descanso, resumen con EXP. También recargar a mitad de entreno y descartar |
 | `progression.spec.js` | Fácil, Normal y Difícil: subida del objetivo, cambio de paso, 2 sesiones en habilidades, recalibrado, reinicio por estancamiento y descanso según el paso |
 | `plan.spec.js` | Recomendación de días, nivel con habilidades, cambio de días disponibles, reglas de brazos rectos, día de descanso y «Misión cumplida» |
 | `gym.spec.js` | Pierna en el gimnasio: semana torso/pierna, separación de los días de pierna, recomendación de 5 días, pesos con coma, subida y bajada de peso, cambio de peso durante el entreno y ficha del ejercicio con vídeo desde Hoy y el Plan |
 | `gamification.spec.js` | Héroe en pixel art, atributos, logros desbloqueados, artículos bloqueados y desbloqueados, apariencia y nombre |
-| `navigation.spec.js` | Rutas, visor de vídeo, búsqueda en YouTube, cambio manual de nivel, calendario, progreso, pestañas y tema claro u oscuro |
+| `navigation.spec.js` | Rutas, visor de vídeo, búsqueda en YouTube, cambio manual de nivel, calendario, progreso, pestañas, tema claro u oscuro y su botón en las cabeceras |
 | `deload.spec.js` | Sugerencia y efecto de la semana de descarga |
 | `data.spec.js` | Migración desde la v1, exportar e importar la copia, borrar datos y funcionamiento sin conexión |
-| `layout.spec.js` | Diseño en móvil: 86 pantallas y estados a 320, 375, 390 y 430 px. Comprueba que nada se sale de la pantalla, que ningún texto se pisa, se corta o se sale de su botón, que nada queda tapado por las barras y que el contraste es suficiente |
+| `layout.spec.js` | Diseño en móvil: 97 pantallas y estados a 320, 375, 390 y 430 px. Comprueba que nada se sale de la pantalla, que ningún texto se pisa, se corta o se sale de su botón, que nada queda tapado por las barras y que el contraste es suficiente |
 
 Las pruebas usan un reloj fijo (lunes 2/11/2026) y bloquean internet, así que siempre dan el mismo resultado. Además fallan si la app lanza cualquier error de JavaScript.
 
@@ -155,14 +164,14 @@ js/data/videos.js       Vídeo de técnica de cada paso
 js/data/legacy.js       Nombres de pasos de la v1 (migración del progreso)
 js/data/gym.js          Pierna en el gimnasio: ejercicios con peso, día de pierna y su calentamiento
 js/theme.js             Tema claro u oscuro elegido en Ajustes
-js/fx.js                Efectos de cómic (onomatopeyas, latidos, destellos)
+js/fx.js                Efectos y animaciones (onomatopeyas, latidos, confeti, cifras, apariciones)
 js/version.js           Versión de la app (la misma que en sw.js)
 js/game.js              XP, niveles, atributos, logros y artículos
 js/avatar.js            Héroe en pixel art (generado por capas)
 js/pixel.js             Motor de pixel art e iconos 16×16
 js/schedule.js          Plan semanal recomendado
 js/video.js             Visor de vídeos de YouTube
-js/views/*.js           Pantallas: Hoy, Calendario, Entreno, Rutas, Héroe, Plan, Ejercicio, Progreso y Ajustes
+js/views/*.js           Pantallas: Bienvenida, Hoy, Calendario, Entreno, Rutas, Héroe, Plan, Ejercicio, Progreso y Ajustes
 fonts/                  Tipografías Bangers, Press Start 2P y VT323 (SIL Open Font License 1.1)
 docs/                   Investigación con fuentes
 tests/e2e/              Pruebas funcionales (Playwright)

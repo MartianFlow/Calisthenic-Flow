@@ -4,13 +4,14 @@ import { addRoute, resolve } from './router.js';
 import { getState, subscribe } from './store.js';
 import { fmtClock } from './ui.js';
 import { wakeLock } from './device.js';
-import { stagger } from './fx.js';
+import { stagger, staggerLists, countUp, reveal, tap } from './fx.js';
 import * as video from './video.js';
 import * as home from './views/home.js';
 import * as session from './views/session.js';
 import * as roadmaps from './views/roadmaps.js';
 import * as progress from './views/progress.js';
 import * as settings from './views/settings.js';
+import * as onboarding from './views/onboarding.js';
 import * as calendar from './views/calendar.js';
 import * as hero from './views/hero.js';
 import * as planView from './views/plan.js';
@@ -33,7 +34,7 @@ addRoute('/logros', hero.renderAchievements, { tab: 'heroe' });
 addRoute('/equipo', hero.renderEquipment, { tab: 'heroe' });
 addRoute('/plan', planView.render, { tab: 'hoy' });
 addRoute('/ejercicio/:id', exercise.renderLift, { tab: 'hoy' });
-addRoute('/bienvenida', settings.renderOnboarding, { tab: null });
+addRoute('/bienvenida', onboarding.render, { tab: null });
 
 const actions = {
   ...home.actions,
@@ -41,6 +42,7 @@ const actions = {
   ...roadmaps.actions,
   ...progress.actions,
   ...settings.actions,
+  ...onboarding.actions,
   ...calendar.actions,
   ...video.actions,
   ...hero.actions,
@@ -55,7 +57,7 @@ const actions = {
   },
 };
 
-const changes = { ...home.changes, ...progress.changes, ...settings.changes, ...session.changes, ...planView.changes };
+const changes = { ...home.changes, ...progress.changes, ...settings.changes, ...session.changes, ...planView.changes, ...onboarding.changes };
 
 const viewEl = document.getElementById('view');
 const tabbar = document.getElementById('tabbar');
@@ -79,6 +81,37 @@ function pixelCaps(root) {
   }
 }
 
+// Dirección de la transición entre pantallas: entre pestañas, según su orden en la
+// barra; al entrar en un detalle, desde la derecha; al volver, desde la izquierda.
+const TAB_ORDER = ['hoy', 'calendario', 'rutas', 'heroe', 'progreso'];
+const TAB_ROOTS = { '/': 'hoy', '/calendario': 'calendario', '/rutas': 'rutas', '/heroe': 'heroe', '/progreso': 'progreso' };
+function routeDir(prev, next) {
+  if (!prev) return 'up';
+  const modal = (r) => r.path === '/entreno' || r.path === '/bienvenida' || r.path.startsWith('/resumen/');
+  if (modal(next) || modal(prev)) return 'up';
+  const from = TAB_ORDER.indexOf(TAB_ROOTS[prev.path]);
+  const to = TAB_ORDER.indexOf(TAB_ROOTS[next.path]);
+  if (from >= 0 && to >= 0) return to >= from ? 'r' : 'l';
+  return to >= 0 ? 'l' : 'r';
+}
+
+// Pastilla amarilla de la pestaña activa: se desliza de una pestaña a otra.
+const tabInd = document.createElement('span');
+tabInd.className = 'tab-ind';
+tabInd.setAttribute('aria-hidden', 'true');
+tabbar.prepend(tabInd);
+let lastTab = null;
+function placeTabIndicator(tab) {
+  const a = tabbar.querySelector(`a[data-tab="${tab}"]`);
+  tabbar.classList.toggle('has-ind', !!a);
+  if (!a) { lastTab = null; return; }
+  tabInd.style.setProperty('--x', `${a.offsetLeft + a.offsetWidth / 2}px`);
+  if (!tabInd.dataset.ready) requestAnimationFrame(() => { tabInd.dataset.ready = '1'; });
+  if (lastTab && lastTab !== tab) tap(tabInd);
+  lastTab = tab;
+}
+window.addEventListener('resize', () => lastTab && placeTabIndicator(lastTab));
+
 function render() {
   const state = getState();
   applyTheme(state.settings.theme); // también tras importar una copia o borrar los datos
@@ -89,6 +122,7 @@ function render() {
   }
   const route = resolve(hash) || resolve('#/');
   if (pendingReload && route.path !== '/entreno') { location.reload(); return; }
+  const prevRoute = currentRoute;
   currentRoute = route;
   viewEl.innerHTML = route.view(route.params);
   pixelCaps(viewEl);
@@ -99,17 +133,22 @@ function render() {
     a.classList.toggle('on', on);
     if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
   });
+  placeTabIndicator(route.options.tab);
+  staggerLists(viewEl);
   // Animación de entrada solo al cambiar de pantalla (no en cada actualización).
   if (route.path !== lastPath) {
     window.scrollTo(0, 0);
     document.getElementById('toast')?.classList.remove('show');
     lastPath = route.path;
+    viewEl.dataset.dir = routeDir(prevRoute, route);
     stagger(viewEl);
     viewEl.classList.remove('enter');
     void viewEl.offsetWidth;
     viewEl.classList.add('enter');
     clearTimeout(enterTimer);
-    enterTimer = setTimeout(() => viewEl.classList.remove('enter'), 1100);
+    enterTimer = setTimeout(() => viewEl.classList.remove('enter'), 1500);
+    reveal(viewEl);
+    countUp(viewEl);
   } else if (viewEl.classList.contains('enter')) {
     stagger(viewEl);
   }
@@ -123,8 +162,19 @@ document.addEventListener('click', (event) => {
   const fn = actions[el.dataset.action];
   if (!fn) return;
   event.preventDefault();
+  const path = currentRoute?.path;
+  const key = tapKey(el);
   fn(el, ctx, event);
+  // Rebote del elemento tocado. Si la vista se repintó, se busca su copia nueva.
+  if (currentRoute?.path === path) tap(el.isConnected ? el : document.querySelector(key));
 });
+
+function tapKey(el) {
+  return Object.entries(el.dataset).map(([k, v]) => {
+    const attr = k.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
+    return `[data-${attr}="${CSS.escape(v)}"]`;
+  }).join('');
+}
 
 document.addEventListener('change', (event) => {
   const el = event.target.closest('[data-change]');

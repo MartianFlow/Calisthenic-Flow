@@ -26,7 +26,7 @@ El usuario usa la app instalada desde GitHub Pages en su iPhone. Todo cambio de 
 
 ## 3. Esperar a CI y a Pages
 
-CI tarda unos 5 minutos: 270 pruebas, las mismas en Chromium y en WebKit. Espera en segundo plano con este bucle (`run_in_background`), sin `sleep` encadenados:
+CI tarda unos 5–6 minutos: unas 320 pruebas, las mismas en Chromium y en WebKit. Espera en segundo plano con este bucle (`run_in_background`), sin `sleep` encadenados:
 
 ```bash
 SHA=$(git rev-parse HEAD)

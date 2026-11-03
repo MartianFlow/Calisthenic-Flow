@@ -3,7 +3,7 @@
 // conexión o tarda más de 3 s, la copia guardada. Cada respuesta de la red
 // actualiza la copia. VERSION debe coincidir con APP_VERSION de js/version.js.
 
-const VERSION = 'cf-v11';
+const VERSION = 'cf-v12';
 const NETWORK_TIMEOUT = 3000;
 const ASSETS = [
   './',
@@ -34,6 +34,7 @@ const ASSETS = [
   './js/views/roadmaps.js',
   './js/views/progress.js',
   './js/views/settings.js',
+  './js/views/onboarding.js',
   './js/views/calendar.js',
   './js/views/hero.js',
   './js/views/plan.js',

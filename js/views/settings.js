@@ -1,19 +1,19 @@
-// Ajustes, copia de seguridad y bienvenida (configuración inicial).
+// Ajustes y copia de seguridad. La bienvenida (configuración inicial) está en onboarding.js.
 
-import { ROADMAPS, ROADMAP_BY_ID } from '../data/roadmaps.js';
-import { getState, update, replaceState, resetState, getProgress } from '../store.js';
+import { ROADMAPS } from '../data/roadmaps.js';
+import { getState, update, replaceState, resetState, clampRest, REST_RANGE } from '../store.js';
 import { prereqStatus, deloadActive } from '../logic.js';
-import { esc, icon, targetLabel, toast } from '../ui.js';
+import { esc, icon, toast, fmtClock } from '../ui.js';
 import { navigate } from '../router.js';
 import { audio } from '../device.js';
-import { recommendDays, DEFAULT_DAYS } from '../schedule.js';
-import { dayChips, daysSegmented, legsSegmented } from './plan.js';
-import { THEMES, applyTheme } from '../theme.js';
+import { legsSegmented } from './plan.js';
+import { THEMES, fadeToTheme, effectiveTheme } from '../theme.js';
 import { versionLabel } from '../version.js';
+import { bump } from '../fx.js';
+import { resetWizard } from './onboarding.js';
 
-const MAX_GOALS = 3;
+export const MAX_GOALS = 3;
 const skills = () => ROADMAPS.filter((r) => r.category === 'habilidad');
-const basics = () => ROADMAPS.filter((r) => r.category === 'fuerza');
 
 function segmented(key, options, current) {
   return `<div class="segmented" role="radiogroup">${options.map(([value, label]) => `
@@ -21,12 +21,40 @@ function segmented(key, options, current) {
       data-action="set-setting" data-key="${key}" data-value="${value}">${esc(label)}</button>`).join('')}</div>`;
 }
 
-function toggle(key, on, label, hint = '') {
+export function toggle(key, on, label, hint = '') {
   return `
     <button class="toggle-row" data-action="toggle-setting" data-key="${key}" role="switch" aria-checked="${on}">
       <span class="grow"><span>${esc(label)}</span>${hint ? `<span class="muted small block">${esc(hint)}</span>` : ''}</span>
       <span class="switch ${on ? 'on' : ''}"><span></span></span>
     </button>`;
+}
+
+const REST_PRESETS = [60, 80, 90, 120, 180];
+const restText = (sec) => (sec < 60 ? `${sec} s` : sec % 60 ? fmtClock(sec) : `${sec / 60} min`);
+
+// Descanso entre series: el mismo para todo (con −/+ y atajos) o el recomendado para cada ejercicio.
+// En la letra Bangers la «IJ» de «FIJO» parece una «U»: un espacio finísimo (&#8202;) las separa.
+export function restPicker(state) {
+  const st = state.settings;
+  const fixed = st.restMode !== 'auto';
+  return `
+    <div class="rest-picker">
+      <div class="segmented" role="radiogroup" aria-label="Tipo de descanso">
+        <button role="radio" aria-checked="${fixed}" class="${fixed ? 'on' : ''}" data-action="set-rest-mode" data-value="fixed" aria-label="Fijo">Fi&#8202;jo</button>
+        <button role="radio" aria-checked="${!fixed}" class="${!fixed ? 'on' : ''}" data-action="set-rest-mode" data-value="auto">Según ejercicio</button>
+      </div>
+      ${fixed ? `
+        <div class="rest-stepper">
+          <button class="step-btn" data-action="rest-default" data-dir="-1" aria-label="${REST_RANGE.step} segundos menos" ${st.restSec <= REST_RANGE.min ? 'disabled' : ''}>${icon('minus', 18)}</button>
+          <span class="val" data-rest-default>${fmtClock(st.restSec)}<small>min</small></span>
+          <button class="step-btn" data-action="rest-default" data-dir="1" aria-label="${REST_RANGE.step} segundos más" ${st.restSec >= REST_RANGE.max ? 'disabled' : ''}>${icon('plus', 18)}</button>
+        </div>
+        <div class="rest-presets">${REST_PRESETS.map((sec) => `
+          <button class="mini-btn ${sec === st.restSec ? 'on' : ''}" data-action="rest-preset" data-sec="${sec}" aria-pressed="${sec === st.restSec}">${restText(sec)}</button>`).join('')}
+        </div>
+        <p class="muted small">El mismo descanso en todos los ejercicios. Durante el descanso puedes sumar o quitar 15 s.</p>`
+      : `<p class="muted small">Cada ejercicio usa el descanso recomendado: 3 min en series pesadas de 1–5 repeticiones, 2–2,5 min en dominadas, fondos y habilidades de brazos rectos, y 1–1,5 min en el resto.</p>`}
+    </div>`;
 }
 
 function goalPicker(state) {
@@ -37,17 +65,6 @@ function goalPicker(state) {
       ${on ? icon('star', 15) : ''}${esc(r.name)}${missing && !on ? ` <span class="muted">${icon('lock', 12)}</span>` : ''}
     </button>`;
   }).join('')}</div>`;
-}
-
-function levelSelect(r) {
-  const p = getProgress(r.id);
-  return `
-    <label class="field level-field">
-      <span>${esc(r.name)} <span class="muted small">${esc(r.group)}</span></span>
-      <select data-change="set-level-select" data-id="${r.id}">
-        ${r.steps.map((s, i) => `<option value="${i}" ${i === p.step ? 'selected' : ''}>${i + 1}. ${esc(s.name)} (${esc(targetLabel(s))})</option>`).join('')}
-      </select>
-    </label>`;
 }
 
 export function render() {
@@ -87,6 +104,7 @@ export function render() {
 
     <section class="card">
       <h3>Entreno</h3>
+      <div class="field"><span>Descanso entre series</span>${restPicker(state)}</div>
       ${toggle('warmup', st.warmup, 'Calentamiento guiado', 'Lista de movilidad antes de los ejercicios')}
       ${toggle('sound', st.sound, 'Sonido al acabar el descanso', 'El iPhone debe tener el modo silencio desactivado')}
       <button class="btn ghost small" data-action="test-sound">${icon('timer', 16)} Probar sonido</button>
@@ -113,46 +131,6 @@ export function render() {
       <button class="btn ghost small" data-action="app-update">${icon('download', 16)} Actualizar la app</button>
       <p class="muted tiny" data-app-version>Calisthenic Flow · ${esc(versionLabel())}</p>
     </section>
-  `;
-}
-
-export function renderOnboarding() {
-  const state = getState();
-  const rec = recommendDays(state);
-  const goals = state.settings.goals.map((id) => ROADMAP_BY_ID[id]).filter(Boolean);
-  return `
-    <header class="page-head">
-      <div class="badge-big">${icon('route', 34)}</div>
-      <h1>Calisthenic Flow</h1>
-      <p class="muted">Tu hoja de ruta de calistenia: progresiones paso a paso, entrenos recomendados según tu nivel y registro de tu evolución.</p>
-    </header>
-
-    <section class="card">
-      <div class="eyebrow">Paso 1</div>
-      <h2>Tu nivel en los básicos</h2>
-      <p class="muted small">En cada ruta, elige el <strong>primer ejercicio que todavía no puedas completar</strong> con el objetivo indicado. Si dudas, quédate un paso por debajo: subirás rápido.</p>
-      ${basics().map(levelSelect).join('')}
-    </section>
-
-    <section class="card">
-      <div class="eyebrow">Paso 2</div>
-      <h2>¿Qué habilidades quieres conseguir?</h2>
-      <p class="muted small">Elige hasta ${MAX_GOALS}. Puedes cambiarlas cuando quieras.</p>
-      ${goalPicker(state)}
-      ${goals.map(levelSelect).join('')}
-    </section>
-
-    <section class="card">
-      <div class="eyebrow">Paso 3</div>
-      <h2>¿Qué días puedes entrenar?</h2>
-      ${dayChips(state.settings.schedule?.days || DEFAULT_DAYS)}
-      <div class="field"><span>¿Dónde entrenas pierna?</span>${legsSegmented(state)}</div>
-      <div class="field"><span>Días de entreno por semana <span class="muted small">(★ recomendado: ${rec.days})</span></span>${daysSegmented(state, rec)}</div>
-      <p class="muted small">${esc(rec.reasons[0])} Podrás ver y ajustar tu semana en «Plan semanal».</p>
-    </section>
-
-    <button class="btn primary block" data-action="finish-onboarding">${icon('check', 18)} Empezar</button>
-    <p class="muted tiny center">Tus datos se guardan solo en este dispositivo.</p>
   `;
 }
 
@@ -188,10 +166,28 @@ export const actions = {
     } catch { /* sin conexión: se recarga con la copia guardada */ }
     location.reload();
   },
+  'set-rest-mode'(el) {
+    const value = el.dataset.value === 'auto' ? 'auto' : 'fixed';
+    update((s) => { s.settings.restMode = value; });
+  },
+  'rest-default'(el) {
+    update((s) => { s.settings.restSec = clampRest(s.settings.restSec + Number(el.dataset.dir) * REST_RANGE.step); });
+    bump(document.querySelector('[data-rest-default]'));
+  },
+  'rest-preset'(el) {
+    update((s) => { s.settings.restSec = clampRest(el.dataset.sec); });
+    bump(document.querySelector('[data-rest-default]'));
+  },
+  // Botón de las cabeceras: alterna entre claro y oscuro sin salir de la pantalla.
+  'theme-toggle'() {
+    const next = effectiveTheme(getState().settings.theme) === 'dark' ? 'light' : 'dark';
+    fadeToTheme(next);
+    update((s) => { s.settings.theme = next; });
+  },
   'set-theme'(el) {
     const value = el.dataset.value;
     if (!THEMES.some(([v]) => v === value)) return;
-    applyTheme(value);
+    fadeToTheme(value);
     update((s) => { s.settings.theme = value; });
   },
   'toggle-setting'(el) {
@@ -224,24 +220,12 @@ export const actions = {
     if (!confirm('¿Borrar TODOS tus datos (historial, niveles y ajustes)? No se puede deshacer.')) return;
     if (!confirm('¿Seguro? Si no tienes copia, se perderá todo.')) return;
     resetState();
+    resetWizard();
     navigate('#/bienvenida', { replace: true });
-  },
-  'finish-onboarding'() {
-    update((s) => {
-      s.onboarded = true;
-      s.settings.schedule ||= { days: [...DEFAULT_DAYS] };
-      for (const r of ROADMAPS) if (!s.progress[r.id]) s.progress[r.id] = { step: 0, passes: 0, done: false };
-    });
-    navigate('#/', { replace: true });
   },
 };
 
 export const changes = {
-  'set-level-select'(el) {
-    const id = el.dataset.id;
-    const step = Number(el.value);
-    update((s) => { s.progress[id] = { step, passes: 0, done: false }; s.plan = null; }, { silent: true });
-  },
   async 'import-data'(el) {
     const file = el.files?.[0];
     el.value = '';

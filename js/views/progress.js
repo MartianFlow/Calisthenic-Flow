@@ -1,6 +1,7 @@
 // Progreso: estadísticas, gráfica semanal, subidas de nivel e historial.
 // También el resumen tras terminar un entreno y el detalle de entrenos pasados.
 
+import { headActions } from '../theme.js';
 import { ROADMAP_BY_ID } from '../data/roadmaps.js';
 import { LIFT_BY_ID } from '../data/gym.js';
 import { getState, update } from '../store.js';
@@ -10,7 +11,7 @@ import { esc, icon, fmtDuration, fmtDurationHtml, fmtDate, fmtLongDate, fmtTime,
 import { weeklyBars } from '../charts.js';
 import { navigate } from '../router.js';
 import { takeCelebration } from './session.js';
-import { burst, flash } from '../fx.js';
+import { burst, flash, confetti } from '../fx.js';
 import { ACH_BY_ID, ITEM_BY_ID, RARITY, titleFor, totalXP, levelInfo } from '../game.js';
 import { heroAvatar, levelBar, itemIcon } from './hero.js';
 import { pixelIcon } from '../pixel.js';
@@ -54,9 +55,9 @@ export function render() {
   const streak = weekStreak(state);
   const series = weeklySeries(state, 8);
   return `
-    <header class="page-head">
-      <div class="eyebrow">Tu evolución</div>
-      <h1>Progreso</h1>
+    <header class="page-head row between">
+      <div class="col"><div class="eyebrow">Tu evolución</div><h1>Progreso</h1></div>
+      ${headActions(getState().settings.theme)}
     </header>
     <section class="tiles">
       ${tile('Entrenos', t.sessions)}
@@ -227,7 +228,7 @@ export function renderSummary({ id }) {
   if (!s) return '<div class="empty"><p>Entreno no encontrado.</p><a class="btn ghost" href="#/">Volver</a></div>';
   const loadUps = s.items.filter((it) => it.outcome?.kind === 'load-up').length;
   if (takeCelebration()) {
-    setTimeout(() => { flash(); burst(null, { text: s.levelUps.length ? '¡NIVEL!' : '¡MÁS PESO!', big: true }); }, 350);
+    setTimeout(() => { flash(); burst(null, { text: s.levelUps.length ? '¡NIVEL!' : '¡MÁS PESO!', big: true }); confetti({ count: 40 }); }, 350);
   }
   const title = s.levelUps.length ? '¡SUBES DE<br>NIVEL!' : loadUps ? '¡MÁS<br>PESO!' : '¡HECHO!';
   return `

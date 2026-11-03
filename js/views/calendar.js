@@ -1,6 +1,7 @@
 // Calendario: marca los días entrenados y, al tocar un día, muestra qué se entrenó,
 // cómo se valoró cada ejercicio y cómo cambió el progreso.
 
+import { headActions } from '../theme.js';
 import { ROADMAP_BY_ID } from '../data/roadmaps.js';
 import { getState } from '../store.js';
 import { dayLabel } from '../schedule.js';
@@ -9,6 +10,7 @@ import { itemBlock } from './progress.js';
 
 let viewMonth = null; // { y, m }
 let selected = null;  // 'YYYY-MM-DD'
+let monthDir = 0;     // al cambiar de mes, el nuevo entra desde ese lado (1 = siguiente)
 
 const pad = (n) => String(n).padStart(2, '0');
 const keyOf = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
@@ -123,11 +125,13 @@ export function render() {
   const byDay = sessionsByDay(state);
   const title = monthFmt.format(new Date(y, m, 1));
   const isCurrentMonth = y === now.getFullYear() && m === now.getMonth();
+  const dirClass = monthDir;
+  monthDir = 0;
 
   return `
-    <header class="page-head">
-      <div class="eyebrow">Tus días de entreno</div>
-      <h1>Calendario</h1>
+    <header class="page-head row between">
+      <div class="col"><div class="eyebrow">Tus días de entreno</div><h1>Calendario</h1></div>
+      ${headActions(getState().settings.theme)}
     </header>
     <section class="card">
       <div class="row between">
@@ -135,7 +139,7 @@ export function render() {
         <h2 class="cap">${esc(title)}</h2>
         <button class="icon-btn" data-action="cal-month" data-dir="1" aria-label="Mes siguiente" ${isCurrentMonth ? 'disabled' : ''}>${icon('next', 18)}</button>
       </div>
-      <div class="cal-grid" role="grid">
+      <div class="cal-grid ${dirClass ? `month-in-${dirClass > 0 ? 'r' : 'l'}` : ''}" role="grid">
         ${WEEKDAYS.map((w) => `<span class="cal-wd">${w}</span>`).join('')}
         ${monthGrid(byDay, y, m)}
       </div>
@@ -155,6 +159,7 @@ export const actions = {
     const dir = Number(el.dataset.dir);
     const d = new Date(viewMonth.y, viewMonth.m + dir, 1);
     viewMonth = { y: d.getFullYear(), m: d.getMonth() };
+    monthDir = dir;
     ctx.rerender();
   },
   'cal-select'(el, ctx) {

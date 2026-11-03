@@ -21,6 +21,8 @@ export function defaultState() {
       warmup: true,
       legs: 'calistenia',   // 'calistenia' | 'gym' (pierna en el gimnasio con pesos)
       theme: 'auto',        // 'auto' (sigue al iPhone) | 'light' | 'dark'
+      restMode: 'fixed',    // 'fixed' (el mismo descanso en todo) | 'auto' (el recomendado por ejercicio)
+      restSec: 80,          // descanso fijo entre series, en segundos
     },
     progress: {},           // id → { step, passes, done }
     lifts: {},              // ejercicio de gimnasio → { kg, reps, stall }
@@ -39,6 +41,14 @@ export function defaultState() {
       videosWatched: 0,
     },
   };
+}
+
+// Descanso fijo: de 15 s a 10 min, en pasos de 5 s.
+export const REST_RANGE = { min: 15, max: 600, step: 5 };
+export function clampRest(sec) {
+  const n = Math.round(Number(sec) / REST_RANGE.step) * REST_RANGE.step;
+  if (!Number.isFinite(n) || n <= 0) return 80;
+  return Math.min(REST_RANGE.max, Math.max(REST_RANGE.min, n));
 }
 
 let state = load();
@@ -97,6 +107,8 @@ export function normalize(data) {
   s.settings.goals = (s.settings.goals || []).filter((id) => ROADMAP_BY_ID[id]);
   if (!['calistenia', 'gym'].includes(s.settings.legs)) s.settings.legs = 'calistenia';
   if (!['auto', 'light', 'dark'].includes(s.settings.theme)) s.settings.theme = 'auto';
+  if (!['fixed', 'auto'].includes(s.settings.restMode)) s.settings.restMode = base.settings.restMode;
+  s.settings.restSec = clampRest(s.settings.restSec);
   s.lifts = s.lifts && typeof s.lifts === 'object' ? s.lifts : {};
   for (const [id, l] of Object.entries(s.lifts)) {
     if (!l || typeof l !== 'object') { delete s.lifts[id]; continue; }

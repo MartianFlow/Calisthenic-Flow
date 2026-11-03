@@ -8,7 +8,7 @@ App **personal** de calistenia (PWA) que el usuario usa a diario en su **iPhone*
 - **Privacidad:** los datos solo viven en el `localStorage` de su iPhone. Sin servidor, sin cuentas y nada de sus datos en GitHub.
 - **Trabajo directo en `main`** del repositorio `MartianFlow/Calisthenic-Flow`. Sin pull requests salvo que los pida.
 - **Explícale los cambios sin jerga**, con lo que verá en el iPhone y cómo actualizar. Si algo solo se puede comprobar en su móvil, pídele una captura.
-- **Estado actual:** versión 11 (`cf-v11`). Lo pendiente de confirmar está en `docs/referencia/historial-usuario.md`.
+- **Estado actual:** versión 12 (`cf-v12`). Lo pendiente de confirmar está en `docs/referencia/historial-usuario.md`.
 
 ## Cómo está hecha
 
@@ -19,6 +19,7 @@ App **personal** de calistenia (PWA) que el usuario usa a diario en su **iPhone*
   - `js/store.js`: estado en localStorage;
   - `js/logic.js` y `js/schedule.js`: reglas de entreno y plan semanal;
   - `js/game.js`: gamificación;
+  - `js/fx.js`: efectos y animaciones;
   - `js/views/*.js`: una vista por pantalla;
   - `js/data/*.js`: rutas, vídeos y gimnasio.
 - **Patrones:**
@@ -35,6 +36,7 @@ App **personal** de calistenia (PWA) que el usuario usa a diario en su **iPhone*
 - **Cada archivo nuevo** de la app va en `ASSETS` de `sw.js`.
 - **Antes de subir:** `npx playwright test --project=iphone-chromium`. Después revisa CI, que también ejecuta WebKit, lo más parecido a Safari.
 - **Pantalla nueva o cambiada:** auditoría de diseño a 320–430 px, y añadirla a `tests/tools/escenarios-diseno.js`.
+- **Animaciones:** siempre con alternativa en «Reducir movimiento»; las reglas están en `docs/referencia/diseno.md`.
 - **Pesos en kg:** campos `type="text" inputmode="decimal"`, porque iOS rompe la coma con `type=number`.
 - **Entorno cloud:**
   - Bloqueados por el proxy: YouTube y github.io.

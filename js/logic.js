@@ -93,14 +93,14 @@ export function estimateMinutes(state, ids, withWarmup = state.settings.warmup) 
   for (const id of ids) {
     const lift = LIFT_BY_ID[id];
     if (lift) {
-      sec += lift.sets * (((lift.min + lift.max) / 2) * 3.5 + 25) + (lift.sets - 1) * lift.rest + 90;
+      sec += lift.sets * (((lift.min + lift.max) / 2) * 3.5 + 25) + (lift.sets - 1) * restSeconds(state, lift.rest) + 90;
       continue;
     }
     if (!ROADMAP_BY_ID[id]) continue;
     const { roadmap, step } = stepOf(id);
     const work = step.type === 'hold' ? step.target : step.target * 3;
     const sides = step.side ? 2 : 1;
-    sec += step.sets * (work * sides + 20) + (step.sets - 1) * restFor(roadmap, step) + 90;
+    sec += step.sets * (work * sides + 20) + (step.sets - 1) * restSeconds(state, restFor(roadmap, step)) + 90;
   }
   return Math.max(5, Math.round(sec / 60 / 5) * 5);
 }
@@ -126,7 +126,12 @@ export function defaultWork(step) {
   return Math.max(1, Math.round(step.target * 0.6));
 }
 
-// Descanso entre series según el paso (la investigación desaconseja un valor fijo por ruta).
+// Descanso que se usa de verdad: el fijo de Ajustes o el recomendado para el ejercicio.
+export function restSeconds(state, recommended) {
+  return state.settings.restMode === 'auto' ? recommended : state.settings.restSec;
+}
+
+// Descanso recomendado según el paso (la investigación desaconseja un valor fijo por ruta).
 export function restFor(roadmap, step) {
   if (step.rest) return step.rest;
   if (roadmap.id === 'core') return 60;

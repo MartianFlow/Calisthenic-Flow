@@ -11,7 +11,7 @@ Las reglas que hay que respetar al escribir CSS o HTML están en `docs/referenci
 
 | Archivo | Qué hace |
 |---|---|
-| `escenarios-diseno.js` | 86 pantallas y estados, cada uno con su estado guardado, ruta y pasos (`setup`). Incluye usuario nuevo, usuario con historial, gimnasio, bienvenida, cada fase del entreno y los modales. |
+| `escenarios-diseno.js` | 97 pantallas y estados, cada uno con su estado guardado, ruta y pasos (`setup`). Incluye usuario nuevo, usuario con historial, gimnasio, cada paso de la bienvenida (`wizTo`), cada fase del entreno y los modales. |
 | `comprobar-diseno.js` | Las comprobaciones dentro de la página. Ver la lista de abajo. |
 | `auditar-diseno.js` | Recorre los escenarios y escribe `test-results/diseno/informe.txt` y una captura por pantalla. |
 | `hoja-capturas.py` | Junta 3 o 4 capturas en una imagen para revisarlas de un vistazo. |
@@ -58,6 +58,8 @@ En el iPhone la letra es San Francisco, que aquí no existe. Las herramientas la
 - Las insignias con `position: absolute` sobresalen a propósito, como la ★ del día recomendado.
 - El texto con `-webkit-line-clamp` o `text-overflow: ellipsis` se recorta a propósito.
 - En las capturas de página entera, la auditoría oculta la tab bar, porque si no saldría a media página.
+- En esas capturas, la cabecera y el botón de la bienvenida (`position: sticky`) también salen a media página o encima del contenido. En el iPhone van arriba y abajo de la pantalla.
+- La auditoría y las pruebas desactivan las animaciones. Lo animado lo cubre `tests/e2e/motion.spec.js` (ver `diseno.md`, «Animaciones»).
 
 ## Trucos
 

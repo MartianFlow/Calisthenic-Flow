@@ -52,10 +52,16 @@ test.describe('Progresión', () => {
     expect(p.stall).toBe(0);
   });
 
-  test('los descansos dependen del paso', async ({ page }) => {
-    await seed(page, makeState({ progress: { dominadas: { step: 3, passes: 0, done: false } } }));
+  test('con «Según ejercicio» los descansos dependen del paso', async ({ page }) => {
+    await seed(page, makeState({ progress: { dominadas: { step: 3, passes: 0, done: false } }, settings: { restMode: 'auto' } }));
     await page.goto('/#/ruta/dominadas');
     // Negativas 3×5 (≤ 5 reps) → 3:00
     await expect(page.locator('.card').first()).toContainText('descanso 3:00');
+  });
+
+  test('con el descanso fijo (por defecto) la ruta muestra ese descanso', async ({ page }) => {
+    await seed(page, makeState({ progress: { dominadas: { step: 3, passes: 0, done: false } } }));
+    await page.goto('/#/ruta/dominadas');
+    await expect(page.locator('.card').first()).toContainText('descanso 1:20');
   });
 });

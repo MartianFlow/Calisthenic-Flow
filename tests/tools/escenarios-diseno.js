@@ -117,6 +117,27 @@ function gymState(extra = {}) {
 
 const click = (sel, opts) => async (page) => { await page.locator(sel).first().click(opts); };
 const clickAll = (...sels) => async (page) => { for (const s of sels) await page.locator(s).first().click(); };
+
+// Usuario que aún no ha hecho la configuración inicial.
+function fresh({ goals = [], settings = {}, game = {} } = {}) {
+  return baseState({ onboarded: false, game, settings: { schedule: null, goals, ...settings } });
+}
+
+// Avanza por la bienvenida hasta el paso indicado. En «experiencia» elige «Tengo algo de base»
+// (avanza sola tras un momento; si el reloj de la prueba está parado, se pulsa «Siguiente»).
+const wizTo = (key, after) => async (page) => {
+  const current = () => page.locator('.wiz-body').getAttribute('data-step');
+  for (let i = 0; i < 30 && (await current()) !== key; i++) {
+    const step = await current();
+    if (step === 'experiencia' && !(await page.locator('.wiz-option.on').count())) {
+      await page.locator('[data-action="wiz-exp"][data-value="base"]').click();
+      for (let t = 0; t < 10 && (await current()) === 'experiencia'; t++) await page.waitForTimeout(100);
+      if ((await current()) !== 'experiencia') continue;
+    }
+    await page.locator('.wiz-foot [data-action="wiz-next"]').click();
+  }
+  if (after) await after(page);
+};
 const startSession = async (page) => {
   await page.locator('[data-action="start-session"]').click();
   await page.waitForSelector('.session-head');
@@ -142,9 +163,20 @@ const levelSessionId = rich.sessions.find((s) => s.levelUps.length).id;
 const gymSessionId = gym.sessions[gym.sessions.length - 1].id;
 
 const scenarios = [
-  // Bienvenida
-  { name: 'bienvenida', route: '/bienvenida', state: baseState({ onboarded: false, settings: { schedule: null } }) },
-  { name: 'bienvenida-3-objetivos', route: '/bienvenida', state: baseState({ onboarded: false, settings: { schedule: null, goals: ['frontlever', 'planche', 'muscleup'] } }), setup: click('[data-action="set-legs"][data-value="gym"]') },
+  // Bienvenida paso a paso
+  { name: 'bienvenida', route: '/bienvenida', state: fresh() },
+  { name: 'bienvenida-experiencia', route: '/bienvenida', state: fresh(), setup: wizTo('experiencia') },
+  { name: 'bienvenida-experiencia-elegida', route: '/bienvenida', state: fresh(), setup: wizTo('pierna', click('[data-action="wiz-back"]')) },
+  { name: 'bienvenida-pierna', route: '/bienvenida', state: fresh(), setup: wizTo('pierna') },
+  { name: 'bienvenida-nivel', route: '/bienvenida', state: fresh(), setup: wizTo('nivel-dominadas', click('[data-action="wiz-level"][data-step="6"]')) },
+  { name: 'bienvenida-nivel-bisagra', route: '/bienvenida', state: fresh(), setup: wizTo('nivel-bisagra') },
+  { name: 'bienvenida-objetivos', route: '/bienvenida', state: fresh({ goals: ['frontlever', 'planche', 'muscleup'] }), setup: wizTo('objetivos') },
+  { name: 'bienvenida-nivel-habilidad', route: '/bienvenida', state: fresh({ goals: ['frontlever', 'planche', 'muscleup'] }), setup: wizTo('nivel-planche') },
+  { name: 'bienvenida-dias', route: '/bienvenida', state: fresh({ goals: ['frontlever', 'planche'] }), setup: wizTo('dias') },
+  { name: 'bienvenida-entreno', route: '/bienvenida', state: fresh(), setup: wizTo('entreno') },
+  { name: 'bienvenida-entreno-auto', route: '/bienvenida', state: fresh({ settings: { restMode: 'auto' } }), setup: wizTo('entreno') },
+  { name: 'bienvenida-heroe', route: '/bienvenida', state: fresh({ game: { name: 'Rayo Callejero' } }), setup: wizTo('heroe') },
+  { name: 'bienvenida-listo', route: '/bienvenida', state: fresh({ goals: ['frontlever', 'planche', 'muscleup'], settings: { legs: 'gym' } }), setup: wizTo('listo') },
 
   // Usuario nuevo (sin datos)
   { name: 'nuevo-hoy', route: '/', state: baseState() },

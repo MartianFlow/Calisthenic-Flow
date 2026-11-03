@@ -1,9 +1,10 @@
 // Lista de rutas (Fuerza / Habilidades) y detalle de cada ruta.
 
+import { headActions } from '../theme.js';
 import { ROADMAPS, ROADMAP_BY_ID, CATEGORIES } from '../data/roadmaps.js';
 import { getState, update, setStep } from '../store.js';
 import {
-  stepOf, roadmapPercent, globalProgress, prereqStatus, roadmapHistory, createSession, workFor, passesRequired, restFor,
+  stepOf, roadmapPercent, globalProgress, prereqStatus, roadmapHistory, createSession, workFor, passesRequired, restFor, restSeconds,
 } from '../logic.js';
 import { esc, icon, targetLabel, progressBar, toast, unitLabel, fmtRest } from '../ui.js';
 import { progressLine } from '../charts.js';
@@ -50,9 +51,9 @@ export function renderList() {
       </div>
     </section>`).join('');
   return `
-    <header class="page-head">
-      <div class="eyebrow">Tu mapa</div>
-      <h1>Rutas</h1>
+    <header class="page-head row between">
+      <div class="col"><div class="eyebrow">Tu mapa</div><h1>Rutas</h1></div>
+      ${headActions(getState().settings.theme)}
     </header>
     <section class="card">
       <div class="row between">
@@ -114,7 +115,7 @@ export function renderDetail({ id }) {
         <div>
           <div class="eyebrow">${progress.done ? 'Ruta completada' : 'Nivel actual'}</div>
           <h2>${esc(step.name)}</h2>
-          <div class="muted small">Paso ${index + 1} de ${r.steps.length} · ${esc(targetLabel(step))} · descanso ${fmtRest(restFor(r, step))}</div>
+          <div class="muted small">Paso ${index + 1} de ${r.steps.length} · ${esc(targetLabel(step))} · descanso ${fmtRest(restSeconds(getState(), restFor(r, step)))}</div>
         </div>
         <div class="route-level big">${progress.done ? icon('trophy', 28) : `<span>${index + 1}</span><small>/${r.steps.length}</small>`}</div>
       </div>

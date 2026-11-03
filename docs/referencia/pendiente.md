@@ -2,7 +2,7 @@
 
 ## Pendiente de confirmar con el usuario
 
-Ver el final de `historial-usuario.md`: la versión 11 en su iPhone y si el diseño ya se ve bien.
+Ver el final de `historial-usuario.md`: la versión 12 en su iPhone, el descanso, el botón de tema y las animaciones.
 
 ## Contenido
 

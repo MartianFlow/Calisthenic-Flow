@@ -58,7 +58,15 @@ El contexto de la persona y de sus peticiones. Las decisiones técnicas que sale
       - el botón de las rutas, que ahora dice «Es mi nivel actual».
 18. Documentar lo de valor antes de compactar, y luego **acortar CLAUDE.md**: dejarlo general y llevar el detalle a skills y documentos de referencia, como está ahora.
 
+19. **Descanso, bienvenida, animaciones y botón de tema** (versión 12):
+    - **Descanso:** botones para sumar o quitar tiempo en el cronómetro de descanso (−15 / +15 s) y un descanso por defecto en Ajustes. Suele usar **80 s**, que es ahora el valor por defecto (fijo). «Según ejercicio» recupera el descanso recomendado por paso.
+    - **Bienvenida «paso a paso, más detallada, dinámica, simple y mejor presentada»:** asistente de una pregunta por pantalla con barra de progreso por tramos, opciones grandes, lista visual de pasos con vídeo, tarjetas de habilidades, días recomendados, descanso, creación del héroe y resumen con «Cambiar».
+    - **«Muchas más animaciones», que se sienta profesional:** ver `diseno.md`, «Animaciones».
+    - **«El botón de modo diurno y oscuro me lleva siempre a Ajustes»:** era el engranaje, que parecía un sol. Ahora hay un botón de tema real (sol/luna) en las 5 pestañas y, al lado, un engranaje con dientes para Ajustes.
+
 ## Pendiente de confirmar con el usuario
 
-- Que en Ajustes ve **«versión 11»**. Se le pidió cerrar la app del todo y abrirla otra vez.
-- Que el diseño ya se ve bien en su iPhone. Si algo sigue mal, **pedirle una captura**: el emulador no es el iPhone real.
+- Que en Ajustes ve **«versión 12»**. Si no, que cierre la app del todo y la abra otra vez.
+- Que el descanso de 80 s, los botones −15/+15 y el botón de tema funcionan como esperaba.
+- Qué le parecen las animaciones en su iPhone (solo se han visto en emulación) y si alguna le sobra o le va lenta. Si tiene activado «Reducir movimiento», no las verá.
+- La bienvenida nueva solo la verá si borra los datos o en otro móvil: se le puede proponer probarla con una copia exportada antes.

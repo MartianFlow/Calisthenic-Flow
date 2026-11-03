@@ -1,5 +1,6 @@
 // Héroe: personaje en pixel art, nivel, atributos, logros y equipo (estilo RPG retro).
 
+import { headActions } from '../theme.js';
 import { getState, update } from '../store.js';
 import {
   totalXP, levelInfo, titleFor, attributes, achievementStatus, ACH_CATEGORIES, RARITY,
@@ -115,7 +116,7 @@ export function render() {
   return `
     <header class="page-head row between">
       <div class="col"><span class="eyebrow">Tu personaje</span><h1>Héroe</h1></div>
-      <a class="icon-btn" href="#/ajustes" aria-label="Ajustes">${icon('gear')}</a>
+      ${headActions(state.settings.theme)}
     </header>
 
     <section class="px-panel hero-card">

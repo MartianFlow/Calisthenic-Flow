@@ -19,7 +19,15 @@ Cómo decide la app objetivos, subidas, descansos y el plan semanal. Las fuentes
   - **Difícil:** consolida en el mismo paso.
 - **Estancamiento:** 3 exposiciones sin subir reinician el objetivo al 80 %. Tras 2 reinicios se sugiere bajar un paso.
 
-## Descansos por paso (`restFor`)
+## Descanso entre series
+
+- **Ajuste `settings.restMode`:**
+  - `fixed` (por defecto): el mismo descanso en todo, `settings.restSec` (80 s por defecto, de 15 s a 10 min en pasos de 5 s). Lo pidió el usuario: suele descansar 80 s.
+  - `auto` («Según ejercicio»): el recomendado de cada paso, en la tabla de abajo; en el gimnasio, `lift.rest`.
+- `restSeconds(state, recomendado)` (logic.js) da el que se usa. Se aplica al empezar cada descanso, así que un cambio en Ajustes vale también para el entreno en curso.
+- **Durante el descanso:** −15 / +15 s. Si se quita más de lo que queda, termina con su aviso.
+
+## Descansos por paso (`restFor`, con «Según ejercicio»)
 
 | Caso | Descanso |
 |---|---|

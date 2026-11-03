@@ -4,7 +4,7 @@
 
 import { LIFT_BY_ID } from '../data/gym.js';
 import { getState } from '../store.js';
-import { liftState, liftGoal, outcomeText } from '../logic.js';
+import { liftState, liftGoal, outcomeText, restSeconds } from '../logic.js';
 import { esc, icon, fmtClock, fmtDate, fmtKg, kgInput } from '../ui.js';
 import { progressLine } from '../charts.js';
 import { liftPills } from './progress.js';
@@ -50,7 +50,7 @@ export function renderLift({ id }) {
         ${icon('next', 18)}
         <div><span class="muted small">Para subir peso</span><strong>${lift.sets} × ${lift.max}</strong> <span class="small">+${esc(fmtKg(lift.inc))}</span></div>
       </div>
-      <p class="muted small">Rango ${lift.min}–${lift.max} reps dejando ${esc(lift.rir)} en reserva · descanso ${fmtClock(lift.rest)}. Cuando hagas ${lift.max} en todas las series, la app te sube ${esc(fmtKg(lift.inc))}.</p>
+      <p class="muted small">Rango ${lift.min}–${lift.max} reps dejando ${esc(lift.rir)} en reserva · descanso ${fmtClock(restSeconds(state, lift.rest))}. Cuando hagas ${lift.max} en todas las series, la app te sube ${esc(fmtKg(lift.inc))}.</p>
       <label class="load-row" for="kg-${lift.id}">
         <span class="load-label">Peso</span>
         <span class="grow muted small">Peso de trabajo actual</span>

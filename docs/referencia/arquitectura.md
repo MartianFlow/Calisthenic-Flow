@@ -5,7 +5,7 @@ PWA estática sin compilación, con módulos ES nativos y JavaScript sin framewo
 ## Mapa de archivos
 
 ```
-index.html               Shell y tab bar (Hoy · Calendario · Rutas · Héroe · Progreso). Ajustes = engranaje en Hoy/Héroe.
+index.html               Shell y tab bar (Hoy · Calendario · Rutas · Héroe · Progreso). Ajustes = engranaje de las cabeceras.
                          Script en línea que aplica el tema guardado antes de pintar.
 sw.js                    Service worker (VERSION, ASSETS; ignora peticiones de otros orígenes)
 manifest.webmanifest     PWA
@@ -15,7 +15,8 @@ icons/                   Iconos de la app
 js/app.js                Rutas, delegación de eventos (data-action / data-change), tick de 250 ms,
                          logros al cargar, tema, pixelCaps() y actualización de la app
 js/version.js            APP_VERSION (igual que VERSION de sw.js) y versionLabel()
-js/theme.js              applyTheme: data-theme en <html> y meta theme-color
+js/theme.js              applyTheme (data-theme en <html> y meta theme-color), effectiveTheme, fadeToTheme y
+                         headActions: botones de tema (sol/luna) y Ajustes de las cabeceras de las 5 pestañas
 js/router.js             Router por hash
 js/store.js              Estado en localStorage (clave 'calisthenic-flow:v1'), normalize y migración v1→v2
 js/logic.js              Sesiones, progresión doble (también con kg), descansos, descarga y estadísticas
@@ -24,7 +25,8 @@ js/schedule.js           Plan semanal: nivel, días recomendados, reparto A/B/S 
 js/game.js               XP, niveles y títulos, atributos, 46 logros, 33 artículos y syncAchievements
 js/avatar.js             Héroe en pixel art de 40×48 por capas (avatarSVG)
 js/pixel.js              Motor de pixel art (Grid, contorno y sombreado automáticos, toSVG) e iconos de 16×16
-js/fx.js                 Efectos de cómic (onomatopeyas, bump/beat, flash, stagger)
+js/fx.js                 Efectos y animaciones: burst, bump/beat, flash, stagger, staggerLists, tap, countUp,
+                         reveal y confetti (ver diseno.md, «Animaciones»)
 js/video.js              Tarjeta de vídeo y modal con iframe de youtube-nocookie
 js/device.js             Audio (WebAudio, se desbloquea con un toque), vibración y wake lock
 js/ui.js                 esc, formatos (fmtKg, parseKg, fmtSeries, fmtLiftSeries, fmtDurationHtml…), iconos SVG y toast
@@ -33,8 +35,8 @@ js/data/roadmaps.js      14 rutas / 116 pasos, DAY_TEMPLATES (A, B, S, TA, TB) y
 js/data/videos.js        Vídeo por paso ('ruta/key'): 87 de 116, y los 9 de gimnasio ('gym/<id>')
 js/data/legacy.js        Nombres de los pasos de v1, para migrar el progreso
 js/data/gym.js           LIFTS (9 ejercicios con kg), LEG_DAYS (P = rutina completa) y LEG_WARMUP
-js/views/*.js            home, session, roadmaps, progress (resumen y detalle), calendar,
-                         settings (y bienvenida), hero (logros y equipo), plan y exercise (ficha de gimnasio)
+js/views/*.js            home, session, roadmaps, progress (resumen y detalle), calendar, settings,
+                         onboarding (bienvenida paso a paso), hero (logros y equipo), plan y exercise (ficha de gimnasio)
 docs/                    Investigación con fuentes (investigacion-*.md) y esta referencia (referencia/)
 tests/e2e/               Pruebas Playwright y fixtures.js (ver la skill pruebas-e2e)
 tests/tools/             simular-actualizacion.js y la auditoría de diseño (ver la skill revisar-diseno)
@@ -46,7 +48,8 @@ tests/tools/             simular-actualizacion.js y la auditoría de diseño (ve
 
 - **Pintar:** cada vista devuelve un texto HTML y `app.js` lo inserta en `#view`.
   - Cualquier `update()` del store vuelve a pintar la vista actual. Con `{ silent: true }` no lo hace.
-  - La animación de entrada solo se lanza al **cambiar de ruta**, con la clase `.enter` y la variable `--i` para el escalonado.
+  - La animación de entrada solo se lanza al **cambiar de ruta**, con la clase `.enter`, `data-dir` (`r`, `l` o `up`, según `routeDir`) y la variable `--i` para el escalonado.
+  - Como cada `update()` sustituye el HTML, las transiciones CSS no se ven al cambiar un estado. Para eso, tras cada acción `app.js` aplica `tap()` (clase `.tapped`) al elemento tocado o a su copia nueva, buscada por sus atributos `data-*`; el CSS decide qué elementos rebotan.
 - **Acciones:** `data-action="nombre"` en el HTML y su función en el objeto `actions` exportado por la vista. `app.js` las junta todas. Los cambios de formularios van con `data-change`.
 - **Volver:** `data-action="go-back" data-fallback="#/…"` hace `history.back()`, o va a la ruta indicada si no hay historial.
 - **Escapar** con `esc()` todo lo que venga del usuario.
@@ -59,7 +62,8 @@ tests/tools/             simular-actualizacion.js y la auditoría de diseño (ve
 ```js
 { version: 2, onboarded,
   settings: { goals[≤3], daysPerWeek, passesToLevelUp, sound, warmup, legs: 'calistenia'|'gym',
-              theme: 'auto'|'light'|'dark', schedule: { days[7 bool] } | null },
+              theme: 'auto'|'light'|'dark', schedule: { days[7 bool] } | null,
+              restMode: 'fixed'|'auto', restSec },                    // descanso: fijo (80 s por defecto) o por ejercicio
   progress: { [rutaId]: { step, passes, done, work, stall, resets } },   // work = objetivo actual por serie
   lifts: { [liftId]: { kg, reps, stall } },                              // gimnasio: peso y reps objetivo
   levelLog[], sessions[] (de la más antigua a la más reciente), active, plan, lastDayType,
@@ -111,3 +115,11 @@ tests/tools/             simular-actualizacion.js y la auditoría de diseño (ve
 - **Servidor local:**
   - Para levantarlo: `(python3 -m http.server 8765 &)`.
   - Para pararlo: `pkill -f "^python3 -m http.server 8765"`. Con el `^`, porque sin él el patrón coincide con el propio comando y mata el shell.
+
+## Bienvenida paso a paso (`js/views/onboarding.js`)
+
+- **Pasos** (`steps(state)`, se recalculan en cada pintura): portada · experiencia · pierna · nivel de cada básico (sin `piernas` ni `bisagra` con la pierna en el gimnasio) · objetivos · nivel de cada objetivo · días · entreno (descanso, calentamiento y sonido) · héroe · resumen.
+- **Cada respuesta se guarda al momento** en el estado. El módulo solo recuerda el paso en curso y la experiencia elegida, en `sessionStorage` (`calisthenic-flow:bienvenida`), para que iOS pueda recargar la app a mitad sin volver a empezar. `resetWizard()` lo borra al terminar y al «Borrar todos los datos».
+- **Experiencia:** `EXPERIENCE` fija un paso de partida para cada básico; luego se afina ruta por ruta.
+- **Días:** al llegar por primera vez, propone los días recomendados (`recommendDays`).
+- **Reutiliza** acciones de otras vistas: `toggle-goal-setting`, `set-setting`, `toggle-setting`, `rest-*` (settings.js), `plan-day` (plan.js), `look` (hero.js), `video-open` e `import-data`.

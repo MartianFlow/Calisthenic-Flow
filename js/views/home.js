@@ -1,5 +1,6 @@
 // Pantalla "Hoy": qué toca según tu plan semanal, tu héroe, la semana y tus objetivos.
 
+import { headActions } from '../theme.js';
 import { ROADMAPS, ROADMAP_BY_ID } from '../data/roadmaps.js';
 import { LIFTS, LIFT_BY_ID } from '../data/gym.js';
 import { getState, update } from '../store.js';
@@ -248,7 +249,7 @@ export function render() {
   return `
     <header class="page-head row between">
       <div class="col"><div class="eyebrow">${hello}</div><h1>Hoy</h1></div>
-      <a class="icon-btn" href="#/ajustes" aria-label="Ajustes">${icon('gear')}</a>
+      ${headActions(state.settings.theme)}
     </header>
     ${main}
     ${heroMini(state)}
