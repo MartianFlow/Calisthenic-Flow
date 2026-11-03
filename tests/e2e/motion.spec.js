@@ -20,7 +20,13 @@ async function scrollThrough(page) {
   await page.waitForTimeout(900);
 }
 
+// Espera a que acaben las animaciones de entrada (las finitas; en CI la máquina es más lenta
+// y el último panel aún puede estar apareciendo) y mide.
 async function settled(page) {
+  await page.evaluate(() => Promise.race([
+    Promise.all(document.getAnimations().filter((a) => a.effect?.getTiming().iterations !== Infinity).map((a) => a.finished.catch(() => {}))),
+    new Promise((r) => setTimeout(r, 3000)),
+  ]));
   return page.evaluate(() => ({
     scrollX: document.documentElement.scrollWidth - window.innerWidth,
     pending: document.querySelectorAll('.reveal:not(.revealed)').length,
