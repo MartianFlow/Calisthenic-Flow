@@ -39,7 +39,8 @@ Documento de referencia para continuar el trabajo en sesiones futuras. Resume qu
         - el candado de Ajustes partía la línea;
         - las mayúsculas pixel con tilde parecían minúsculas («TIRóN»);
         - el detalle del calendario y las duraciones largas se partían mal;
-        - a 320 px se salían los días de la semana.
+        - a 320 px se salían los días de la semana;
+        - en Safari, el texto largo de un desplegable (nivel en la bienvenida) ensanchaba la página. Lo detectó WebKit en CI; los `select` recortan con «…» (versión 11).
 - **Usa la app en su iPhone real.** En una captura suya se veía el tema oscuro y el plan con «Pierna» el lunes y descanso el martes, así que tiene sus propios días configurados.
 
 ## Despliegue
@@ -54,7 +55,7 @@ Documento de referencia para continuar el trabajo en sesiones futuras. Resume qu
   - Instala con `cache: 'reload'`, para no coger archivos de la caché HTTP de GitHub Pages (10 min).
   - Al volver a la app (`visibilitychange`) se llama a `reg.update()`. Si una versión nueva toma el control (`controllerchange`), la app se recarga sola; durante un entreno espera a salir de `/entreno`.
   - En Ajustes se ve la versión («versión 9») y hay un botón «Actualizar la app».
-  - **En cada publicación hay que subir la versión en dos sitios:** `VERSION` de `sw.js` y `APP_VERSION` de `js/version.js`. Ahora es `cf-v10`, y una prueba de `data.spec.js` comprueba que coincidan.
+  - **En cada publicación hay que subir la versión en dos sitios:** `VERSION` de `sw.js` y `APP_VERSION` de `js/version.js`. Ahora es `cf-v11`, y una prueba de `data.spec.js` comprueba que coincidan.
   - Sin subir la versión, al abrir la app en frío ya se ve lo nuevo (red primero), pero al volver de segundo plano no se recarga sola.
   - **Al añadir archivos**, hay que incluirlos también en `ASSETS` de `sw.js`. Si falta uno, la instalación falla entera.
   - **Paso de la versión 8 a la 9 en el iPhone:** el service worker antiguo servía primero la caché, así que la versión nueva se ve a la **segunda** apertura. Hay que cerrar la app del todo desde el selector de apps.
@@ -260,6 +261,8 @@ Cada sesión del historial guarda:
 - **Iconos dentro de un texto:** `.icon` es `inline-block`. En flex o grid se comporta como bloque, así que un candado dentro de un párrafo ya no parte la línea.
 - **Rejillas de 7 días:** `repeat(7, minmax(0, 1fr))`. Con `1fr` a secas, el contenido mínimo las ensancha.
 - **`select` dentro de `.field`:** necesita `min-width: 0`, porque si no la opción más larga ensancha la tarjeta.
+  - En Safari además hace falta `overflow: hidden`: si no, el texto de la opción elegida se sale y la página se puede desplazar en horizontal.
+  - Cuando hay scroll horizontal, la prueba nombra el elemento culpable aunque sea interno (como el texto de un `select`).
 - **Letra pixel:** Press Start 2P dibuja las mayúsculas con tilde más bajas y parecen minúsculas.
   - `pixelCaps()` (app.js) quita la tilde en `.px-h`, `.px-sub`, `.px-title`, `.px-attr-label`, `.px-btn`, `.px-tabs button` y `.px-rarity`.
   - La ñ se mantiene.

@@ -79,7 +79,16 @@ function inPage(opts) {
 
   // 1) Scroll horizontal de la página
   const sw = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth);
-  if (sw > vw + 1) out.push({ kind: 'scroll-x', msg: `ancho del contenido ${sw}px > pantalla ${vw}px` });
+  if (sw > vw + 1) {
+    // Culpable probable: el elemento más interno cuyo contenido llega más allá de la pantalla
+    // (también los que el resto de comprobaciones ignora, como el texto interno de un <select>).
+    let culprit = null;
+    for (const el of document.body.querySelectorAll('*')) {
+      const r = el.getBoundingClientRect();
+      if (r.width && r.left + el.scrollWidth > vw + 1) culprit = el;
+    }
+    out.push({ kind: 'scroll-x', el: culprit ? label(culprit) : '', msg: `ancho del contenido ${sw}px > pantalla ${vw}px` });
+  }
 
   const all = [...document.body.querySelectorAll('*')].filter((el) => !el.closest(SKIP) && !(el instanceof SVGElement && el.tagName.toLowerCase() !== 'svg'));
 
