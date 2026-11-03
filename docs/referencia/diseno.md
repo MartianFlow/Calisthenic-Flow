@@ -49,6 +49,7 @@ El estilo está en `css/styles.css`. Para revisar o corregir pantallas, sigue la
   - `liftPills` pone el peso una sola vez en el historial de gimnasio.
 - **Iconos:** `.icon` es `inline-block`. En flex o grid se comporta como bloque; dentro de un párrafo no parte la línea.
 - **Rejillas de 7 días:** `repeat(7, minmax(0, 1fr))`. Con `1fr` a secas, el contenido mínimo las ensancha.
+- **Texto junto a botones en una fila que se parte (`.row.wrap`):** no le pongas `.grow` (`flex: 1; min-width: 0`). Su base es 0, así que la fila no salta de línea y el texto se queda en una columna estrechísima, tapado por los botones; en Safari se vio en «¿Ya la dominas?» (v18). Pon el texto en su propio párrafo, encima, o dale `flex-basis: 100%`.
 - **`select`:**
   - Dentro de `.field` necesita `min-width: 0`.
   - En Safari, además, `overflow: hidden` y `text-overflow: ellipsis`. Sin eso, el texto de la opción elegida se sale y la página se puede desplazar en horizontal.

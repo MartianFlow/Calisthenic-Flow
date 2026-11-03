@@ -229,6 +229,7 @@ const scenarios = [
   { name: 'ajustes', route: '/ajustes', state: rich },
   { name: 'ajustes-foco-sin-mantener', route: '/ajustes', state: richState({ settings: { focus: 'frontlever', maintain: [], daysPerWeek: 3 } }) },
   { name: 'ruta-mantener-sin-hueco', route: '/ruta/planche', state: rich },
+  { name: 'ruta-pino-un-mantener', route: '/ruta/pino', state: richState({ settings: { focus: 'pino', maintain: ['muscleup'], daysPerWeek: 3 } }) },
   { name: 'plan', route: '/plan', state: rich },
   { name: 'plan-moviendo', route: '/plan', state: rich, setup: click('.week-row:nth-child(3) [data-action="week-move"]') },
   { name: 'plan-semana-cambiada', route: '/plan', state: rich, setup: clickAll('.week-row:nth-child(3) [data-action="week-move"]', '.week-row:nth-child(4) [data-action="week-move-to"]') },
@@ -271,6 +272,8 @@ const scenarios = [
   // Pierna en el gimnasio
   { name: 'gym-hoy-torso', route: '/', state: gym },
   { name: 'gym-hoy-pierna', route: '/', state: gym, now: TUE },
+  { name: 'gym-hoy-pierna-pino', route: '/', state: gymState({ settings: { legs: 'gym', daysPerWeek: 5, schedule: { days: L_V }, focus: 'pino', maintain: ['muscleup'] } }), now: TUE },
+  { name: 'hoy-pino-diario-entrenar-igual', route: '/', state: rich, now: TUE, setup: click('[data-action="train-anyway"]') },
   { name: 'gym-hoy-descarga-sugerida', route: '/', state: gymState({ lifts: { ...gym.lifts, hack: { kg: 120, reps: 8, stall: 2 } } }), now: TUE },
   { name: 'gym-plan', route: '/plan', state: gym },
   { name: 'gym-plan-moviendo', route: '/plan', state: gym, setup: click('.week-row:nth-child(2) [data-action="week-move"]') },

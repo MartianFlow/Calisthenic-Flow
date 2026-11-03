@@ -444,6 +444,14 @@ a.mini-chip:active { transform: translate(1px, 1px); }
 .swap-label { flex-basis: 100%; }
 .pino-only { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: 8px; border: 2.5px dashed var(--border); background: color-mix(in srgb, var(--cyan) 14%, var(--surface)); }
 .pino-only .btn { align-self: flex-start; }
+.pino-daily { box-shadow: var(--pop) var(--pop) 0 var(--pink), calc(var(--pop) + 3px) calc(var(--pop) + 3px) 0 var(--border); }
+.pino-daily .btn { align-self: flex-start; }
+.pino-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.pino-day { display: flex; flex-direction: column; align-items: center; gap: 3px; font-family: var(--display); font-size: 16px; color: var(--muted); }
+.pino-day i { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 2.5px dashed var(--border); background: var(--surface-2); color: #000; }
+.pino-day.on i { border-style: solid; background: var(--pink); }
+.pino-day.today { color: var(--text); }
+.pino-day.today i { box-shadow: 0 0 0 3px var(--yellow); }
 .pino-done { display: inline-flex; align-items: center; gap: 6px; font-weight: 800; color: var(--ok); }
 .exercise.is-focus .eyebrow .role-tag, .exercise.is-keep .eyebrow .role-tag { margin-left: 2px; }
 .skill-card.keep.on { background: var(--cyan); box-shadow: 4px 4px 0 var(--pink), 6px 6px 0 var(--border); transform: rotate(1.5deg); }

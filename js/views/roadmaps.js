@@ -100,9 +100,10 @@ function roleCard(state, r, role) {
       <h3>${role === 'foco' ? `${icon('star', 20)} Aprendiendo` : role ? `${icon('shield', 20)} Manteniendo` : 'Tu habilidad'}</h3>
       <p class="muted small">${text}</p>
       ${role === 'foco' ? prereqNote(state) : ''}
+      ${role === 'foco' ? '<p class="muted small">¿Ya la dominas? Pásala a mantener y elige otra para aprender.</p>' : ''}
       <div class="row gap wrap">
         ${role === 'foco'
-          ? `<span class="muted small block grow">¿Ya la dominas?</span>${toMaintainButtons(state, false)}`
+          ? toMaintainButtons(state, false)
           : `<button class="btn ${role ? 'ghost' : 'primary'} small" data-action="set-focus" data-id="${r.id}">${icon('star', 16)} ${role ? 'Hacer foco' : 'Aprender (foco)'}</button>
              ${role ? '' : `<button class="btn ghost small" data-action="toggle-maintain" data-id="${r.id}">${icon('shield', 16)} Mantener</button>`}`}
         ${role ? `<button class="btn ghost small" data-action="skill-remove" data-id="${r.id}">${icon('close', 16)} Quitar</button>` : ''}

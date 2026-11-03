@@ -16,7 +16,7 @@ Es una **web app instalable (PWA)**: se añade a la pantalla de inicio del iPhon
 - **Una habilidad para aprender y hasta 2 para mantener** (Ajustes → Habilidades):
   - **Quiero aprender (foco):** va al principio de todos tus días de torso, con todo el volumen y 1–2 ejercicios complementarios (remo en tuck front lever, planche lean, german hang…). Las de brazos rectos, la flexión de pino y el muscle-up, como mucho 3 días por semana y nunca seguidos.
   - **Quiero mantener:** las que ya dominas, 1–2 días por semana cada una, una por entreno y con 3 series de calidad. Si te salen fáciles, siguen subiendo. O «Aún no domino ninguna».
-  - **El pino** es una práctica corta (5–10 min) al principio de cada entreno y no le quita el sitio a otra habilidad. En los días de descanso, «Solo pino (10 min)».
+  - **El pino** es una práctica corta (5–10 min) al principio de cada entreno, también los de pierna, y no le quita el sitio a otra habilidad. Si es tu foco, la tarjeta «Pino diario» de Hoy te dice qué toca hoy y cuántos días lo has hecho esta semana; en los días de descanso, «Solo pino (10 min)».
   - **Sin ninguna habilidad todavía:** la app te recomienda por cuál empezar, te dice qué básicos le faltan a la que elijas (y los pone primero) y, cuando completes su ruta, te propone pasarla a mantener y elegir otra.
   - **Con dos habilidades en el mismo entreno, se alternan:** una serie de cada una, así descansan más sin tocar tus 80 s.
   - Calentamiento extra según las habilidades del día (muñecas para la planche y el pino, german hang suave para el back lever).
@@ -127,7 +127,7 @@ La carpeta [`tests/e2e`](tests/e2e) tiene una batería de pruebas con [Playwrigh
 | `navigation.spec.js` | Rutas, visor de vídeo, búsqueda en YouTube, cambio manual de nivel, calendario, progreso, pestañas, tema claro u oscuro y su botón en las cabeceras |
 | `deload.spec.js` | Sugerencia y efecto de la semana de descarga |
 | `data.spec.js` | Migración desde la v1, exportar e importar la copia, borrar datos y funcionamiento sin conexión |
-| `layout.spec.js` | Diseño en móvil: 127 pantallas y estados a 320, 375, 390 y 430 px. Comprueba que nada se sale de la pantalla, que ningún texto se pisa, se corta o se sale de su botón, que nada queda tapado por las barras y que el contraste es suficiente |
+| `layout.spec.js` | Diseño en móvil: 130 pantallas y estados a 320, 375, 390 y 430 px. Comprueba que nada se sale de la pantalla, que ningún texto se pisa, se corta o se sale de su botón, que nada queda tapado por las barras y que el contraste es suficiente |
 
 Las pruebas usan un reloj fijo (lunes 2/11/2026) y bloquean internet, así que siempre dan el mismo resultado. Además fallan si la app lanza cualquier error de JavaScript.
 

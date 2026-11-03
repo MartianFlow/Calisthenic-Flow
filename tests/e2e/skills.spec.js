@@ -173,10 +173,36 @@ test.describe('Foco y mantenimiento', () => {
       await expect(page).toHaveURL(/#\/resumen\//);
       await page.goto('/');
       await expect(page.locator('.plan.rest')).toContainText('Hoy toca descanso'); // sigue siendo día de descanso
-      await expect(page.locator('.pino-done')).toContainText('Práctica de pino hecha hoy');
+      await expect(page.locator('.pino-daily .pino-done')).toContainText('Hecho hoy');
+      await expect(page.locator('.pino-daily .pill')).toHaveText('1/7 días');
+      await expect(page.locator('.pino-day.today')).toHaveClass(/on/);
       await expect(page.locator('.week .pill')).toContainText('0/3');
       s = await readState(page);
       expect(s.sessions.at(-1).dayType).toBe('pino');
+    });
+
+    test('con el pino de foco, Hoy recuerda que es diario aunque elijas entrenar otra rutina', async ({ page }) => {
+      await seed(page, makeState({ settings: { focus: 'pino', maintain: [] } }));
+      await page.goto('/');
+      await expect(page.locator('.pino-daily')).toContainText('el pino es diario');
+      await expect(page.locator('.pino-daily [data-action="pino-only"]')).toBeVisible();
+      await expect(page.locator('.plan.rest [data-action="pino-only"]')).toHaveCount(0); // no sale dos veces
+      // «Entrenar igualmente»: el entreno ya lleva el pino al principio
+      await page.locator('[data-action="train-anyway"]').click();
+      await expect(page.locator('.pino-daily')).toContainText('al principio de tu entreno');
+      await expect(page.locator('.ex-row').first()).toContainText('Práctica de pino');
+    });
+
+    test('pierna en el gimnasio: el día de pierna también empieza con el pino', async ({ page }) => {
+      // Martes con 5 días L–V: día de pierna
+      await seed(page, makeState({ settings: { legs: 'gym', focus: 'pino', maintain: ['muscleup'], daysPerWeek: 5, schedule: { days: L_V } } }));
+      await page.goto('/');
+      await expect(page.locator('.plan h2')).toContainText('Pierna');
+      await expect(page.locator('.ex-row').first()).toContainText('Práctica de pino');
+      await expect(page.locator('.pino-daily')).toContainText('al principio de tu entreno');
+      // y el calentamiento sigue siendo el de pierna
+      await page.locator('[data-action="start-session"]').click();
+      expect((await readState(page)).active.warmupKind).toBe('pierna');
     });
 
     test('sin el pino entre tus habilidades no aparece «Solo pino»', async ({ page }) => {

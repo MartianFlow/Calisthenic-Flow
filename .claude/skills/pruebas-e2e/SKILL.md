@@ -18,7 +18,7 @@ description: Escribir, ejecutar y depurar las pruebas Playwright de Calisthenic 
 | Archivo | Pruebas |
 |---|---|
 | `onboarding.spec.js` (7) | Bienvenida paso a paso: portada; recorrido completo con experiencia, pierna, niveles, habilidades (las que domina y la que aprende), días, descanso y héroe; sin pasos de pierna en modo gimnasio; atrás, «Cambiar» y recargar a mitad; cambiar desde el resumen y volver a él; «Aún no domino ninguna» con recomendadas; importar una copia antigua (su objetivo pasa a foco) |
-| `skills.spec.js` (18) | Foco y mantenimiento: conversión de `goals` con aviso; Ajustes (foco, mantener, máximo 2, «Aún no domino ninguna»); semana del usuario (pino el primero cada día, mantener 1–2 días y una por sesión); 5 días; brazos rectos sin días seguidos; back lever y planche nunca juntos; flexión de pino y muscle-up no seguidos; dosis de mantenimiento; «Solo pino» en descanso (no cuenta como entreno); recomendadas; básicos que le faltan al foco; propuesta al completar la ruta (con hueco y con 2); Rutas; sin plan semanal |
+| `skills.spec.js` (20) | Foco y mantenimiento: conversión de `goals` con aviso; Ajustes (foco, mantener, máximo 2, «Aún no domino ninguna»); semana del usuario (pino el primero cada día, mantener 1–2 días y una por sesión); 5 días; brazos rectos sin días seguidos; back lever y planche nunca juntos; flexión de pino y muscle-up no seguidos; dosis de mantenimiento; «Solo pino» en descanso (no cuenta como entreno); recomendadas; básicos que le faltan al foco; propuesta al completar la ruta (con hueco y con 2); Rutas; sin plan semanal |
 | `skill-training.spec.js` (15) | Complementarios: orden, sin valorar, sin progreso, historial y «Última vez»; uno en los primeros pasos y ninguno en mantener; preparación del back lever con cronómetro; pino; L-sit tras el core; jalón en lugar del remo en tuck. Alternancia con 80 s. Más series. Ficha con complementarios y plazos. «Fácil» en brazos rectos = 2 sesiones. Calentamiento extra (y tras recargar). Sustituir: dominadas −1 serie sin subir, muscle-up en lugar de dominadas en la semana, fondos −1 con flexión de pino |
 | `rest.spec.js` (4) | Descanso fijo de 80 s por defecto con −15/+15; cambiarlo en Ajustes; «Según ejercicio»; valores raros corregidos al cargar |
 | `motion.spec.js` (3) | **Con animaciones** (`reducedMotion: 'no-preference'`): pantallas visibles al terminar y sin scroll horizontal, pastilla de la pestaña, cabeceras fijas en el entreno y en la bienvenida |
@@ -31,7 +31,7 @@ description: Escribir, ejecutar y depurar las pruebas Playwright de Calisthenic 
 | `gamification-plus.spec.js` (8) | Secretos ocultos y «¡Cosquillas!» (con su mascota); «El lado oscuro»; secreto no destripado en Equipo; secretos de fecha y hora; misiones (3, en Hoy y Héroe; cumplida con 3 entrenos); récord personal en el resumen; 70 artículos y 108 logros |
 | `deload.spec.js` (2) | Sugerencia por estancamiento y su efecto; «Ahora no» |
 | `data.spec.js` (5) | Migración v1; exportar e importar; borrar datos; sin conexión (solo Chromium); misma versión en sw.js y version.js |
-| `layout.spec.js` (127) | Diseño: todos los escenarios de `tests/tools/escenarios-diseno.js` a 320, 375, 390 y 430 px (ver la skill `revisar-diseno`) |
+| `layout.spec.js` (130) | Diseño: todos los escenarios de `tests/tools/escenarios-diseno.js` a 320, 375, 390 y 430 px (ver la skill `revisar-diseno`) |
 
 Lo que falta por cubrir está en `docs/referencia/pendiente.md`, en «Huecos de pruebas funcionales».
 

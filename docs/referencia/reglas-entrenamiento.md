@@ -68,6 +68,7 @@ Cómo decide la app objetivos, subidas, descansos y el plan semanal. Las fuentes
 - **El pino** no cuenta en el límite de 2 habilidades por sesión.
   - Si es el foco, es una práctica corta (5–10 min) al principio de **todos** los días de entreno, también los de pierna.
   - En los días de descanso, «Solo pino» (`dayType: 'pino'`): con un calentamiento corto de muñecas y hombros, y no cuenta como entreno de la semana.
+  - Hoy muestra la tarjeta **«Pino diario»**: los 7 días de la semana con pino hecho, y qué toca hoy («va al principio de tu entreno», «Hecho hoy» o el botón «Solo pino»). Si el pino es de mantener, «Solo pino» va en la tarjeta de descanso.
 - **Brazos rectos, entre todas:** como mucho 2 por sesión, 3 días por semana y nunca en días seguidos.
 - **Back lever y planche** nunca en la misma sesión. Si una de mantener no cabe por eso, ocupa el sitio del foco el último día en que aparece, si así le quedan al menos 2.
 - **Sin plan semanal** (`sessionGoals`): pino de foco en todas, el foco en las de torso y una de mantener por turnos (cada una, una sesión de cada dos más o menos).

@@ -89,9 +89,14 @@ El contexto de la persona y de sus peticiones. Las decisiones técnicas que sale
     - de 33 a 70 artículos, con 6 mascotas;
     - tocar al héroe lo hace saltar (y tiene un secreto).
 
+26. **Con capturas de la v18:** «elegí pino para aprender: ¿no debería salir algo que me indique que lo entrene todos los días? Solo lo veo en Torso A y B», y que en la caja «Aprendiendo» un botón tapaba un texto.
+    - El pino ya iba también en los días de pierna, pero no había nada que dijera que es diario. **Versión 19:** tarjeta «Pino diario» en Hoy, con los 7 días de la semana y qué toca hoy («al principio de tu entreno», «Hecho hoy» o «Solo pino»).
+    - El texto «¿Ya la dominas?» se cortaba en Safari: un elemento flexible sin anchura mínima junto a los botones. Ahora va en su propio párrafo.
+
 ## Pendiente de confirmar con el usuario
 
-- Que en Ajustes ve **«versión 18»**. Si no, que cierre la app del todo y la abra otra vez.
+- Que en Ajustes ve **«versión 19»** y que la tarjeta «Pino diario» le sirve.
+- Antes: que veía la **«versión 18»**. Si no, que cierre la app del todo y la abra otra vez.
 - Qué le parecen los logros nuevos, las misiones de la semana y las mascotas, y si quiere más secretos o más objetos de algún tipo.
 - Si los complementarios y la alternancia le cuadran en tiempo (las sesiones salen de unos 50–60 min) y si echa en falta vídeo en los dos complementarios nuevos.
 - Que eligió en Ajustes → Habilidades su foco (pino) y las de mantener (muscle-up y front lever), y que el reparto de la semana le cuadra.

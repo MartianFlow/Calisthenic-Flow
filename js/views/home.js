@@ -145,10 +145,41 @@ function routineChoices(state, currentType) {
     <button class="goal-chip ${t === currentType ? 'on' : ''}" data-action="plan-pick" data-type="${t}" aria-pressed="${t === currentType}">${esc(DAY_INFO[t].label)}</button>`).join('')}</div>`;
 }
 
-// «Solo pino»: en un día de descanso, una práctica corta de pino sin calentamiento general.
+// ¿Ha practicado pino este día? (en cualquier entreno, también en «Solo pino»)
+const pinoOn = (state, ts) => {
+  const day = new Date(ts).toDateString();
+  return state.sessions.some((s) => new Date(s.startedAt).toDateString() === day && s.items.some((it) => it.roadmapId === PRACTICE_ID && it.sets.length));
+};
+
+// Pino de foco: práctica corta todos los días. Dice qué toca hoy y lleva la cuenta de la semana.
+function pinoDaily(state, info) {
+  if (skillPicks(state).focus !== PRACTICE_ID || state.active) return '';
+  const ws = startOfWeek(Date.now());
+  const today = weekdayIndex();
+  const days = WD_SHORT.map((_, i) => pinoOn(state, ws + i * 864e5 + 12 * 3600e3));
+  const doneToday = days[today];
+  const inPlan = info.mode !== 'rest' && info.mode !== 'done' && info.plan?.ids?.includes(PRACTICE_ID);
+  const { step } = stepOf(PRACTICE_ID);
+  const status = doneToday
+    ? `<p class="pino-done small">${icon('check', 16)} Hecho hoy. Mañana, otra vez: 5–10 minutos bastan.</p>`
+    : inPlan
+      ? `<p class="small">${icon('play', 14)} Hoy va <strong>al principio de tu entreno</strong>: ${esc(step.name)}, 5–10 min.</p>`
+      : `<p class="small">Hoy no entrenas${info.mode === 'done' ? ' más' : ''}, pero el pino es diario: una práctica corta, sin el resto.</p>
+         <button class="btn primary" data-action="pino-only">${icon('play', 18)} Solo pino (10 min)</button>`;
+  return `
+    <section class="card pino-daily">
+      <div class="row between"><h3>Pino diario</h3><span class="pill tiny focus">${days.filter(Boolean).length}/7 días</span></div>
+      <p class="muted small">Es tu foco: el equilibrio mejora con práctica corta casi todos los días, también los de pierna y los de descanso.</p>
+      <div class="pino-days" aria-label="Días con pino esta semana">${WD_SHORT.map((l, i) => `
+        <span class="pino-day ${days[i] ? 'on' : ''} ${i === today ? 'today' : ''}"><i>${days[i] ? icon('check', 13) : ''}</i>${l}</span>`).join('')}</div>
+      ${status}
+    </section>`;
+}
+
+// «Solo pino» en la tarjeta de descanso, si el pino es de mantener (si es el foco, va en «Pino diario»).
 function pinoOnly(state) {
   const { focus, maintain } = skillPicks(state);
-  if (focus !== PRACTICE_ID && !maintain.includes(PRACTICE_ID)) return '';
+  if (focus === PRACTICE_ID || !maintain.includes(PRACTICE_ID)) return '';
   const today = new Date().toDateString();
   if (state.sessions.some((s) => s.dayType === PRACTICE_DAY && new Date(s.startedAt).toDateString() === today)) {
     return `<p class="pino-done small">${icon('check', 16)} Práctica de pino hecha hoy</p>`;
@@ -324,6 +355,7 @@ export function render() {
     ${skillsNotice(state)}
     ${achievedCard(state)}
     ${main}
+    ${pinoDaily(state, info)}
     ${heroMini(state)}
     ${deloadCard(state)}
     ${weekStrip(state)}
