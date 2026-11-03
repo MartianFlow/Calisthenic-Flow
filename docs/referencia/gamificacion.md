@@ -26,9 +26,11 @@ Todo se calcula en `js/game.js` a partir del historial. Solo se guardan:
 - **Aguante:** √(minutos / 3000) · 100.
 - **Piernas:** también cuenta las subidas de peso del gimnasio, √(subidas / 60) · 100, y se queda con el valor mayor.
 
-## Logros (108, 15 secretos)
+## Logros (114, 15 secretos)
 
 - **Seis categorías:** constancia, progreso, hitos de calistenia, tus habilidades (foco, mantener, «Solo pino», complementarios, alternancia), buenos hábitos y secretos.
+- **Nuevos en las v20 y v21** (buenos hábitos): «Creador» (crear un ejercicio propio), «Marca de la casa» (10 entrenos con propios), «A salvo» (exportar una copia), «En la báscula» (4 registros de peso), «Dos por uno» (un entreno con superseries) y «Arquitecto» (semana «A tu manera» con 2 días tuyos o más).
+- **Ejercicios propios en la EXP:** sus series y valoraciones cuentan como las demás; su récord es el mayor peso (si lleva) o la mejor serie. Sus subidas de peso dan los +30 de siempre, pero solo los de pierna cuentan para el atributo Piernas, los días de pierna y «Más discos».
 - Se definen con `check(stats) → [actual, meta]`. Las estadísticas están en `gameStats` y `moreStats`.
 - **Secretos** (`secret: true`, con `hint`):
   - hasta conseguirlos se ven como «???» con una pista;
@@ -38,7 +40,7 @@ Todo se calcula en `js/game.js` a partir del historial. Solo se guardan:
   - al cargar la app, sin celebración;
   - al terminar un entreno, con celebración en el resumen;
   - al ver vídeos;
-  - con `unlockCheck()` (hero.js): al tocar al héroe, cambiar el tema, cambiarle el nombre y equiparse, con un aviso del logro conseguido.
+  - con `unlockCheck()` (hero.js): al tocar al héroe, cambiar el tema, cambiarle el nombre, equiparse, crear un ejercicio, exportar una copia, apuntar el peso y asignar tus días, con un aviso del logro conseguido.
 
 ## Misiones de la semana
 

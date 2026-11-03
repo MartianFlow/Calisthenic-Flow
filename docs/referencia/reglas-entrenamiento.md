@@ -120,6 +120,41 @@ Cómo decide la app objetivos, subidas, descansos y el plan semanal. Las fuentes
 - **Plantilla de 3 días:** A-B-A en las semanas ISO pares y B-A-B en las impares. Por eso el 2/11/2026 (lunes, semana 45) toca B.
 - **Elección de días:** `pickDays` busca la máxima separación entre los días disponibles.
 
+## Cómo se divide la semana (`settings.split`, v21)
+
+- **Cuatro formas** (Plan semanal → «Cómo divides tu semana», también en la bienvenida):
+  - **`completo`:** Día A / Día B (y S), como arriba. La pierna va dentro de cada día con calistenia.
+  - **`torso-pierna`:** Torso A / Torso B y días de pierna: `P` (gimnasio) o `PC` (calistenia: `piernas` y `bisagra`). Elegir «Gimnasio» con cuerpo completo pasa a esta forma.
+  - **`etp`:** empuje (`E`: fondos, flexiones y core), tirón (`T`: dominadas, remo y core) y pierna (`P` o `PC`). Con 1, 3 o 5 días de torso, uno es **torso completo** (`TC`, como TA). Días de pierna: 1 con 2–4 días y 2 con 5 o más. Las semanas impares empieza el empuje.
+  - **`propia` («A tu manera»):** días que crea la persona (`settings.myDays = [{ id: 'd-…', name, ids }]`) en los días de la semana que elige (`settings.myWeek`, 7 posiciones). Los días de entreno son los que tienen uno asignado (`daysPerWeek` y `schedule` se sincronizan con `syncMyWeek`). La primera vez empieza con los días de la forma de antes (`seedMyDays`), con sus ejercicios, también los de gimnasio.
+- **Migración:** sin `split` guardado, con la pierna en el gimnasio queda `torso-pierna` y si no `completo`. Al usuario no le cambia nada.
+- **Recomendación de días:** `etp`, 5 (6 si es avanzado); `torso-pierna` con calistenia, 4 o 5; `propia`, los que asignó.
+- **Grupos** (`groupOf`): tirón (dominadas, remo, front lever, muscle-up, back lever), empuje (fondos, flexiones, planche, flexión de pino, pino), pierna (piernas, bisagra y los de gimnasio), core (core, L-sit) y, en los propios, el que se elija.
+- **Habilidades por día** (`dayAccepts`): en los de torso completo (A, B, S, TA, TB, TC) caben todas.
+  - En los demás, las de su grupo; el L-sit en cualquiera con torso o core.
+  - **La que aprendes** va en todos los días con torso (también en uno de empuje si es de tirón), con sus límites de siempre.
+  - **Las de mantener**, primero en los días de su grupo; si no caben, en otro día con torso.
+  - Un día solo de pierna (o solo de core o movilidad) no lleva habilidades, salvo el pino de foco.
+- **Aviso de frecuencia** (`frequencyWarnings`): si tirón, empuje o pierna se trabajan 1 día por semana (o ninguno). El pino no cuenta como día de empuje. Sale en el Plan y en «Tus días».
+
+## Ejercicios propios (`state.custom`, v20)
+
+- **Qué son:** ejercicios que crea la persona (Rutas → Mis ejercicios): repeticiones o segundos, con o sin peso (solo en repeticiones), series (2–5), rango, por lado, grupo, músculo, vídeo, claves y días fijos (`days`, tipos de día del plan).
+- **Dónde van:** al final de los días marcados, antes del core (`baseIds`). O sueltos desde Hoy → Editar. Archivados no salen en ningún entreno.
+- **Progresión:** la doble de la pierna del gimnasio (`applyLiftProgress` con `customDef`). El progreso va en `state.lifts[id]`.
+  - **Con peso:** igual que la pierna (+`inc` kg arriba del rango, −10 % si no llega al mínimo con Difícil, reinicio a las 3 sesiones sin avanzar).
+  - **Sin peso:** +2 reps con Fácil y +1 con Normal (en segundos, +5 s y +2 s). Arriba del rango con Fácil o Normal: resultado `top`, que propone una variante más difícil o ponerle peso. A las 3 sesiones sin avanzar, vuelta al mínimo.
+- **Descanso recomendado** («Según ejercicio»): 2 min con peso y 90 s sin peso. Con el descanso fijo, los 80 s de siempre.
+- **Historial:** cada entreno guarda su nombre y su grupo, así se lee aunque luego se cambie o se borre. Solo se puede borrar del todo si no se ha entrenado; si no, se archiva.
+
+## Superseries (`settings.supersets`, v21)
+
+- **Opción en Ajustes → Entreno**, apagada por defecto.
+- **Parejas** (`supersetPairs`): dos básicos seguidos de grupos distintos (tirón con empuje, pierna con core…). Las habilidades, los complementarios y los de grupo «otro» no entran.
+- **En el entreno:** tras una serie se pasa a la pareja con **medio descanso** (mínimo 30 s; 40 s con el fijo de 80 s). Cada ejercicio descansa así lo de siempre o más: medio descanso, la serie del otro y medio descanso. Cuando uno termina, el otro sigue con el descanso normal.
+- La duración estimada cuenta medio descanso en las parejas. Cada ejercicio de una pareja guarda `ss` (su número de pareja).
+- Es distinto de la alternancia de las dos habilidades, que usa el descanso entero.
+
 ## Cambios en la semana y otra rutina
 
 - **Mover un entreno de día** (Plan semanal → «Mover» → «Aquí» o «Cambiar aquí»): intercambia lo que hay en los dos días, solo esta semana.
@@ -155,6 +190,8 @@ Cómo decide la app objetivos, subidas, descansos y el plan semanal. Las fuentes
 
 ## Otros
 
+- **Peso corporal** (`state.body`, v20): se apunta en Progreso, uno por día (el del mismo día se sustituye), entre 20 y 300 kg. Solo se muestra; no cambia objetivos.
+- **Aviso de copia de seguridad** (`backupDue`, v20): en Hoy, con 3 entrenos o más, si han pasado 14 días desde la última copia (o desde el primer entreno) y hay 3 entrenos nuevos. «Ahora no» lo aplaza 7 días. Exportar guarda `state.backup = { last, count }`; en el iPhone cuenta cuando el menú «Compartir» se completa.
 - **Calentamiento de calistenia:** 9 elementos, entre ellos preparación de muñecas, flexiones escapulares, soporte y series de aproximación.
 - **Rutas de fuerza:** dominadas, remo, flexiones, fondos (sin fondos en banco), piernas, bisagra (isquios, hasta el curl nórdico) y core.
 - **Rutas de habilidad:** muscleup, pino, hspu, lsit, frontlever, planche y backlever.

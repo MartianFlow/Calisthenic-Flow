@@ -26,12 +26,22 @@ Ver el final de `historial-usuario.md`: la versión 19 en su iPhone y la tarjeta
 - **Comparar estancamientos antes y después** de los cambios de habilidades (última idea de J en `plan-habilidades.md`): el historial ya guarda `stall` y los reinicios; se podría mostrar en Progreso.
 - **Plazos con fuente** para las demás habilidades (solo el front lever los tiene en la ficha).
 - **Vídeos** para los complementarios nuevos (jalón con brazos rectos con banda, encogimientos en pino) y para `backlever/german-hang`.
-- Un editor de ejercicios de gimnasio en la app. Ahora se cambian en `js/data/gym.js`.
-- Superseries de antagonistas, que ahorrarían un 30–40 % de tiempo.
+- Ejercicios propios: plantillas para empezar (curl, press, prensa…), fotos y elegir el descanso de cada uno.
+- «A tu manera»: copiar un día, y que los ejercicios de gimnasio de serie (`LIFTS`) se puedan editar (rango, subida de peso) igual que los propios.
+- Superseries: elegir las parejas a mano.
+- Peso corporal: usarlo para algo más que mostrarlo (por ejemplo, fuerza relativa en dominadas con lastre).
 - Artículos de lectura sobre técnica. El usuario dijo «artículos» y se interpretó como objetos para equipar.
 - Preguntar la dificultad por serie en vez de por ejercicio.
 
 ## Huecos de pruebas funcionales (la «serie de pruebas exhaustivas» que pidió)
+
+- **Ejercicios propios y división (v20–v21):**
+  - `nextDayType` sin plan semanal con empuje/tirón/pierna y «A tu manera»;
+  - estancamiento de un ejercicio propio con y sin peso;
+  - descarga con ejercicios propios;
+  - mover un día tuyo en el Plan y el aviso de dos días de pierna seguidos con días tuyos;
+  - superseries con el descanso «Según ejercicio» y con un ejercicio de segundos;
+  - exportar en el iPhone (menú «Compartir»): que cuente la copia solo al completarlo.
 
 La maquetación ya está cubierta (`layout.spec.js`). Queda esto:
 

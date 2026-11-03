@@ -7,7 +7,7 @@ description: Escribir, ejecutar y depurar las pruebas Playwright de Calisthenic 
 
 ## Ejecutar
 
-- `npm install` y luego `npx playwright test --project=iphone-chromium`. Tarda ~3 min con unas 245 pruebas.
+- `npm install` y luego `npx playwright test --project=iphone-chromium`. Tarda ~4 min con unas 305 pruebas.
 - Para una sola: `npx playwright test tests/e2e/gym.spec.js -g "texto" --project=iphone-chromium --reporter=line`.
 - **En este entorno** solo hay Chromium: `@playwright/test` 1.63.0 usa `/opt/pw-browsers`. **No** ejecutes `playwright install`.
 - **WebKit** (el motor de Safari) solo corre en CI: `.github/workflows/e2e.yml`, que instala también `fonts-inter`. Para esperar a CI y leer los fallos, sigue la skill `publicar`.
@@ -30,8 +30,10 @@ description: Escribir, ejecutar y depurar las pruebas Playwright de Calisthenic 
 | `gamification.spec.js` (5) | Héroe; logros al abrir; artículos bloqueados; apariencia y nombre; mini héroe |
 | `gamification-plus.spec.js` (8) | Secretos ocultos y «¡Cosquillas!» (con su mascota); «El lado oscuro»; secreto no destripado en Equipo; secretos de fecha y hora; misiones (3, en Hoy y Héroe; cumplida con 3 entrenos); récord personal en el resumen; 70 artículos y 108 logros |
 | `deload.spec.js` (2) | Sugerencia por estancamiento y su efecto; «Ahora no» |
+| `custom.spec.js` (14) | Ejercicios propios: crear (sin nombre no se guarda, lo escrito no se pierde, con peso, rango y días), editar, archivar, borrar si no se entrenó, añadir a un entreno suelto, datos raros corregidos; entrenar con peso (sube el peso), «+» con su incremento, de segundos (cronómetro y `top`), sin peso (+2 con Fácil), ficha con gráfica y récord. Aviso de copia (sale, «Ahora no», no sale con copia reciente, exportar da «A salvo»). Peso corporal (uno por día, diferencia, borrar) |
+| `split.spec.js` (11) | Cómo divides tu semana: datos de antes quedan torso/pierna con la misma semana; empuje/tirón/pierna con 5 días (las de mantener en su grupo) y con 3 (aviso); torso/pierna con calistenia; cambiar desde el Plan y Ajustes. «A tu manera»: empieza con tus días, renombrar, quitar y añadir ejercicios, día nuevo, semana y «Arquitecto»; hoy toca tu día y el historial guarda su nombre; un ejercicio propio marcado en tu día. Superseries con 40 s y el logro; sin la opción, ninguna. Bienvenida con «A tu manera» |
 | `data.spec.js` (5) | Migración v1; exportar e importar; borrar datos; sin conexión (solo Chromium); misma versión en sw.js y version.js |
-| `layout.spec.js` (130) | Diseño: todos los escenarios de `tests/tools/escenarios-diseno.js` a 320, 375, 390 y 430 px (ver la skill `revisar-diseno`) |
+| `layout.spec.js` (165) | Diseño: todos los escenarios de `tests/tools/escenarios-diseno.js` a 320, 375, 390 y 430 px (ver la skill `revisar-diseno`) |
 
 Lo que falta por cubrir está en `docs/referencia/pendiente.md`, en «Huecos de pruebas funcionales».
 
@@ -53,6 +55,10 @@ Lo que falta por cubrir está en `docs/referencia/pendiente.md`, en «Huecos de 
 - **Artículos bloqueados:** llevan `aria-disabled`; para pulsarlos, `click({ force: true })`.
 
 ## Trucos y errores ya vividos
+
+- **`motion.spec.js` en CI:** la máquina es más lenta y una animación de entrada aún podía estar a medias al medir. `settled()` espera ahora a las animaciones finitas (`document.getAnimations()`).
+- **Semana ISO 45 (impar):** en empuje/tirón/pierna empieza el empuje (E antes que T), igual que en torso/pierna empieza TB.
+- **Un objeto del estado cambia dentro de `update`:** si lees `customOf(id)` antes de `update` y lo usas después, ya trae el cambio. Copia lo que necesites antes (pasó con el aviso de «archivado»).
 
 - **Reloj simulado:** con `page.clock.install`, `page.waitForFunction` y `page.waitForURL` pueden no avanzar tras un cambio de hash. Espera desde Node con un bucle de `page.evaluate` y `page.waitForTimeout`.
 - **`page.waitForFunction` no espera a una función `async`:** la promesa cuenta como verdadera.

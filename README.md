@@ -22,6 +22,18 @@ Es una **web app instalable (PWA)**: se añade a la pantalla de inicio del iPhon
   - Calentamiento extra según las habilidades del día (muñecas para la planche y el pino, german hang suave para el back lever).
   - En brazos rectos, «Fácil» con la meta cumplida cuenta como una sesión superada: para subir hay que cumplirla en 2 sesiones. Los aguantes difíciles se reparten en más series cortas (por ejemplo, front lever straddle 5×8 s).
   - Back lever y planche nunca van el mismo día. El muscle-up ocupa el sitio de las dominadas (o les quita una serie) y la flexión de pino quita una serie a los fondos.
+- **Tus propios ejercicios** (Rutas → Mis ejercicios): añade los que quieras, del gimnasio, con banda o de movilidad.
+  - Eliges el nombre, si se mide en repeticiones o en segundos, si lleva peso, las series, el rango (por ejemplo 8–12), si es por lado, qué trabaja, un enlace de vídeo y tus claves técnicas.
+  - Los pones fijos en los días que quieras o los añades a un entreno suelto desde Hoy → Editar.
+  - Suben solos como la pierna del gimnasio: con Fácil o Normal subes repeticiones y, al llegar arriba del rango, te sube el peso. Sin peso, te propone una variante más difícil.
+  - Tienen ficha con su historial y gráfica, cuentan para la EXP y los récords, y se pueden archivar sin perder lo entrenado.
+- **Cómo divides tu semana** (Plan semanal, o en la bienvenida):
+  - **Cuerpo completo:** Día A y Día B, lo mejor con 2–4 días.
+  - **Torso y pierna:** días de torso y de pierna, con la pierna en el gimnasio o con calistenia.
+  - **Empuje, tirón y pierna:** un día para empujar (pecho, hombro y tríceps), otro para tirar (espalda y bíceps) y otro de pierna; con 5 días, uno más de torso completo para que cada grupo vaya 2 veces.
+  - **A tu manera:** creas tus días («Pecho y tríceps», «Espalda y bíceps»…) con los ejercicios que quieras y eliges qué día de la semana va cada uno.
+  - Las habilidades se colocan solas según lo que trabaja cada día, y la app te avisa si un grupo se queda con un solo día a la semana.
+- **Superseries (opcional, Ajustes → Entreno):** alterna una serie de cada en parejas que no se estorban (dominadas y fondos, remo y flexiones…), con medio descanso entre medias. Cada ejercicio sigue descansando lo de siempre o más y el entreno se acorta.
 - **Plan semanal recomendado:** según tu nivel (principiante, intermedio o avanzado), tus habilidades y los días que tienes libres, la app te recomienda cuántos días entrenar y reparte la semana:
   - Día A: tirón vertical, fondos, piernas y core.
   - Día B: tirón horizontal, flexiones, isquios y core.
@@ -40,7 +52,7 @@ Es una **web app instalable (PWA)**: se añade a la pantalla de inicio del iPhon
   - **Héroe en pixel art** cuyo físico crece con tu progreso real (bíceps, hombros, piernas y abdominales).
   - **Atributos** con rango de E a S: Tirón, Empuje, Piernas, Core, Equilibrio y Aguante.
   - **Experiencia (XP) y nivel**, con títulos de Novato a Mito. Ganas XP con cada serie, cada entreno, cada paso superado y cada logro.
-  - **Tabla de 108 logros** de bronce, plata, oro y leyenda, con progreso visible. Premian constancia, progreso, hitos reales (primera dominada, pino libre, front lever…), tus habilidades (foco, mantener, «Solo pino») y buenos hábitos.
+  - **Tabla de 114 logros** de bronce, plata, oro y leyenda, con progreso visible. Premian constancia, progreso, hitos reales (primera dominada, pino libre, front lever…), tus habilidades (foco, mantener, «Solo pino») y buenos hábitos.
   - **15 logros secretos:** no dicen qué piden hasta que los consigues, solo dan una pista.
   - **Misiones de la semana:** 3 cada lunes (cumplir tu semana y 2 más que cambian), +60 EXP cada una y +60 más si haces las 3.
   - **Récords personales:** cuando superas tu mejor serie en un ejercicio, el resumen te lo celebra (+15 EXP).
@@ -57,9 +69,9 @@ Es una **web app instalable (PWA)**: se añade a la pantalla de inicio del iPhon
 - **Tema claro u oscuro:** el botón del sol o la luna, arriba en las pantallas principales, cambia entre claro y oscuro al momento. En Ajustes → Apariencia puedes volver a «Automático», que sigue al iPhone. El engranaje de al lado abre Ajustes.
 - **Calendario:** marca los días entrenados y las subidas de nivel. Al tocar un día ves qué entrenaste, tus series, cómo valoraste cada ejercicio y qué cambió en tu progreso.
 - **Durante el entreno:** calentamiento guiado, contador +/− por serie, cronómetro para isometrías con 5 s para colocarte (ajustable, y con «+5 s» mientras cuenta), temporizador de descanso con aviso sonoro y pantalla siempre encendida.
-- **Progreso:** tiempo total, racha de semanas cumpliendo tu objetivo, minutos por semana, historial de subidas de nivel, gráfica de tu mejor serie en cada paso e historial completo de entrenos con notas.
-- **Copia de seguridad:** exporta e importa tus datos en JSON desde Ajustes.
-- **Bienvenida paso a paso:** la primera vez, unas preguntas de una en una con una barra de progreso: tu experiencia, dónde entrenas pierna, tu nivel en cada ruta (tocando el primer ejercicio que aún no te sale, con su vídeo a mano), qué habilidades ya dominas, cuál quieres aprender (con una recomendada si aún no dominas ninguna), tus días, tu descanso y tu héroe. Al final, un resumen con «Cambiar» en cada punto, que abre solo esa pregunta y vuelve al resumen; el nivel de cada ruta se cambia tocando su pastilla. También puedes importar una copia desde la portada.
+- **Progreso:** tiempo total, racha de semanas cumpliendo tu objetivo, minutos por semana, tu **peso corporal** (con gráfica), historial de subidas de nivel, gráfica de tu mejor serie en cada paso e historial completo de entrenos con notas.
+- **Copia de seguridad:** exporta e importa tus datos en JSON desde Ajustes. Como todo vive solo en tu iPhone, Hoy te recuerda hacer una copia cada 2–3 semanas, y Ajustes muestra la fecha de la última.
+- **Bienvenida paso a paso:** la primera vez, unas preguntas de una en una con una barra de progreso: tu experiencia, dónde entrenas pierna, cómo quieres dividir la semana, tu nivel en cada ruta (tocando el primer ejercicio que aún no te sale, con su vídeo a mano), qué habilidades ya dominas, cuál quieres aprender (con una recomendada si aún no dominas ninguna), tus días, tu descanso y tu héroe. Al final, un resumen con «Cambiar» en cada punto, que abre solo esa pregunta y vuelve al resumen; el nivel de cada ruta se cambia tocando su pastilla. También puedes importar una copia desde la portada.
 
 ## Instalarla en el iPhone
 
@@ -113,7 +125,7 @@ La carpeta [`tests/e2e`](tests/e2e) tiene una batería de pruebas con [Playwrigh
 
 | Archivo | Qué comprueba |
 |---|---|
-| `onboarding.spec.js` | Bienvenida paso a paso: experiencia, pierna, niveles, habilidades que dominas y la que aprendes (con recomendadas si no dominas ninguna), días, descanso, héroe y resumen; atrás, «Cambiar», recargar a mitad e importar una copia |
+| `onboarding.spec.js` | Bienvenida paso a paso: experiencia, pierna, cómo dividir la semana, niveles, habilidades que dominas y la que aprendes (con recomendadas si no dominas ninguna), días, descanso, héroe y resumen; atrás, «Cambiar», recargar a mitad e importar una copia |
 | `skills.spec.js` | Foco y mantenimiento: conversión de los objetivos de antes, Ajustes, reparto en la semana (pino todos los días, mantener 1–2 días, brazos rectos, back lever y planche), «Solo pino», recomendadas, básicos que faltan, propuesta al completar la ruta y Rutas |
 | `skill-training.spec.js` | Cómo se entrena el foco: complementarios (orden, sin valorar, historial), preparación del back lever, alternancia de dos habilidades con 80 s, más series, «Fácil» en brazos rectos, calentamiento extra y sustituir en vez de sumar |
 | `rest.spec.js` | Descanso fijo de 80 s por defecto, −15/+15 durante el descanso, cambiarlo en Ajustes y «Según ejercicio» |
@@ -126,8 +138,10 @@ La carpeta [`tests/e2e`](tests/e2e) tiene una batería de pruebas con [Playwrigh
 | `gamification-plus.spec.js` | Logros secretos (ocultos, tocar al héroe, cambiar de tema, fechas), misiones de la semana, récords personales en el resumen, 70 artículos y mascotas |
 | `navigation.spec.js` | Rutas, visor de vídeo, búsqueda en YouTube, cambio manual de nivel, calendario, progreso, pestañas, tema claro u oscuro y su botón en las cabeceras |
 | `deload.spec.js` | Sugerencia y efecto de la semana de descarga |
+| `custom.spec.js` | Ejercicios propios (crear, editar, archivar, borrar, entrenarlos con y sin peso, ficha con gráfica), aviso de copia de seguridad y peso corporal |
+| `split.spec.js` | Cómo divides tu semana (cuerpo completo, torso y pierna, empuje/tirón/pierna y «A tu manera»), avisos de frecuencia, superseries y la pregunta de la bienvenida |
 | `data.spec.js` | Migración desde la v1, exportar e importar la copia, borrar datos y funcionamiento sin conexión |
-| `layout.spec.js` | Diseño en móvil: 130 pantallas y estados a 320, 375, 390 y 430 px. Comprueba que nada se sale de la pantalla, que ningún texto se pisa, se corta o se sale de su botón, que nada queda tapado por las barras y que el contraste es suficiente |
+| `layout.spec.js` | Diseño en móvil: 165 pantallas y estados a 320, 375, 390 y 430 px. Comprueba que nada se sale de la pantalla, que ningún texto se pisa, se corta o se sale de su botón, que nada queda tapado por las barras y que el contraste es suficiente |
 
 Las pruebas usan un reloj fijo (lunes 2/11/2026) y bloquean internet, así que siempre dan el mismo resultado. Además fallan si la app lanza cualquier error de JavaScript.
 
@@ -187,7 +201,7 @@ js/avatar.js            Héroe en pixel art (generado por capas)
 js/pixel.js             Motor de pixel art e iconos 16×16
 js/schedule.js          Plan semanal recomendado
 js/video.js             Visor de vídeos de YouTube
-js/views/*.js           Pantallas: Bienvenida, Hoy, Calendario, Entreno, Rutas, Héroe, Plan, Ejercicio, Progreso y Ajustes
+js/views/*.js           Pantallas: Bienvenida, Hoy, Calendario, Entreno, Rutas, Mis ejercicios, Héroe, Plan, Tus días, Ejercicio, Progreso y Ajustes
 fonts/                  Tipografías Bangers, Press Start 2P y VT323 (SIL Open Font License 1.1)
 docs/                   Investigación con fuentes
 tests/e2e/              Pruebas funcionales (Playwright)

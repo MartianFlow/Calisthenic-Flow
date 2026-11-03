@@ -11,7 +11,7 @@ Las reglas que hay que respetar al escribir CSS o HTML están en `docs/referenci
 
 | Archivo | Qué hace |
 |---|---|
-| `escenarios-diseno.js` | 101 pantallas y estados, cada uno con su estado guardado, ruta y pasos (`setup`). Incluye usuario nuevo, usuario con historial, gimnasio, cada paso de la bienvenida (`wizTo`), cada fase del entreno y los modales. |
+| `escenarios-diseno.js` | 165 pantallas y estados, cada uno con su estado guardado, ruta y pasos (`setup`). Incluye usuario nuevo, usuario con historial, gimnasio, ejercicios propios (`propios-*`), formas de dividir la semana y superseries (`division-*`, `superseries-*`), cada paso de la bienvenida (`wizTo`), cada fase del entreno y los modales. |
 | `comprobar-diseno.js` | Las comprobaciones dentro de la página. Ver la lista de abajo. |
 | `auditar-diseno.js` | Recorre los escenarios y escribe `test-results/diseno/informe.txt` y una captura por pantalla. |
 | `hoja-capturas.py` | Junta 3 o 4 capturas en una imagen para revisarlas de un vistazo. |

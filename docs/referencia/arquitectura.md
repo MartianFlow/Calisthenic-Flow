@@ -19,10 +19,12 @@ js/theme.js              applyTheme (data-theme en <html> y meta theme-color), e
                          headActions: botones de tema (sol/luna) y Ajustes de las cabeceras de las 5 pestañas
 js/router.js             Router por hash
 js/store.js              Estado en localStorage (clave 'calisthenic-flow:v1'), normalize y migración v1→v2
-js/logic.js              Sesiones, progresión doble (también con kg), descansos, descarga y estadísticas
-js/schedule.js           Plan semanal: nivel, días recomendados, reparto A/B/S o torso/pierna (gymDays),
-                         todayInfo, DAY_INFO y dayLabel
-js/game.js               XP, niveles y títulos, atributos, 46 logros, 33 artículos y syncAchievements
+js/logic.js              Sesiones, progresión doble (también con kg), descansos, descarga y estadísticas;
+                         ejercicios propios (customOf, customDef), formas de dividir la semana (SPLITS, splitOf,
+                         dayOrder), grupos (groupOf, dayAccepts), superseries (supersetPairs) y backupDue
+js/schedule.js           Plan semanal: nivel, días recomendados, reparto A/B/S, torso/pierna o empuje/tirón/pierna
+                         (gymDays), «A tu manera» (myWeek), frequencyWarnings, todayInfo, DAY_INFO, dayInfo y dayLabel
+js/game.js               XP, niveles y títulos, atributos, 114 logros, 70 artículos, misiones, récords y syncAchievements
 js/avatar.js             Héroe en pixel art de 40×48 por capas (avatarSVG)
 js/pixel.js              Motor de pixel art (Grid, contorno y sombreado automáticos, toSVG) e iconos de 16×16
 js/fx.js                 Efectos y animaciones: burst, bump/beat, flash, stagger, staggerLists, tap, countUp,
@@ -31,13 +33,14 @@ js/video.js              Tarjeta de vídeo y modal con iframe de youtube-nocooki
 js/device.js             Audio (WebAudio, se desbloquea con un toque), vibración y wake lock
 js/ui.js                 esc, formatos (fmtKg, parseKg, fmtSeries, fmtLiftSeries, fmtDurationHtml…), iconos SVG y toast
 js/charts.js             Gráficas SVG (barras semanales y línea de progreso)
-js/data/roadmaps.js      14 rutas / 116 pasos, DAY_TEMPLATES (A, B, S, TA, TB) y WARMUP
+js/data/roadmaps.js      14 rutas / 116 pasos, DAY_TEMPLATES (A, B, TA, TB, T, E, TC, PC) y WARMUP
 js/data/videos.js        Vídeo por paso ('ruta/key'): 87 de 116, y los 9 de gimnasio ('gym/<id>')
 js/data/legacy.js        Nombres de los pasos de v1, para migrar el progreso
 js/data/gym.js           LIFTS (9 ejercicios con kg), LEG_DAYS (P = rutina completa) y LEG_WARMUP
 js/views/*.js            home, session, roadmaps, progress (resumen y detalle), calendar, settings,
-                         onboarding (bienvenida paso a paso), hero (logros y equipo), plan, exercise (ficha de gimnasio)
-                         y skills (piezas comunes de foco y mantenimiento: selector, avisos y sus acciones)
+                         onboarding (bienvenida paso a paso), hero (logros y equipo), plan, exercise (ficha de gimnasio
+                         y de los ejercicios propios), skills (piezas comunes de foco y mantenimiento), custom (Mis
+                         ejercicios: lista y formulario) y days («A tu manera»: tus días y tu semana)
 docs/                    Investigación con fuentes (investigacion-*.md) y esta referencia (referencia/)
 tests/e2e/               Pruebas Playwright y fixtures.js (ver la skill pruebas-e2e)
 tests/tools/             simular-actualizacion.js y la auditoría de diseño (ver la skill revisar-diseno)
@@ -64,11 +67,18 @@ tests/tools/             simular-actualizacion.js y la auditoría de diseño (ve
 { version: 2, onboarded,
   settings: { focus, maintain[≤2], goals,                             // goals = [focus, ...maintain], derivada (setSkills)
               daysPerWeek, passesToLevelUp, sound, warmup, legs: 'calistenia'|'gym',
+              split: 'completo'|'torso-pierna'|'etp'|'propia',          // cómo se divide la semana (v21)
+              myDays: [{ id: 'd-…', name, ids[] }], myWeek[7 id|null],  // «A tu manera»
+              supersets,                                              // superseries (v21)
               theme: 'auto'|'light'|'dark', schedule: { days[7 bool] } | null,
               restMode: 'fixed'|'auto', restSec,                      // descanso: fijo (80 s por defecto) o por ejercicio
               holdPrep },                                             // cuenta atrás de las isometrías (5 s)
   progress: { [rutaId]: { step, passes, done, work, stall, resets } },   // work = objetivo actual por serie
-  lifts: { [liftId]: { kg, reps, stall } },                              // gimnasio: peso y reps objetivo
+  lifts: { [liftId | customId]: { kg, reps, stall } },                   // gimnasio y propios: peso y reps objetivo
+  custom: [{ id: 'c-…', name, kind: 'reps'|'hold', load, inc, group, muscle, sets, min, max, side,
+             video, cues[], days[], archived, createdAt }],               // ejercicios propios (cleanCustom)
+  body: [{ date, kg }],                                                   // peso corporal
+  backup: { last, count, snoozeUntil },                                   // copias exportadas y aviso
   levelLog[], sessions[] (de la más antigua a la más reciente), active, plan, lastDayType,
   deload: { start, until }, deloadSnoozeUntil,
   weekMoves: { start, sig, from[7] } | null,   // entrenos movidos de día solo esta semana (ver reglas-entrenamiento.md)
@@ -88,7 +98,9 @@ tests/tools/             simular-actualizacion.js y la auditoría de diseño (ve
 - **Ítem de gimnasio:** `liftId` en vez de `roadmapId`/`stepIndex`, y además `min`, `max`, `goal`, `sets` (reps), `loads` (kg por serie) y `outcome`.
   - Sus `outcome` posibles son `load-up`, `up`, `keep`, `consolidate`, `down`, `load-down`, `reset`, `no-kg` y `deload`.
   - Para pintar cualquier ítem, usa `itemName()` (logic.js) e `itemBlock()` / `liftPills()` (progress.js).
-- **`dayType`** puede ser `A`, `B`, `S`, `TA`, `TB`, `P` o `libre`, y `PA`/`PB` en sesiones antiguas. Para mostrarlo, usa `dayLabel()` (schedule.js).
+- **Ítem propio:** `customId`, y además `name` y `group` (copiados al guardar, para que el historial se lea aunque se borre), `type`, `load`, `min`, `max`, `goal`, `sets`, `loads` (si lleva peso) y `outcome` (los del gimnasio y `top`, arriba del rango sin peso).
+- **Superseries:** los dos ítems de una pareja llevan el mismo `ss`.
+- **`dayType`** puede ser `A`, `B`, `S`, `TA`, `TB`, `T`, `E`, `TC`, `P`, `PC`, el id de un día tuyo (`d-…`, con `dayName` en la sesión), `pino` o `libre`, y `PA`/`PB` en sesiones antiguas. Para mostrarlo, usa `dayLabel(type, sesión)` y, para la insignia y el nombre de un tipo de día, `dayInfo()` (schedule.js), que también sirve para los días tuyos.
 - **`active`** (el entreno en curso) guarda:
   - `items` y `current`;
   - `warmupDone`, `warmupChecks` y `warmupKind` (`'pierna'` si todos los ejercicios son de gimnasio);

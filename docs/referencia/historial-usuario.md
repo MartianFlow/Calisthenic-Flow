@@ -102,9 +102,17 @@ El contexto de la persona y de sus peticiones. Las decisiones técnicas que sale
 27. **«¿Algo más que haga falta?»** Propuso **ejercicios personalizados** y que cada persona **decida cómo divide la rutina** (por ejemplo, no todo el torso en una sesión, sino por grupos musculares). Se le propusieron 4 formas de dividir la semana (cuerpo completo, torso/pierna, empuje/tirón/pierna y «a tu manera») y 3 ideas: aviso de copia de seguridad, superseries y peso corporal.
     - **Decisión (3/11/2026):** «las cuatro formas y las tres ideas, hazlo todo». Tiene en mente ejercicios de gimnasio para torso y para pierna. **La idea es que otras personas también la usen y se adapte a ellas.** Para él, seguirá con la rutina como está ahora (Torso A/B + Pierna en el gimnasio).
     - **Versión 20 (parte 1):** ejercicios propios (Rutas → Mis ejercicios), aviso de copia de seguridad en Hoy y peso corporal en Progreso.
-    - **Parte 2 (siguiente):** las 4 formas de dividir la semana y las superseries.
+    - **Versión 21 (parte 2):** «Cómo divides tu semana» en el Plan semanal y en la bienvenida (cuerpo completo, torso y pierna, empuje/tirón/pierna y «A tu manera» con sus días en `#/mis-dias`), avisos de frecuencia por grupo y superseries (Ajustes → Entreno, apagadas por defecto).
+    - Su semana no cambia: sus datos pasan solos a «Torso y pierna» con la pierna en el gimnasio.
 
 ## Pendiente de confirmar con el usuario
+
+- **De la petición 27 (v20 y v21):**
+  - que ve la **versión 21** y que su semana sigue igual (Torso A/B + Pierna);
+  - que crea sus ejercicios de gimnasio de torso y de pierna sin problemas, y si echa en falta algo en el formulario;
+  - si prueba las superseries y le cuadra el medio descanso (40 s con sus 80 s);
+  - si el aviso de copia de seguridad le resulta útil o molesto;
+  - si alguien más la usa: cómo le va la pregunta de la bienvenida y «A tu manera».
 
 - Que en Ajustes ve **«versión 19»** y que la tarjeta «Pino diario» le sirve. Se le pidió una captura de Hoy en un día de descanso.
 - Si quiere añadir el **front lever** a mantener: en sus capturas solo estaba el muscle-up.

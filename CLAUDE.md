@@ -8,11 +8,16 @@ App **personal** de calistenia (PWA) que el usuario usa a diario en su **iPhone*
 - **Privacidad:** los datos solo viven en el `localStorage` de su iPhone. Sin servidor, sin cuentas y nada de sus datos en GitHub.
 - **Trabajo directo en `main`** del repositorio `MartianFlow/Calisthenic-Flow`. Sin pull requests salvo que los pida.
 - **Explícale los cambios sin jerga**, con lo que verá en el iPhone y cómo actualizar. Si algo solo se puede comprobar en su móvil, pídele una captura.
-- **Estado actual:** versión 19 (`cf-v19`).
-  - Tarjeta «Pino diario» en Hoy (petición 26).
-  - Plan de habilidades hecho: una de foco y hasta 2 de mantenimiento, el pino aparte, complementarios, alternancia y el resto. Las reglas están en `reglas-entrenamiento.md`.
-  - Gamificación ampliada: 108 logros (15 secretos), misiones de la semana, récords, 70 artículos y mascotas. Detalles en `gamificacion.md`.
-  - Lo pendiente de confirmar está en `docs/referencia/historial-usuario.md`.
+- **Estado actual:** versión 21 (`cf-v21`).
+  - **Petición 27 (v20 y v21):**
+    - ejercicios propios (Rutas → Mis ejercicios);
+    - cómo dividir la semana: cuerpo completo, torso y pierna, empuje/tirón/pierna y «A tu manera» (`#/mis-dias`);
+    - superseries, aviso de copia de seguridad y peso corporal.
+  - **La app ya no es solo para él:** otras personas la usarán y debe adaptarse a cada una. Él sigue con Torso A/B + Pierna en el gimnasio.
+  - **Antes:**
+    - plan de habilidades: una de foco y hasta 2 de mantenimiento, el pino aparte, complementarios y alternancia;
+    - gamificación: 114 logros (15 secretos), misiones, récords, 70 artículos y mascotas.
+  - Las reglas están en `reglas-entrenamiento.md` y `gamificacion.md`; lo pendiente de confirmar, en `docs/referencia/historial-usuario.md`.
 - **Siguiente trabajo:** no hay nada pedido sin hacer. Lo que espera respuesta del usuario está al final de `historial-usuario.md`, y las ideas sueltas, en `pendiente.md`.
 - **El descanso sigue fijo en 80 s** para todo: el usuario no quiere que las habilidades descansen más.
 
@@ -23,7 +28,7 @@ App **personal** de calistenia (PWA) que el usuario usa a diario en su **iPhone*
   - `index.html`, `sw.js` y `css/styles.css`;
   - `js/app.js`: rutas por hash y delegación de eventos;
   - `js/store.js`: estado en localStorage;
-  - `js/logic.js` y `js/schedule.js`: reglas de entreno y plan semanal;
+  - `js/logic.js` y `js/schedule.js`: reglas de entreno y plan semanal (también las formas de dividir la semana, los ejercicios propios y las superseries);
   - `js/game.js`: gamificación;
   - `js/fx.js`: efectos y animaciones;
   - `js/views/*.js`: una vista por pantalla;
@@ -35,6 +40,7 @@ App **personal** de calistenia (PWA) que el usuario usa a diario en su **iPhone*
   - Escapa con `esc()` todo lo que venga del usuario.
   - XP y estadísticas se calculan a partir del historial.
   - El progreso se guarda por índice de paso: cambiar pasos exige una migración en `store.js`.
+  - Un tipo de día puede ser fijo (`DAY_INFO`) o un día tuyo (`d-…`): usa `dayInfo()` y `dayLabel()`, no `DAY_INFO[...]` directamente.
 
 ## Reglas que no hay que olvidar
 
