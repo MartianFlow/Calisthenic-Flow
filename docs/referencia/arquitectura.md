@@ -121,6 +121,14 @@ tests/tools/             simular-actualizacion.js y la auditoría de diseño (ve
 - **Disponibles:** fonts.googleapis.com, gstatic, npm y GitHub (git y MCP).
 - **WebSearch:** tiene un límite de 200 búsquedas por turno, compartido con los subagentes.
 - **Navegadores:** solo hay Chromium. WebKit corre en CI.
+- **Probar la lógica en Node, sin navegador:** se pueden importar `js/store.js`, `js/logic.js` y `js/schedule.js` con un `localStorage` de mentira.
+  ```js
+  globalThis.localStorage = { getItem: () => null, setItem() {} };
+  const store = await import('./js/store.js');
+  store.replaceState(store.normalize({ version: 2, onboarded: true, settings: {…}, progress: {…}, sessions: [] }));
+  ```
+  - Pon siempre `version: 2`: sin ella, `normalize` migra desde la v1 y recoloca los pasos, y los resultados salen raros.
+  - Se usó para simular el reparto de la semana (`buildWeek`) y la duración de los entrenos (`sessionLayout`, `estimateMinutes`).
 - **Servidor local:**
   - Para levantarlo: `(python3 -m http.server 8765 &)`.
   - Para pararlo: `pkill -f "^python3 -m http.server 8765"`. Con el `^`, porque sin él el patrón coincide con el propio comando y mata el shell.

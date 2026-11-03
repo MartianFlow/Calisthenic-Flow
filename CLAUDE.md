@@ -13,6 +13,7 @@ App **personal** de calistenia (PWA) que el usuario usa a diario en su **iPhone*
   - Plan de habilidades hecho: una de foco y hasta 2 de mantenimiento, el pino aparte, complementarios, alternancia y el resto. Las reglas están en `reglas-entrenamiento.md`.
   - Gamificación ampliada: 108 logros (15 secretos), misiones de la semana, récords, 70 artículos y mascotas. Detalles en `gamificacion.md`.
   - Lo pendiente de confirmar está en `docs/referencia/historial-usuario.md`.
+- **Siguiente trabajo:** no hay nada pedido sin hacer. Lo que espera respuesta del usuario está al final de `historial-usuario.md`, y las ideas sueltas, en `pendiente.md`.
 - **El descanso sigue fijo en 80 s** para todo: el usuario no quiere que las habilidades descansen más.
 
 ## Cómo está hecha

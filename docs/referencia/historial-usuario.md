@@ -10,6 +10,12 @@ El contexto de la persona y de sus peticiones. Las decisiones técnicas que sale
 - **Usa la app de verdad en su iPhone**, instalada en la pantalla de inicio desde GitHub Pages.
   - En una captura suya se ve el tema oscuro y el plan con «Pierna» el lunes y descanso el martes, así que tiene sus propios días configurados.
 - Se considera **avanzado**. Entrena 5 días por semana, 2 de ellos de pierna en el gimnasio.
+- **Lo que se vio en sus capturas de la v18** (3/11/2026):
+  - el tema claro;
+  - la pierna en el gimnasio, con la semana L Pierna · X Torso B · V Torso A · S Pierna · D Torso B; martes y jueves, descanso;
+  - el héroe se llama «martianFlow» (nivel 2);
+  - eligió el **pino como foco** y el **muscle-up para mantener**;
+  - en la ficha del pino salía un solo botón «Pasar a mantener», así que el front lever no está en mantener. Habría que preguntarle si quiere añadirlo, como dijo en la petición 24.
 
 ## Lo que pidió, en orden
 
@@ -95,7 +101,8 @@ El contexto de la persona y de sus peticiones. Las decisiones técnicas que sale
 
 ## Pendiente de confirmar con el usuario
 
-- Que en Ajustes ve **«versión 19»** y que la tarjeta «Pino diario» le sirve.
+- Que en Ajustes ve **«versión 19»** y que la tarjeta «Pino diario» le sirve. Se le pidió una captura de Hoy en un día de descanso.
+- Si quiere añadir el **front lever** a mantener: en sus capturas solo estaba el muscle-up.
 - Antes: que veía la **«versión 18»**. Si no, que cierre la app del todo y la abra otra vez.
 - Qué le parecen los logros nuevos, las misiones de la semana y las mascotas, y si quiere más secretos o más objetos de algún tipo.
 - Si los complementarios y la alternancia le cuadran en tiempo (las sesiones salen de unos 50–60 min) y si echa en falta vídeo en los dos complementarios nuevos.

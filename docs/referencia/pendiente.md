@@ -2,7 +2,7 @@
 
 ## Pendiente de confirmar con el usuario
 
-Ver el final de `historial-usuario.md`: la versión 18 en su iPhone, qué le parece la gamificación nueva, si eligió su foco y las de mantener, cómo le van los complementarios y la alternancia, y lo que quedaba de versiones anteriores.
+Ver el final de `historial-usuario.md`: la versión 19 en su iPhone y la tarjeta «Pino diario», si añade el front lever a mantener, qué le parece la gamificación nueva, si eligió su foco y las de mantener, cómo le van los complementarios y la alternancia, y lo que quedaba de versiones anteriores.
 
 ## Contenido
 

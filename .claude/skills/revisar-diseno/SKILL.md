@@ -39,7 +39,7 @@ En el iPhone la letra es San Francisco, que aquí no existe. Las herramientas la
      - `--anchos=`: los anchos a comprobar;
      - `--temas=dark,light`: los temas;
      - `--capturas=375,390`: de qué anchos guardar capturas;
-     - `--solo=texto`: solo los escenarios cuyo nombre lo contenga;
+     - `--solo=texto,otro`: solo los escenarios cuyo nombre contenga alguno de los textos (separados por comas);
      - `--notch`: simula la app instalada con notch.
    - Lee `informe.txt`: cada problema sale una vez, con los anchos donde aparece.
 2. **Revisión a mano.** Hay fallos que no se detectan solos: nombres con una palabra por línea, columnas apretadas o letras que se ven mal.

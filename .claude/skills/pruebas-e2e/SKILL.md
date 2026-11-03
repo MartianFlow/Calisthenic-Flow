@@ -7,7 +7,7 @@ description: Escribir, ejecutar y depurar las pruebas Playwright de Calisthenic 
 
 ## Ejecutar
 
-- `npm install` y luego `npx playwright test --project=iphone-chromium`. Tarda ~2 min con unas 170 pruebas.
+- `npm install` y luego `npx playwright test --project=iphone-chromium`. Tarda ~3 min con unas 245 pruebas.
 - Para una sola: `npx playwright test tests/e2e/gym.spec.js -g "texto" --project=iphone-chromium --reporter=line`.
 - **En este entorno** solo hay Chromium: `@playwright/test` 1.63.0 usa `/opt/pw-browsers`. **No** ejecutes `playwright install`.
 - **WebKit** (el motor de Safari) solo corre en CI: `.github/workflows/e2e.yml`, que instala también `fonts-inter`. Para esperar a CI y leer los fallos, sigue la skill `publicar`.
@@ -60,4 +60,9 @@ Lo que falta por cubrir está en `docs/referencia/pendiente.md`, en «Huecos de 
 - **Tras «Volver»:** si la prueba empezó en `/`, la URL queda sin `#/`. Comprueba el encabezado, no la URL.
 - **Cambiar solo el hash** no recarga la página: el estado de los módulos, como `pendingReload`, se mantiene.
 - **Si cambia un texto visible**, busca antes las pruebas que lo usan (`grep -rn "texto" tests/e2e`). Por ejemplo, las mayúsculas pixel van sin tilde (`/Tir[óo]n/`).
+- **`test.use()` no va dentro de un `test()`:** ponlo en un `test.describe` (por ejemplo, para cambiar `now`).
+- **`seed()` solo siembra una vez por pestaña:** para dos estados distintos, haz dos pruebas (un `for` fuera de `test()`) o cambia el `localStorage` con `page.evaluate` y recarga.
+- **`hasText` busca subcadenas:** «Dominadas» coincide con «Dominadas pecho a barra» (el primer paso del muscle-up). Para la ruta, usa `/^Dominadas ·/`.
+- **Terminar un entreno:** valorar el último ejercicio no lo cierra. Pulsa `.session-head [data-action="session-finish"]` (o `session-finish` del pie).
+- **Datos de rutas en las pruebas:** mira los pasos reales (`grep -n "key:" js/data/roadmaps.js`); los índices y las series cambiaron en la v17 (por ejemplo, la planche paso 3 es 3×20 s y el paso 2, 5×10 s).
 - **`ASSETS` y el simulador:** si falta un archivo en `ASSETS` (por ejemplo, uno sin commit al copiar con `git ls-files` sin `--others`), la instalación del service worker falla y se queda la versión vieja. Lo detecta `tests/tools/simular-actualizacion.js`.
