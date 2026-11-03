@@ -1,6 +1,11 @@
 # Plan: cambios en el entrenamiento de habilidades
 
-**Estado:** hecho en la versión 16 la petición 24 (foco y mantenimiento), D (pino aparte), H (flexión de pino y muscle-up no seguidos) e I (back lever y planche no juntos). Pendientes: A, B, C, E, F, G y J.
+**Estado: hecho.**
+- En la versión 16: la petición 24 (foco y mantenimiento), D (pino aparte), H (flexión de pino y muscle-up no seguidos) e I (back lever y planche no juntos).
+- En la 17: A, B, C, E, F, G y la primera parte de J.
+- Queda solo la segunda idea de J (comparar estancamientos antes y después), apuntada en `pendiente.md`.
+
+Las reglas tal como quedaron están en `reglas-entrenamiento.md` («Habilidades: foco y mantenimiento» y «Cómo se entrena la habilidad de foco»). Lo de abajo es el diseño original, con notas donde cambió.
 
 La investigación con fuentes está en `docs/investigacion-habilidades.md`, en «Catorce cambios para la app». Este documento es el plan para hacerlos.
 
@@ -102,7 +107,14 @@ El usuario quiere **centrarse en aprender una sola habilidad y mantener o mejora
 
 ## Orden de trabajo propuesto
 
-### A. Complementarios por habilidad (cambios 1, 6, 13 y parte del 5)
+### A. Complementarios por habilidad (cambios 1, 6, 13 y parte del 5) — hecho, v17
+
+> Cómo quedó:
+> - Solo la habilidad de **foco** lleva complementarios; las de mantener, ninguno.
+> - En los dos primeros pasos, uno; después, dos.
+> - Front lever: remo en tuck front lever (desde el paso 2) y retracciones escapulares. El jalón con banda entra si el remo en tuck no toca.
+> - Pino: despegues y salida en rueda desde el paso 4 (pino de cara a la pared de 1 min).
+> - Muscle-up: transiciones (desde el paso 3) y dominadas explosivas (desde el 4); antes, fondos en barra recta.
 
 - **Modelo:** campo nuevo `accessories` en cada ruta de habilidad.
   - Cada uno: `{ ref: 'ruta/key' }` (reutiliza nombre, claves y vídeo de un paso existente) o `{ id, name, type, cues }` si es nuevo.
@@ -127,7 +139,7 @@ El usuario quiere **centrarse en aprender una sola habilidad y mantener o mejora
 | Flexión de pino | nuevo: encogimientos en pino contra la pared 3×8 | Siempre |
 | L-sit en el core (cambio 13) | Si el L-sit es objetivo y no toca hoy: «Elevaciones de piernas sentado» 2×8 después del core | Cualquier día con core |
 
-### B. Alternar las series de las dos habilidades (cambio 10)
+### B. Alternar las series de las dos habilidades (cambio 10) — hecho, v17
 
 - Si la sesión tiene 2 habilidades, al terminar una serie de la primera, y si a la segunda le quedan series, `completeSet` pasa a la segunda, y al revés.
 - El descanso empieza igual (80 s).
@@ -135,7 +147,7 @@ El usuario quiere **centrarse en aprender una sola habilidad y mantener o mejora
 - Que no salte si la otra ya está completa. Los chips siguen permitiendo moverse a mano.
 - La valoración de cada habilidad sale al completar sus series, como ahora.
 
-### C. Más series cortas en los aguantes difíciles (cambio 4) y retoques de metas (cambio 14)
+### C. Más series cortas en los aguantes difíciles (cambio 4) y retoques de metas (cambio 14) — hecho, v17
 
 - En los pasos de brazos rectos con meta de 12 s o menos, subir de 3 a 5 o 6 series para acercarse a 40–60 s.
 - Solo cambia `sets`, así que no hay migración.
@@ -166,14 +178,14 @@ El usuario quiere **centrarse en aprender una sola habilidad y mantener o mejora
 - En los días de descanso, Hoy ofrece «Solo pino (10 min)»: un entreno solo con el pino, sin calentamiento general.
 - Mantener la progresión por pasos que ya tiene. Medir el tiempo acumulado es opcional y para más adelante.
 
-### E. Frenar la subida en brazos rectos y back lever (cambios 5 y 9)
+### E. Frenar la subida en brazos rectos y back lever (cambios 5 y 9) — hecho, v17
 
 - En `applyProgress` (logic.js): en las rutas `straightArm`, un **Fácil en la meta cuenta como sesión superada**, no como subida inmediata, y se necesitan `passesRequired` (2 por defecto).
 - Difícil sigue consolidando.
 - Las rutas de fuerza y las demás habilidades no cambian.
 - Ajustar la prueba «Fácil con la meta cumplida pasa al siguiente ejercicio» (`progression.spec.js`). Usa una ruta de fuerza, así que debería seguir pasando; añadir otra para los brazos rectos.
 
-### F. Calentamiento según las habilidades del día (cambio 7)
+### F. Calentamiento según las habilidades del día (cambio 7) — hecho, v17
 
 - Al crear el entreno, añadir a `active.warmupExtra` según las habilidades:
   - planche, pino o flexión de pino: «Flexiones de muñeca sobre la palma y el dorso, 2×10»;
@@ -181,7 +193,13 @@ El usuario quiere **centrarse en aprender una sola habilidad y mantener o mejora
   - back lever: «German hang suave con los pies apoyados, 2×15 s».
 - Sin la frase «previene lesiones»: presentarlo como preparación (ver la encuesta Martonovich 2025 en el informe).
 
-### G. Sustituir en vez de sumar (cambio 8)
+### G. Sustituir en vez de sumar (cambio 8) — hecho, v17
+
+> Cómo quedó:
+> - **Muscle-up:** quita las dominadas de su día solo si otro día de la semana las tiene sin muscle-up. Así ninguna ruta se queda sin días. Si no, les quita una serie.
+> - **Flexión de pino:** una serie menos a los fondos (o a las flexiones).
+> - **Con una serie menos,** la meta cumplida no sube de paso (`outcome.kind = 'trimmed'`).
+> - **Front lever en straddle o más con remo ese día:** jalón con banda en lugar del remo en tuck.
 
 - Al crear el entreno (o en `defaultIds` / `buildWeek`):
   - **muscle-up** hoy → quitar las `dominadas` de ese día, porque el muscle-up ocupa su lugar;
@@ -199,7 +217,7 @@ El usuario quiere **centrarse en aprender una sola habilidad y mantener o mejora
 
 - En `buildWeek` y en `sessionGoals`: si el día ya tiene la planche, saltar el back lever, y al revés. Preferir front lever + planche o front lever + back lever.
 
-### J. Extras opcionales (de la conclusión del informe)
+### J. Extras opcionales (de la conclusión del informe) — plazos hechos en la v17 (solo el front lever tiene fuente)
 
 - Mostrar en la ficha de cada habilidad los plazos normales, por ejemplo front lever: tuck 1–3 meses, tuck avanzado 3–6 meses, completo 1–3 años. Así subir despacio no parece un fallo.
 - Usar el historial de estancamientos para comparar antes y después de los cambios.

@@ -4,7 +4,7 @@ import { headActions } from '../theme.js';
 import { ROADMAPS, ROADMAP_BY_ID, CATEGORIES } from '../data/roadmaps.js';
 import { getState, update, setStep } from '../store.js';
 import {
-  stepOf, roadmapPercent, globalProgress, prereqStatus, roadmapHistory, createSession, workFor, passesRequired, restFor, restSeconds, skillRole,
+  stepOf, roadmapPercent, globalProgress, prereqStatus, roadmapHistory, createSession, workFor, passesRequired, restFor, restSeconds, skillRole, accInfo,
 } from '../logic.js';
 import { esc, icon, targetLabel, progressBar, toast, unitLabel, fmtRest } from '../ui.js';
 import { progressLine } from '../charts.js';
@@ -110,6 +110,24 @@ function roleCard(state, r, role) {
     </section>`;
 }
 
+// Complementarios de la habilidad y plazos normales (subir despacio no es un fallo).
+function patienceCard(r) {
+  const accs = (r.accessories || []).map((a) => ({ ...a, info: accInfo(a.ref || a.id) })).filter((a) => a.info);
+  if (!accs.length && !r.timeline && !r.straightArm) return '';
+  return `
+    <section class="card">
+      ${accs.length ? `
+        <h3>Complementarios</h3>
+        <p class="muted small">Cuando es la habilidad que aprendes, el entreno añade 1 o 2 de estos (uno en los primeros pasos), con series fijas y sin valorar:</p>
+        <ul class="acc-list">${accs.map((a) => `<li>${esc(a.info.name)} <span class="muted small">· ${a.sets} × ${esc(unitLabel(a.info.type, a.target))}${a.prep ? ', antes de los aguantes' : ''}${a.fromStep ? `, desde el paso ${a.fromStep + 1}` : ''}</span></li>`).join('')}</ul>` : ''}
+      ${r.timeline ? `
+        <h3>¿Cuánto se tarda?</h3>
+        <ul class="timeline">${r.timeline.map(([what, time]) => `<li><span>${esc(what)}</span><b>${esc(time)}</b></li>`).join('')}</ul>
+        <p class="muted small">Plazos habituales según las guías, entrenando con constancia. Ir despacio es lo normal.</p>` : ''}
+      ${r.straightArm ? `<p class="muted small">${icon('info', 13)} En brazos rectos, «Fácil» con la meta cumplida cuenta como una sesión superada: para subir de paso hay que cumplirla en varias sesiones, porque los tendones se adaptan en meses, no en semanas.</p>` : ''}
+    </section>`;
+}
+
 export function renderDetail({ id }) {
   const r = ROADMAP_BY_ID[id];
   if (!r) return '<div class="empty"><p>Ruta no encontrada.</p><a class="btn ghost" href="#/rutas">Volver</a></div>';
@@ -164,6 +182,7 @@ export function renderDetail({ id }) {
     </section>
 
     ${r.category === 'habilidad' ? roleCard(state, r, role) : ''}
+    ${r.category === 'habilidad' ? patienceCard(r) : ''}
 
     ${prereqs.length ? `
       <section class="card">

@@ -213,55 +213,71 @@ const NOT_BACK_TO_BACK = ['hspu', 'muscleup'];
 function placeSkills(state, chosen, types, odd) {
   const { focus, maintain } = skillPicks(state);
   const straight = (id) => !!ROADMAP_BY_ID[id]?.straightArm;
-  const count = {};
-  const last = {};
-  const straightDays = [];
+  const on = {};           // id → días (weekday) en que ya está
+  const straightDays = new Set();
   const days = chosen.map((wd, k) => ({ wd, type: types[k], skills: [] }));
+  const torso = (d) => d.type === 'S' || TORSO_TYPES.includes(d.type);
+  const count = (id) => (on[id] || []).length;
+  const near = (id, wd) => (on[id] || []).some((x) => Math.abs(x - wd) === 1);
 
   const fits = (id, day, role) => {
-    const n = count[id] || 0;
-    const back = last[id] === day.wd - 1;
     if (role === 'foco') {
-      if ((straight(id) || NOT_BACK_TO_BACK.includes(id)) && (n >= 3 || back)) return false;
-    } else if (n >= 2 || back) return false;
+      if ((straight(id) || NOT_BACK_TO_BACK.includes(id)) && (count(id) >= 3 || near(id, day.wd))) return false;
+    } else if (count(id) >= 2 || near(id, day.wd)) return false;
     if (clashes(id, day.skills)) return false;
     if (straight(id)) {
       if (day.skills.filter(straight).length >= 2) return false;
-      if (straightDays.includes(day.wd - 1)) return false;
-      if (!straightDays.includes(day.wd) && straightDays.length >= 3) return false;
+      if (straightDays.has(day.wd - 1) || straightDays.has(day.wd + 1)) return false;
+      if (!straightDays.has(day.wd) && straightDays.size >= 3) return false;
     }
     return true;
   };
   const put = (id, day) => {
     day.skills.push(id);
-    count[id] = (count[id] || 0) + 1;
-    last[id] = day.wd;
-    if (straight(id) && !straightDays.includes(day.wd)) straightDays.push(day.wd);
+    (on[id] ||= []).push(day.wd);
+    if (straight(id)) straightDays.add(day.wd);
   };
 
+  // 1. El pino de foco en todos los días y el foco en los que permita su tipo.
   const main = focus && focus !== PRACTICE_ID ? focus : null;
-  const others = maintain.filter((id) => id !== PRACTICE_ID);
-  const order = odd ? [...others].reverse() : others; // las semanas impares empieza la otra
   for (const day of days) {
-    const torso = day.type === 'S' || TORSO_TYPES.includes(day.type);
     if (focus === PRACTICE_ID) put(PRACTICE_ID, day);
-    if (!torso) continue;
-    if (maintain.includes(PRACTICE_ID) && fits(PRACTICE_ID, day, 'mantener')) put(PRACTICE_ID, day);
-    if (main && fits(main, day, 'foco')) put(main, day);
-    const pick = [...order].sort((a, b) => (count[a] || 0) - (count[b] || 0)).find((id) => fits(id, day, 'mantener'));
-    if (pick) put(pick, day);
+    if (torso(day) && main && fits(main, day, 'foco')) put(main, day);
   }
 
-  // Una de mantener que no ha cabido porque choca con el foco (back lever y planche): ocupa
-  // el sitio del foco el último día en que el foco aparece, si así le quedan al menos 2.
-  for (const id of others) {
-    if (count[id] || !main || !clashes(id, [main])) continue;
-    const day = [...days].reverse().find((d) => d.skills.includes(main) && d.skills.filter((x) => x !== PRACTICE_ID).length === 1);
-    if (!day || (count[main] || 0) <= 2) continue;
-    day.skills = day.skills.map((x) => (x === main ? id : x));
-    count[main] -= 1;
-    count[id] = 1;
+  // 2. Las de mantener, 1–2 días cada una y una por sesión (el pino de mantener va aparte),
+  //    mejor en los días con menos habilidades y lejos de sus otros días. Primero un día cada
+  //    una y luego el segundo; las semanas impares empieza la otra.
+  const others = maintain.filter((id) => id !== PRACTICE_ID);
+  const order = odd ? [...others].reverse() : others;
+  const load = (d) => d.skills.filter((x) => x !== PRACTICE_ID).length;
+  const gap = (id, d) => Math.min(7, ...(on[id] || []).map((x) => Math.abs(x - d.wd)));
+  const best = (id, pool) => pool.sort((x, y) => load(x) - load(y) || gap(id, y) - gap(id, x) || x.wd - y.wd)[0];
+  for (let round = 1; round <= 2; round++) {
+    if (maintain.includes(PRACTICE_ID) && count(PRACTICE_ID) < round) {
+      const d = best(PRACTICE_ID, days.filter((x) => torso(x) && !x.skills.includes(PRACTICE_ID) && fits(PRACTICE_ID, x, 'mantener')));
+      if (d) d.skills.unshift(PRACTICE_ID), (on[PRACTICE_ID] ||= []).push(d.wd);
+    }
+    for (const id of order) {
+      if (count(id) >= round) continue;
+      const d = best(id, days.filter((x) => torso(x) && !x.skills.some((y) => others.includes(y)) && fits(id, x, 'mantener')));
+      if (d) put(id, d);
+    }
   }
+
+  // 3. Una de mantener que no ha cabido porque choca con el foco (back lever y planche):
+  //    ocupa el sitio del foco el último día en que aparece, si así le quedan al menos 2.
+  for (const id of others) {
+    if (count(id) || !main || !clashes(id, [main]) || count(main) <= 2) continue;
+    const day = [...days].reverse().find((d) => d.skills.includes(main) && load(d) === 1);
+    if (!day) continue;
+    day.skills = day.skills.map((x) => (x === main ? id : x));
+    on[main] = on[main].filter((x) => x !== day.wd);
+    on[id] = [day.wd];
+  }
+  // Orden dentro del día: pino, foco y la de mantener.
+  const rank = (x) => (x === PRACTICE_ID ? 0 : x === main ? 1 : 2);
+  for (const d of days) d.skills.sort((x, y) => rank(x) - rank(y));
   return days;
 }
 
@@ -282,10 +298,17 @@ export function buildWeek(state, weekStart = startOfWeek(Date.now())) {
     types = weekTemplate(chosen.length, hasSkills, odd);
   }
   const week = WD_SHORT.map((_, i) => ({ weekday: i, type: 'R', skills: [], ids: [] }));
-  for (const { wd, type, skills } of placeSkills(state, chosen, types, odd)) {
-    const base = prioritizeBase(state, DAY_INFO[type].ids);
-    week[wd] = { weekday: wd, type, skills, ids: [...skills, ...base.filter((id) => !skills.includes(id))] };
+  const days = placeSkills(state, chosen, types, odd).map((d) => {
+    const base = prioritizeBase(state, DAY_INFO[d.type].ids);
+    return { ...d, ids: [...d.skills, ...base.filter((id) => !d.skills.includes(id))] };
+  });
+  // Sustituir en vez de sumar: el muscle-up ocupa el sitio de las dominadas de su día si otro
+  // día de la semana las tiene sin muscle-up (si no, solo les quita una serie: trimmedRoutes).
+  for (const d of days) {
+    if (!d.skills.includes('muscleup') || !d.ids.includes('dominadas')) continue;
+    if (days.some((o) => o !== d && o.ids.includes('dominadas') && !o.skills.includes('muscleup'))) d.ids = d.ids.filter((id) => id !== 'dominadas');
   }
+  for (const { wd, type, skills, ids } of days) week[wd] = { weekday: wd, type, skills, ids };
   return applyWeekMoves(state, week, weekStart);
 }
 

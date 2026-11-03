@@ -251,6 +251,12 @@ const scenarios = [
     for (let i = 0; i < 50 && !(await page.evaluate(() => location.hash)).startsWith('#/resumen/'); i++) await page.waitForTimeout(100);
   } },
   { name: 'entreno-vacio', route: '/entreno', state: rich },
+  { name: 'entreno-complementario', route: '/', state: rich, setup: async (page) => { await startSession(page); await skipWarmup(page); await page.locator('.chip.acc').first().click(); } },
+  { name: 'entreno-alternando', route: '/', viewportOnly: true, state: richState({ settings: { focus: 'frontlever', maintain: ['planche'], daysPerWeek: 3 }, progress: { ...rich.progress, planche: { step: 2, passes: 0, done: false } }, plan: { dayType: 'B', ids: ['frontlever', 'planche', 'remo', 'core'], custom: true } }), setup: async (page) => { await startSession(page); await skipWarmup(page); await doSet(page, 0); } },
+  { name: 'entreno-alternando-tarjeta', route: '/', state: richState({ settings: { focus: 'frontlever', maintain: ['planche'], daysPerWeek: 3 }, progress: { ...rich.progress, planche: { step: 2, passes: 0, done: false } }, plan: { dayType: 'B', ids: ['frontlever', 'planche', 'remo', 'core'], custom: true } }), setup: async (page) => { await startSession(page); await skipWarmup(page); } },
+  { name: 'entreno-preparacion-back-lever', route: '/ruta/backlever', state: richState({ settings: { focus: 'backlever', maintain: [], daysPerWeek: 3 }, progress: { ...rich.progress, backlever: { step: 3, passes: 0, done: false } } }), setup: async (page) => { await page.locator('[data-action="train-only"]').click(); await skipWarmup(page); } },
+  { name: 'hoy-front-lever-foco', route: '/', state: richState({ settings: { focus: 'frontlever', maintain: ['muscleup'], daysPerWeek: 3 }, progress: { ...rich.progress, frontlever: { step: 3, passes: 0, done: false } } }) },
+  { name: 'hoy-con-serie-menos', route: '/', state: richState({ settings: { focus: 'muscleup', maintain: [], daysPerWeek: 3 }, progress: { ...rich.progress, muscleup: { step: 3, passes: 0, done: false } }, plan: { dayType: 'A', ids: ['muscleup', 'dominadas', 'fondos', 'core'], custom: true } }) },
   { name: 'entreno-mantener', route: '/', state: rich, setup: async (page) => { await startSession(page); await skipWarmup(page); await page.locator('.chip').nth(2).click(); } },
   { name: 'entreno-solo-pino', route: '/', state: rich, now: TUE, setup: async (page) => { await page.locator('[data-action="pino-only"]').click(); await page.waitForSelector('.session-head'); } },
 

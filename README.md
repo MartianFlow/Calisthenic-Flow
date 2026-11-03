@@ -13,10 +13,19 @@ Es una **web app instalable (PWA)**: se añade a la pantalla de inicio del iPhon
   - **Habilidades:** Muscle-up, Pino, Flexión de pino, L-sit, Front lever, Planche y Back lever, con prerrequisitos de fuerza.
 - **Vídeo de técnica por ejercicio** (87 de 116 pasos y los 9 de pierna en el gimnasio), que se ve dentro de la app. Los pasos sin vídeo tienen un botón para buscarlo en YouTube.
   - **Sin empezar el entreno:** toca cualquier ejercicio en Hoy o en el Plan semanal para ver su vídeo, sus claves técnicas y tu objetivo. Los de gimnasio muestran además tu historial de pesos con una gráfica.
-- **Plan semanal recomendado:** según tu nivel (principiante, intermedio o avanzado), tus habilidades objetivo y los días que tienes libres, la app te recomienda cuántos días entrenar y reparte la semana:
+- **Una habilidad para aprender y hasta 2 para mantener** (Ajustes → Habilidades):
+  - **Quiero aprender (foco):** va al principio de todos tus días de torso, con todo el volumen y 1–2 ejercicios complementarios (remo en tuck front lever, planche lean, german hang…). Las de brazos rectos, la flexión de pino y el muscle-up, como mucho 3 días por semana y nunca seguidos.
+  - **Quiero mantener:** las que ya dominas, 1–2 días por semana cada una, una por entreno y con 3 series de calidad. Si te salen fáciles, siguen subiendo. O «Aún no domino ninguna».
+  - **El pino** es una práctica corta (5–10 min) al principio de cada entreno y no le quita el sitio a otra habilidad. En los días de descanso, «Solo pino (10 min)».
+  - **Sin ninguna habilidad todavía:** la app te recomienda por cuál empezar, te dice qué básicos le faltan a la que elijas (y los pone primero) y, cuando completes su ruta, te propone pasarla a mantener y elegir otra.
+  - **Con dos habilidades en el mismo entreno, se alternan:** una serie de cada una, así descansan más sin tocar tus 80 s.
+  - Calentamiento extra según las habilidades del día (muñecas para la planche y el pino, german hang suave para el back lever).
+  - En brazos rectos, «Fácil» con la meta cumplida cuenta como una sesión superada: para subir hay que cumplirla en 2 sesiones. Los aguantes difíciles se reparten en más series cortas (por ejemplo, front lever straddle 5×8 s).
+  - Back lever y planche nunca van el mismo día. El muscle-up ocupa el sitio de las dominadas (o les quita una serie) y la flexión de pino quita una serie a los fondos.
+- **Plan semanal recomendado:** según tu nivel (principiante, intermedio o avanzado), tus habilidades y los días que tienes libres, la app te recomienda cuántos días entrenar y reparte la semana:
   - Día A: tirón vertical, fondos, piernas y core.
   - Día B: tirón horizontal, flexiones, isquios y core.
-  - Día S: habilidades y core; aparece con 5 o más días y objetivos.
+  - Día S: habilidades y core; aparece con 5 o más días y alguna habilidad elegida.
   - Deja descanso entre sesiones y nunca pone habilidades de brazos rectos en días seguidos ni más de 3 días por semana.
   - **Nivel:** media de lo recorrido en tus rutas de fuerza y en las habilidades que trabajas. Las habilidades cuentan desde el nivel que piden sus prerrequisitos. Sin mínimo de entrenos.
 - **Pierna en el gimnasio (opcional):** en *Plan semanal* eliges «Pierna: Gimnasio» y la semana pasa a torso/pierna.
@@ -39,7 +48,7 @@ Es una **web app instalable (PWA)**: se añade a la pantalla de inicio del iPhon
 - **Progresión según cómo te sientes:** al terminar cada ejercicio, mientras corre el descanso, la app pregunta si te pareció **Fácil, Normal o Difícil**.
   - La valoración equivale a las reps que te quedaban en reserva: Fácil = 3 o más, Normal = 1–2 (la zona ideal), Difícil = ninguna o perdiste técnica.
   - Mientras no llegas a la meta del paso, el objetivo sube +2 (Fácil) o +1 (Normal). En holds de brazos rectos sube solo +2 s o +1 s, porque los tendones se adaptan más despacio. Con Difícil se mantiene, y si no llegaste baja a tu mínimo del día.
-  - Al alcanzar la meta: **Fácil** te pasa al siguiente ejercicio de la escala. **Normal** cuenta como sesión superada: con 1 subes en fuerza, y en habilidades necesitas 2 (configurable). **Difícil** te hace consolidar ese nivel.
+  - Al alcanzar la meta: **Fácil** te pasa al siguiente ejercicio de la escala (en brazos rectos cuenta como una sesión superada). **Normal** cuenta como sesión superada: con 1 subes en fuerza, y en habilidades necesitas 2 (configurable). **Difícil** te hace consolidar ese nivel.
   - **Estancamiento:** si una ruta no avanza en 3 sesiones, el objetivo se reinicia al 80 % para volver a subir.
 - **Semana de descarga:** la app la sugiere cada 5–6 semanas o si tienes 2 rutas estancadas. Durante 7 días hay una serie menos, los objetivos bajan al 65 % y no se sube de nivel.
 - **Tema claro u oscuro:** el botón del sol o la luna, arriba en las pantallas principales, cambia entre claro y oscuro al momento. En Ajustes → Apariencia puedes volver a «Automático», que sigue al iPhone. El engranaje de al lado abre Ajustes.
@@ -47,7 +56,7 @@ Es una **web app instalable (PWA)**: se añade a la pantalla de inicio del iPhon
 - **Durante el entreno:** calentamiento guiado, contador +/− por serie, cronómetro para isometrías con 5 s para colocarte (ajustable, y con «+5 s» mientras cuenta), temporizador de descanso con aviso sonoro y pantalla siempre encendida.
 - **Progreso:** tiempo total, racha de semanas cumpliendo tu objetivo, minutos por semana, historial de subidas de nivel, gráfica de tu mejor serie en cada paso e historial completo de entrenos con notas.
 - **Copia de seguridad:** exporta e importa tus datos en JSON desde Ajustes.
-- **Bienvenida paso a paso:** la primera vez, unas preguntas de una en una con una barra de progreso: tu experiencia, dónde entrenas pierna, tu nivel en cada ruta (tocando el primer ejercicio que aún no te sale, con su vídeo a mano), tus habilidades objetivo, tus días, tu descanso y tu héroe. Al final, un resumen con «Cambiar» en cada punto, que abre solo esa pregunta y vuelve al resumen; el nivel de cada ruta se cambia tocando su pastilla. También puedes importar una copia desde la portada.
+- **Bienvenida paso a paso:** la primera vez, unas preguntas de una en una con una barra de progreso: tu experiencia, dónde entrenas pierna, tu nivel en cada ruta (tocando el primer ejercicio que aún no te sale, con su vídeo a mano), qué habilidades ya dominas, cuál quieres aprender (con una recomendada si aún no dominas ninguna), tus días, tu descanso y tu héroe. Al final, un resumen con «Cambiar» en cada punto, que abre solo esa pregunta y vuelve al resumen; el nivel de cada ruta se cambia tocando su pastilla. También puedes importar una copia desde la portada.
 
 ## Instalarla en el iPhone
 
@@ -101,7 +110,9 @@ La carpeta [`tests/e2e`](tests/e2e) tiene una batería de pruebas con [Playwrigh
 
 | Archivo | Qué comprueba |
 |---|---|
-| `onboarding.spec.js` | Bienvenida paso a paso: experiencia, pierna, niveles, objetivos (máx. 3), días, descanso, héroe y resumen; atrás, «Cambiar», recargar a mitad e importar una copia |
+| `onboarding.spec.js` | Bienvenida paso a paso: experiencia, pierna, niveles, habilidades que dominas y la que aprendes (con recomendadas si no dominas ninguna), días, descanso, héroe y resumen; atrás, «Cambiar», recargar a mitad e importar una copia |
+| `skills.spec.js` | Foco y mantenimiento: conversión de los objetivos de antes, Ajustes, reparto en la semana (pino todos los días, mantener 1–2 días, brazos rectos, back lever y planche), «Solo pino», recomendadas, básicos que faltan, propuesta al completar la ruta y Rutas |
+| `skill-training.spec.js` | Cómo se entrena el foco: complementarios (orden, sin valorar, historial), preparación del back lever, alternancia de dos habilidades con 80 s, más series, «Fácil» en brazos rectos, calentamiento extra y sustituir en vez de sumar |
 | `rest.spec.js` | Descanso fijo de 80 s por defecto, −15/+15 durante el descanso, cambiarlo en Ajustes y «Según ejercicio» |
 | `motion.spec.js` | Con las animaciones activadas: todo acaba visible, sin scroll horizontal, y las cabeceras fijas siguen en su sitio |
 | `workout.spec.js` | Entreno completo: calentamiento, series, cronómetro de isometrías, descanso, valoración durante el descanso, resumen con EXP. También recargar a mitad de entreno y descartar |
@@ -112,7 +123,7 @@ La carpeta [`tests/e2e`](tests/e2e) tiene una batería de pruebas con [Playwrigh
 | `navigation.spec.js` | Rutas, visor de vídeo, búsqueda en YouTube, cambio manual de nivel, calendario, progreso, pestañas, tema claro u oscuro y su botón en las cabeceras |
 | `deload.spec.js` | Sugerencia y efecto de la semana de descarga |
 | `data.spec.js` | Migración desde la v1, exportar e importar la copia, borrar datos y funcionamiento sin conexión |
-| `layout.spec.js` | Diseño en móvil: 101 pantallas y estados a 320, 375, 390 y 430 px. Comprueba que nada se sale de la pantalla, que ningún texto se pisa, se corta o se sale de su botón, que nada queda tapado por las barras y que el contraste es suficiente |
+| `layout.spec.js` | Diseño en móvil: 121 pantallas y estados a 320, 375, 390 y 430 px. Comprueba que nada se sale de la pantalla, que ningún texto se pisa, se corta o se sale de su botón, que nada queda tapado por las barras y que el contraste es suficiente |
 
 Las pruebas usan un reloj fijo (lunes 2/11/2026) y bloquean internet, así que siempre dan el mismo resultado. Además fallan si la app lanza cualquier error de JavaScript.
 

@@ -8,10 +8,9 @@ App **personal** de calistenia (PWA) que el usuario usa a diario en su **iPhone*
 - **Privacidad:** los datos solo viven en el `localStorage` de su iPhone. Sin servidor, sin cuentas y nada de sus datos en GitHub.
 - **Trabajo directo en `main`** del repositorio `MartianFlow/Calisthenic-Flow`. Sin pull requests salvo que los pida.
 - **Explícale los cambios sin jerga**, con lo que verá en el iPhone y cómo actualizar. Si algo solo se puede comprobar en su móvil, pídele una captura.
-- **Estado actual:** versión 16 (`cf-v16`): habilidad de foco y hasta 2 de mantenimiento, y el pino como práctica aparte. Lo pendiente de confirmar está en `docs/referencia/historial-usuario.md`.
-- **Siguiente trabajo, ya decidido por el usuario:**
-  1. El resto de `docs/referencia/plan-habilidades.md` (A, B, C, E, F, G y J; el descanso sigue fijo en 80 s).
-  2. Más gamificación: más logros, logros secretos y más artículos (petición 25).
+- **Estado actual:** versión 17 (`cf-v17`). El plan de habilidades está hecho: una de foco y hasta 2 de mantenimiento, el pino aparte, complementarios, alternancia y el resto; las reglas, en `reglas-entrenamiento.md`. Lo pendiente de confirmar está en `docs/referencia/historial-usuario.md`.
+- **Siguiente trabajo, ya pedido por el usuario:** más gamificación (petición 25): más logros, logros secretos y más artículos desbloqueables.
+- **El descanso sigue fijo en 80 s** para todo: el usuario no quiere que las habilidades descansen más.
 
 ## Cómo está hecha
 
@@ -63,7 +62,7 @@ App **personal** de calistenia (PWA) que el usuario usa a diario en su **iPhone*
 | `reglas-entrenamiento.md` | Progresión doble, descansos, descarga, nivel, plan semanal y pierna en el gimnasio |
 | `gamificacion.md` | XP, niveles, atributos, logros, artículos y héroe |
 | `diseno.md` | Temas, estilo cómic y pixel, y reglas de maquetación en móvil |
-| `plan-habilidades.md` | **Plan pendiente:** complementarios, alternancia, pino aparte, más series y otros cambios en las habilidades |
+| `plan-habilidades.md` | Plan de los cambios de habilidades (hecho en las v16 y v17), con las decisiones del usuario |
 | `pendiente.md` | Vídeos que faltan, ideas no hechas y huecos de pruebas |
 
 La investigación con fuentes está en `docs/investigacion-*.md`.

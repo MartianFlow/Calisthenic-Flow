@@ -36,7 +36,8 @@ js/data/videos.js        Vídeo por paso ('ruta/key'): 87 de 116, y los 9 de gim
 js/data/legacy.js        Nombres de los pasos de v1, para migrar el progreso
 js/data/gym.js           LIFTS (9 ejercicios con kg), LEG_DAYS (P = rutina completa) y LEG_WARMUP
 js/views/*.js            home, session, roadmaps, progress (resumen y detalle), calendar, settings,
-                         onboarding (bienvenida paso a paso), hero (logros y equipo), plan y exercise (ficha de gimnasio)
+                         onboarding (bienvenida paso a paso), hero (logros y equipo), plan, exercise (ficha de gimnasio)
+                         y skills (piezas comunes de foco y mantenimiento: selector, avisos y sus acciones)
 docs/                    Investigación con fuentes (investigacion-*.md) y esta referencia (referencia/)
 tests/e2e/               Pruebas Playwright y fixtures.js (ver la skill pruebas-e2e)
 tests/tools/             simular-actualizacion.js y la auditoría de diseño (ver la skill revisar-diseno)
@@ -61,7 +62,8 @@ tests/tools/             simular-actualizacion.js y la auditoría de diseño (ve
 
 ```js
 { version: 2, onboarded,
-  settings: { goals[≤3], daysPerWeek, passesToLevelUp, sound, warmup, legs: 'calistenia'|'gym',
+  settings: { focus, maintain[≤2], goals,                             // goals = [focus, ...maintain], derivada (setSkills)
+              daysPerWeek, passesToLevelUp, sound, warmup, legs: 'calistenia'|'gym',
               theme: 'auto'|'light'|'dark', schedule: { days[7 bool] } | null,
               restMode: 'fixed'|'auto', restSec,                      // descanso: fijo (80 s por defecto) o por ejercicio
               holdPrep },                                             // cuenta atrás de las isometrías (5 s)
@@ -70,6 +72,7 @@ tests/tools/             simular-actualizacion.js y la auditoría de diseño (ve
   levelLog[], sessions[] (de la más antigua a la más reciente), active, plan, lastDayType,
   deload: { start, until }, deloadSnoozeUntil,
   weekMoves: { start, sig, from[7] } | null,   // entrenos movidos de día solo esta semana (ver reglas-entrenamiento.md)
+  notices: { skills?, focusDone? },             // aviso de foco y mantenimiento pendiente; propuesta de «ya la tienes» descartada
   game: { name, unlocked: { achId: isoDate }, equipped: { slot: itemId }, look: { skin, hair, hairStyle }, videosWatched } }
 ```
 
@@ -78,6 +81,9 @@ tests/tools/             simular-actualizacion.js y la auditoría de diseño (ve
   - `levelUps`, `deload` y `warmupFull`;
   - `game`, con `xp`, `levelBefore`, `levelAfter`, `achievements` e `items`.
 - **Ítem de calistenia:** `roadmapId`, `stepIndex`, `type`, `target`, `goal`, `sets[]`, `rating`, `met`, `goalMet` y `outcome`.
+  - `role: 'foco' | 'mantener'` si es una de tus habilidades; `trimmed` en el entreno si lleva una serie menos (sustituir en vez de sumar).
+- **Complementario:** `accessoryOf` (la habilidad), `acc` (`'ruta/key'` o un id de `EXTRA_EXERCISES`), `prep`, `type`, `target`, `goal`, `plannedSets` y `sets[]`. Sin `roadmapId`, para que no haga progresar ninguna ruta, y sin valoración.
+- **Entreno en curso:** `warmupKind` (`'base' | 'pierna' | 'pino'`) y `warmupExtra` (calentamiento según las habilidades, guardado al crearlo porque las casillas van por índice). `dayType: 'pino'` es «Solo pino», que no cuenta como entreno de la semana (`isWorkout`).
 - **Ítem de gimnasio:** `liftId` en vez de `roadmapId`/`stepIndex`, y además `min`, `max`, `goal`, `sets` (reps), `loads` (kg por serie) y `outcome`.
   - Sus `outcome` posibles son `load-up`, `up`, `keep`, `consolidate`, `down`, `load-down`, `reset`, `no-kg` y `deload`.
   - Para pintar cualquier ítem, usa `itemName()` (logic.js) e `itemBlock()` / `liftPills()` (progress.js).
@@ -120,9 +126,10 @@ tests/tools/             simular-actualizacion.js y la auditoría de diseño (ve
 
 ## Bienvenida paso a paso (`js/views/onboarding.js`)
 
-- **Pasos** (`steps(state)`, se recalculan en cada pintura): portada · experiencia · pierna · nivel de cada básico (sin `piernas` ni `bisagra` con la pierna en el gimnasio) · objetivos · nivel de cada objetivo · días · entreno (descanso, calentamiento y sonido) · héroe · resumen.
+- **Pasos** (`steps(state)`, se recalculan en cada pintura): portada · experiencia · pierna · nivel de cada básico (sin `piernas` ni `bisagra` con la pierna en el gimnasio) · habilidades que ya domina (mantener) · la que quiere aprender (foco, con recomendadas si no domina ninguna) · nivel de cada una · días · entreno (descanso, calentamiento y sonido) · héroe · resumen.
 - **Cada respuesta se guarda al momento** en el estado. El módulo solo recuerda el paso en curso y la experiencia elegida, en `sessionStorage` (`calisthenic-flow:bienvenida`), para que iOS pueda recargar la app a mitad sin volver a empezar. `resetWizard()` lo borra al terminar y al «Borrar todos los datos».
 - **Experiencia:** `EXPERIENCE` fija un paso de partida para cada básico; luego se afina ruta por ruta. Elegir otra vez la misma experiencia no toca los niveles.
 - **Cambiar desde el resumen** (`wiz.editing`): «Cambiar» y las pastillas de cada ruta abren solo esa pregunta. Al guardar, con atrás o al elegir una opción única, `move()` vuelve directo al resumen. Lo pidió el usuario: antes tenía que repasar todas las preguntas.
 - **Días:** al llegar por primera vez, propone los días recomendados (`recommendDays`).
-- **Reutiliza** acciones de otras vistas: `toggle-goal-setting`, `set-setting`, `toggle-setting`, `rest-*` (settings.js), `plan-day` (plan.js), `look` (hero.js), `video-open` e `import-data`.
+- **Habilidades:** `wiz-keep`, `wiz-keep-none` y `wiz-focus` llaman a `setFocus` / `toggleMaintain` / `clearMaintain` de skills.js. Elegir foco o «Aún no domino ninguna» avanza solo.
+- **Reutiliza** acciones de otras vistas: `set-setting`, `toggle-setting`, `rest-*` (settings.js), `plan-day` (plan.js), `look` (hero.js), `video-open` e `import-data`.

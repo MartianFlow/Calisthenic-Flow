@@ -1,6 +1,6 @@
 // Lógica de entrenamiento: generación de rutinas, subida de nivel y estadísticas.
 
-import { ROADMAPS, ROADMAP_BY_ID, DAY_TEMPLATES, WARMUP } from './data/roadmaps.js';
+import { ROADMAPS, ROADMAP_BY_ID, DAY_TEMPLATES, WARMUP, EXTRA_EXERCISES, SKILL_WARMUP } from './data/roadmaps.js';
 import { LIFT_BY_ID, LEG_DAYS, LEG_WARMUP } from './data/gym.js';
 import { getState, getProgress, update } from './store.js';
 import { fmtKg } from './ui.js';
@@ -22,6 +22,7 @@ export const isLift = (id) => !!LIFT_BY_ID[id];
 // Nombre del ejercicio de un ítem de entreno (paso de una ruta o ejercicio de gimnasio).
 export function itemName(item) {
   if (item.liftId) return LIFT_BY_ID[item.liftId]?.name || item.liftId;
+  if (item.acc) return accInfo(item.acc)?.name || '';
   return ROADMAP_BY_ID[item.roadmapId]?.steps[item.stepIndex]?.name || '';
 }
 
@@ -142,6 +143,84 @@ export function sessionGoals(state, dayType = 'A') {
   return out;
 }
 
+// ─────────────────────────── Complementarios (cambios 1, 6 y 13) ───────────────────────────
+// Ejercicios de apoyo fijos de la habilidad de foco: casi todos son un paso de alguna ruta
+// (`ref: 'ruta/key'`, con su nombre, claves y vídeo) y unos pocos son nuevos (EXTRA_EXERCISES).
+// Series y repeticiones fijas, sin valoración ni progreso por pasos. En los dos primeros
+// pasos de la habilidad, como mucho uno; después, dos. Las de mantener no llevan.
+const BEGINNER_STEPS = 2;
+export const ACC_REST = 90;
+
+export function accInfo(key) {
+  const extra = EXTRA_EXERCISES[key];
+  if (extra) return { ...extra, side: false, video: null };
+  const [rid, sk] = String(key).split('/');
+  const r = ROADMAP_BY_ID[rid];
+  const step = r?.steps.find((x) => x.key === sk);
+  if (!step) return null;
+  return { name: step.name, type: step.type, side: !!step.side, cues: step.cues, video: step.video, routeId: rid, routeName: r.name };
+}
+
+export function accessoriesFor(state, skillId, dayIds = []) {
+  const r = ROADMAP_BY_ID[skillId];
+  if (!r?.accessories || skillRole(state, skillId) !== 'foco') return [];
+  const step = getProgress(skillId).step;
+  const max = step < BEGINNER_STEPS ? 1 : 2;
+  const out = [];
+  for (const a of r.accessories) {
+    if (out.length >= max) break;
+    const key = a.ref || a.id;
+    if (!accInfo(key)) continue;
+    if (a.fromStep != null && step < a.fromStep) continue;
+    if (a.ref) {
+      const [rid, sk] = a.ref.split('/');
+      const idx = ROADMAP_BY_ID[rid].steps.findIndex((x) => x.key === sk);
+      // Si ya es el paso actual de una ruta de hoy, no se repite.
+      if ((rid === skillId || dayIds.includes(rid)) && getProgress(rid).step === idx) continue;
+      // Sustituir en vez de sumar: con el front lever en straddle o más y remo hoy, no se suma
+      // otro remo (entra el jalón con banda).
+      if (a.ref === 'remo/tuck-fl' && dayIds.includes('remo') && step >= 3) continue;
+    }
+    out.push({ acc: key, of: skillId, sets: a.sets, target: a.target, prep: !!a.prep });
+  }
+  return out;
+}
+
+// L-sit entre tus habilidades y hoy no toca: compresión ligera después del core (se tolera a diario).
+function lsitCoreExtra(state, ids) {
+  if (!skillRole(state, 'lsit') || ids.includes('lsit') || !ids.includes('core') || getProgress('lsit').step < 1) return null;
+  return { acc: 'lsit/compresion', of: 'lsit', sets: 2, target: 8, prep: false };
+}
+
+// Orden real del entreno: práctica de pino (y sus complementarios) → preparación de cada
+// habilidad justo antes de ella → habilidades → sus complementarios → básicos del día.
+// Respeta el orden de `ids` (también el de un entreno editado) y solo inserta los complementarios.
+export function sessionLayout(state, ids) {
+  const isSkill = (id) => ROADMAP_BY_ID[id]?.category === 'habilidad';
+  const main = ids.filter((id) => isSkill(id) && id !== PRACTICE_ID);
+  const last = main.length ? ids.indexOf(main[main.length - 1]) : -1;
+  const accs = Object.fromEntries(ids.filter(isSkill).map((id) => [id, accessoriesFor(state, id, ids)]));
+  const extra = lsitCoreExtra(state, ids);
+  const out = [];
+  ids.forEach((id, i) => {
+    if (main.includes(id)) out.push(...accs[id].filter((a) => a.prep));
+    out.push({ id });
+    if (id === PRACTICE_ID && accs[id]) out.push(...accs[id]);
+    if (i === last) for (const m of main) out.push(...accs[m].filter((a) => !a.prep));
+    if (extra && id === 'core') out.push(extra);
+  });
+  return out;
+}
+
+// Sustituir en vez de sumar (cambio 8): con muscle-up, las dominadas del día llevan una serie
+// menos; con flexión de pino, los fondos (o, si no hay, las flexiones). Mínimo 2 series.
+export function trimmedRoutes(ids) {
+  const out = new Set();
+  if (ids.includes('muscleup') && ids.includes('dominadas')) out.add('dominadas');
+  if (ids.includes('hspu')) out.add(ids.includes('fondos') ? 'fondos' : 'flexiones');
+  return out;
+}
+
 export function defaultIds(state, dayType) {
   const ids = sessionGoals(state, dayType);
   const base = LEG_DAYS[dayType] ? LEG_DAYS[dayType].ids : dayType === 'S' ? ['core'] : DAY_TEMPLATES[dayType]?.ids || [];
@@ -154,6 +233,14 @@ export function currentPlan(state) {
   if (state.plan && state.plan.ids?.length) return state.plan;
   const dayType = nextDayType(state);
   return { dayType, ids: defaultIds(state, dayType), custom: false };
+}
+
+export function lastAccessory(state, key) {
+  for (let i = state.sessions.length - 1; i >= 0; i--) {
+    const item = state.sessions[i].items.find((x) => x.acc === key);
+    if (item && item.sets.length) return item.sets;
+  }
+  return null;
 }
 
 export function lastPerformance(state, roadmapId, stepIndex) {
@@ -175,18 +262,23 @@ export function lastLift(state, liftId) {
 
 export function estimateMinutes(state, ids, withWarmup = state.settings.warmup) {
   let sec = withWarmup ? 6 * 60 : 0;
-  for (const id of ids) {
-    const lift = LIFT_BY_ID[id];
+  const trim = trimmedRoutes(ids);
+  const block = (sets, work, sides, rest, extra) => sets * (work * sides + 20) + (sets - 1) * restSeconds(state, rest) + extra;
+  for (const e of sessionLayout(state, ids)) {
+    if (e.acc) {
+      const info = accInfo(e.acc);
+      sec += block(e.sets, info.type === 'hold' ? e.target : e.target * 3, info.side ? 2 : 1, ACC_REST, 45);
+      continue;
+    }
+    const lift = LIFT_BY_ID[e.id];
     if (lift) {
       sec += lift.sets * (((lift.min + lift.max) / 2) * 3.5 + 25) + (lift.sets - 1) * restSeconds(state, lift.rest) + 90;
       continue;
     }
-    if (!ROADMAP_BY_ID[id]) continue;
-    const { roadmap, step } = stepOf(id);
-    const work = step.type === 'hold' ? step.target : step.target * 3;
-    const sides = step.side ? 2 : 1;
-    const sets = plannedSets(state, id, step);
-    sec += sets * (work * sides + 20) + (sets - 1) * restSeconds(state, restFor(roadmap, step)) + 90;
+    if (!ROADMAP_BY_ID[e.id]) continue;
+    const { roadmap, step } = stepOf(e.id);
+    const sets = Math.max(2, plannedSets(state, e.id, step) - (trim.has(e.id) ? 1 : 0));
+    sec += block(sets, step.type === 'hold' ? step.target : step.target * 3, step.side ? 2 : 1, restFor(roadmap, step), 90);
   }
   return Math.max(5, Math.round(sec / 60 / 5) * 5);
 }
@@ -389,20 +481,55 @@ function applyLiftProgress(p, lift, item) {
   return outcome;
 }
 
+function accItem(e, deload) {
+  const info = accInfo(e.acc);
+  const sets = deload ? Math.max(2, e.sets - 1) : e.sets;
+  return {
+    accessoryOf: e.of,
+    acc: e.acc,
+    ...(e.prep ? { prep: true } : {}),
+    type: info.type,
+    target: e.target,
+    goal: e.target,
+    plannedSets: sets,
+    side: info.side,
+    rest: ACC_REST,
+    rating: null,
+    sets: Array.from({ length: sets }, () => ({ value: e.target, done: false })),
+  };
+}
+
+// Calentamiento extra según las habilidades del entreno (se guarda en el entreno para que una
+// recarga no desordene las casillas marcadas, que van por índice).
+function warmupExtras(ids) {
+  const join = (l) => (l.length <= 1 ? l.join('') : `${l.slice(0, -1).join(', ')} y ${l[l.length - 1]}`);
+  return SKILL_WARMUP.map((w) => {
+    const forIds = w.for.filter((id) => ids.includes(id));
+    if (!forIds.length) return null;
+    return { name: w.name, detail: `${w.detail} · para ${join(forIds.map((id) => ROADMAP_BY_ID[id].name.toLowerCase().replace('l-sit', 'L-sit')))}` };
+  }).filter(Boolean);
+}
+
 export function createSession(state, plan) {
   const deload = deloadActive(state);
-  const items = plan.ids.filter((id) => ROADMAP_BY_ID[id] || LIFT_BY_ID[id]).map((id) => {
+  const ids = plan.ids.filter((id) => ROADMAP_BY_ID[id] || LIFT_BY_ID[id]);
+  const trim = trimmedRoutes(ids);
+  const items = sessionLayout(state, ids).map((e) => {
+    if (e.acc) return accItem(e, deload);
+    const id = e.id;
     if (LIFT_BY_ID[id]) return liftItem(state, id, deload, plan.dayType);
     const { roadmap, step, index } = stepOf(id);
     const work = workFor(id);
     // Semana de descarga: una serie menos y objetivo al ~65 %.
     const goal = deload ? Math.max(1, Math.round(work * 0.65)) : work;
-    const sets = plannedSets(state, id, step, deload);
+    const trimmed = trim.has(id);
+    const sets = Math.max(2, plannedSets(state, id, step, deload) - (trimmed ? 1 : 0));
     const role = skillRole(state, id);
     return {
       roadmapId: id,
       stepIndex: index,
       ...(role ? { role } : {}),
+      ...(trimmed ? { trimmed: true } : {}),
       type: step.type,
       target: step.target,
       goal,
@@ -414,16 +541,21 @@ export function createSession(state, plan) {
     };
   });
   const now = Date.now();
+  const extras = warmupExtras(ids);
+  // «Solo pino»: sin el calentamiento general, solo el específico (muñecas y hombros).
+  const onlyExtras = plan.warmup === 'extras';
+  const warmupKind = onlyExtras ? 'pino'
+    // (la práctica de pino al principio de un día de pierna no cambia el calentamiento)
+    : items.some((it) => it.liftId) && items.every((it) => it.liftId || it.roadmapId === PRACTICE_ID || it.accessoryOf === PRACTICE_ID) ? 'pierna' : 'base';
   return {
     id: uid(),
     startedAt: now,
     lastActivityAt: now,
     dayType: plan.dayType,
     deload,
-    // Días solo de gimnasio: calentamiento de pierna en vez del de calistenia.
-    // (la práctica de pino al principio de un día de pierna no cambia el calentamiento)
-    warmupKind: items.some((it) => it.liftId) && items.every((it) => it.liftId || it.roadmapId === PRACTICE_ID) ? 'pierna' : 'base',
-    warmupDone: !(state.settings.warmup && plan.warmup !== false),
+    warmupKind,
+    warmupExtra: extras,
+    warmupDone: !(state.settings.warmup && plan.warmup !== false) || (onlyExtras && !extras.length),
     warmupChecks: [],
     items,
     current: 0,
@@ -436,7 +568,11 @@ export function createSession(state, plan) {
 }
 
 export function warmupList(active) {
-  return active?.warmupKind === 'pierna' ? LEG_WARMUP : WARMUP;
+  const extra = active?.warmupExtra || [];
+  if (active?.warmupKind === 'pino') return extra;
+  if (active?.warmupKind === 'pierna') return [...LEG_WARMUP, ...extra];
+  // Antes de las series de aproximación, que cierran el calentamiento.
+  return extra.length ? [...WARMUP.slice(0, -1), ...extra, WARMUP[WARMUP.length - 1]] : WARMUP;
 }
 
 export function itemComplete(item) {
@@ -453,7 +589,7 @@ export const stepMet = (item) => allPlannedAtLeast(item, item.target);
 
 // Siguiente ejercicio con series hechas que aún no se ha valorado.
 export function nextUnrated(active) {
-  const i = active.items.findIndex((it) => it.sets.some((s) => s.done) && !it.rating && !it.rateSkipped);
+  const i = active.items.findIndex((it) => !it.accessoryOf && it.sets.some((s) => s.done) && !it.rating && !it.rateSkipped);
   return i >= 0 ? i : null;
 }
 
@@ -486,12 +622,14 @@ function applyProgress(p, roadmap, item, required) {
   let outcome;
   if (stepMet(item)) {
     p.work = step.target;
-    if (rating === 'facil') return levelUp('facil');
-    if (rating === 'normal') {
+    // Brazos rectos: los tendones se adaptan en meses, así que «Fácil» en la meta cuenta como
+    // sesión superada y no como subida inmediata (cambios 5 y 9).
+    if (rating === 'facil' && !roadmap.straightArm) return levelUp('facil');
+    if (rating === 'normal' || rating === 'facil') {
       p.passes += 1;
       if (p.passes >= required) return levelUp('passes');
       p.stall = 0;
-      return { kind: 'pass', passes: p.passes, required, next: step.target };
+      return { kind: 'pass', passes: p.passes, required, next: step.target, ...(rating === 'facil' ? { slow: true } : {}) };
     }
     outcome = { kind: 'consolidate', next: step.target };
   } else if (goalMet(item)) {
@@ -580,9 +718,27 @@ export function finishActiveSession() {
         entry.outcome = active.deload ? { kind: 'deload' } : applyLiftProgress(p, lift, item);
         continue;
       }
+      if (item.accessoryOf) {
+        // Complementario: se guarda con sus series (cuentan para la EXP), sin progreso.
+        session.items.push({
+          accessoryOf: item.accessoryOf,
+          acc: item.acc,
+          type: item.type,
+          target: item.target,
+          goal: item.goal,
+          plannedSets: item.plannedSets,
+          side: item.side,
+          sets: done.map((x) => Number(x.value) || 0),
+          met: stepMet(item),
+          goalMet: goalMet(item),
+          rating: null,
+        });
+        continue;
+      }
       const entry = {
         roadmapId: item.roadmapId,
         stepIndex: item.stepIndex,
+        ...(item.role ? { role: item.role } : {}),
         type: item.type,
         target: item.target,
         goal: item.goal ?? item.target,
@@ -599,6 +755,13 @@ export function finishActiveSession() {
       const p = (s.progress[item.roadmapId] ||= { step: 0, passes: 0, done: false });
       if (p.step !== item.stepIndex) continue; // el nivel se cambió a mano durante el entreno
       if (active.deload) { entry.outcome = { kind: 'deload' }; continue; }
+      // Con una serie menos (sustituir en vez de sumar), la meta cumplida no sube de paso.
+      if (item.trimmed && stepMet(item)) {
+        p.work = item.target;
+        p.stall = 0;
+        entry.outcome = { kind: 'trimmed', next: item.target };
+        continue;
+      }
       const outcome = applyProgress(p, roadmap, item, passesRequired(s, roadmap));
       entry.outcome = outcome;
       if (outcome.kind === 'levelup' || outcome.kind === 'completed') {
@@ -659,7 +822,11 @@ export function outcomeText(entry) {
     case 'completed':
       return '¡Ruta completada!';
     case 'pass':
-      return `Meta del paso cumplida (${o.passes}/${o.required}). Repite para subir de nivel`;
+      return o.slow
+        ? `Te resultó fácil, pero en brazos rectos se pide la meta en ${o.required} sesiones (${o.passes}/${o.required}): los tendones se adaptan más despacio que el músculo`
+        : `Meta del paso cumplida (${o.passes}/${o.required}). Repite para subir de nivel`;
+    case 'trimmed':
+      return `Meta cumplida con una serie menos (hoy tocaba también la habilidad). Para subir, cúmplela con todas las series`;
     case 'consolidate':
       return `Meta cumplida, pero costó: consolida ${sets} × ${unit(o.next)} antes de avanzar`;
     case 'up':

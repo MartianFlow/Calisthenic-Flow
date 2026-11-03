@@ -2,7 +2,7 @@
 
 ## Pendiente de confirmar con el usuario
 
-Ver el final de `historial-usuario.md`: la versión 15 en su iPhone, el cronómetro de isometrías, el descanso, el botón de tema y las animaciones.
+Ver el final de `historial-usuario.md`: la versión 17 en su iPhone, si eligió su foco y las de mantener, cómo le van los complementarios y la alternancia, y lo que quedaba de versiones anteriores.
 
 ## Contenido
 
@@ -22,9 +22,10 @@ Ver el final de `historial-usuario.md`: la versión 15 en su iPhone, el cronóme
 
 ## Ideas no hechas
 
-- **Cambios de la investigación de habilidades:** decididos (todos menos el n.º 2; el descanso sigue en 80 s) y por hacer. Plan detallado en `plan-habilidades.md`.
-
-- Que el pino (equilibrio, poca fatiga) no cuente para el límite de 2 habilidades por sesión.
+- **Más gamificación** (petición 25): más logros, logros secretos y más artículos. Siguiente trabajo.
+- **Comparar estancamientos antes y después** de los cambios de habilidades (última idea de J en `plan-habilidades.md`): el historial ya guarda `stall` y los reinicios; se podría mostrar en Progreso.
+- **Plazos con fuente** para las demás habilidades (solo el front lever los tiene en la ficha).
+- **Vídeos** para los complementarios nuevos (jalón con brazos rectos con banda, encogimientos en pino) y para `backlever/german-hang`.
 - Un editor de ejercicios de gimnasio en la app. Ahora se cambian en `js/data/gym.js`.
 - Superseries de antagonistas, que ahorrarían un 30–40 % de tiempo.
 - Artículos de lectura sobre técnica. El usuario dijo «artículos» y se interpretó como objetos para equipar.

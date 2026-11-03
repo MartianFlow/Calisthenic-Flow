@@ -456,6 +456,24 @@ a.mini-chip:active { transform: translate(1px, 1px); }
 .none-option { margin-bottom: 14px; }
 .wiz-body .wiz-rec + .skill-grid { margin-top: 2px; }
 
+/* Complementarios, alternancia y series recortadas */
+.ex-row.acc-row { padding-left: 14px; border-left: 4px dotted var(--pink); }
+.ex-row.acc-row .num { background: var(--surface-2); color: var(--text); }
+.ex-row.acc-row .ex-title { font-size: 15px; }
+.trim-tag { font-weight: 800; color: var(--text); }
+.chip.acc { font-size: 15px; opacity: 0.92; }
+.acc-card { box-shadow: var(--pop) var(--pop) 0 color-mix(in srgb, var(--pink) 55%, var(--surface)), calc(var(--pop) + 3px) calc(var(--pop) + 3px) 0 var(--border); }
+.alt-note {
+  display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 8px; font-size: 14px; font-weight: 700;
+  background: color-mix(in srgb, var(--cyan) 18%, var(--surface)); border: 2.5px solid var(--border);
+}
+.summary-item.acc-item { border-left: 4px dotted var(--pink); padding-left: 10px; }
+.timeline { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.timeline li { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 2px dashed color-mix(in srgb, var(--border) 40%, transparent); font-weight: 700; }
+.timeline li:last-child { border-bottom: 0; }
+.timeline b { font-family: var(--display); font-weight: 400; font-size: 19px; letter-spacing: 0.04em; color: var(--accent-text); white-space: nowrap; }
+.acc-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-weight: 600; }
+
 /* ─────────── Rutas ─────────── */
 .route-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
 .route-card { gap: 10px; }

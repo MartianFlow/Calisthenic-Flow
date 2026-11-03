@@ -3,14 +3,16 @@
 import { ROADMAP_BY_ID } from '../data/roadmaps.js';
 import { LIFT_BY_ID } from '../data/gym.js';
 import { getState, update } from '../store.js';
-import { itemComplete, finishActiveSession, lastPerformance, lastLift, nextUnrated, itemName, warmupList, restSeconds, RATINGS, PRACTICE_ID } from '../logic.js';
+import {
+  itemComplete, finishActiveSession, lastPerformance, lastLift, lastAccessory, nextUnrated, itemName, warmupList, restSeconds, RATINGS, PRACTICE_ID, accInfo,
+} from '../logic.js';
 import { esc, icon, fmtClock, unitLabel, toast, fmtKg, kgInput, parseKg, fmtSeries, fmtLiftSeries } from '../ui.js';
 import { navigate } from '../router.js';
 import { audio, vibrate, wakeLock } from '../device.js';
 import { videoCard } from '../video.js';
 import { burst, bump, beat, replay, confetti } from '../fx.js';
 import { totalXP, levelInfo, syncAchievements, itemsUnlockedBy } from '../game.js';
-import { roleTag } from './skills.js';
+import { roleTag, theName } from './skills.js';
 
 const PREP_STEP = 5;   // segundos que suma el botón «+5 s» de la cuenta atrás de las isometrías
 const REST_STEP = 15; // segundos que suman o quitan los botones del descanso
@@ -27,8 +29,8 @@ export function takeCelebration() { const v = pendingCelebration; pendingCelebra
 function chips(a) {
   const warm = `<button class="chip ${a.warmupDone ? 'done' : ''} ${!a.warmupDone ? 'current' : ''}" data-action="session-goto" data-index="-1">Calent.</button>`;
   const items = a.items.map((item, i) => {
-    const name = item.liftId ? LIFT_BY_ID[item.liftId]?.name : ROADMAP_BY_ID[item.roadmapId]?.name;
-    const cls = [itemComplete(item) ? 'done' : '', a.warmupDone && a.current === i ? 'current' : ''].join(' ');
+    const name = item.liftId ? LIFT_BY_ID[item.liftId]?.name : item.acc ? `+ ${accInfo(item.acc)?.name || ''}` : ROADMAP_BY_ID[item.roadmapId]?.name;
+    const cls = [itemComplete(item) ? 'done' : '', a.warmupDone && a.current === i ? 'current' : '', item.acc ? 'acc' : ''].join(' ');
     return `<button class="chip ${cls}" data-action="session-goto" data-index="${i}">${itemComplete(item) ? icon('check', 14) : ''}${esc(name || '')}</button>`;
   }).join('');
   return `<nav class="chips" aria-label="Ejercicios">${warm}${items}</nav>`;
@@ -36,11 +38,16 @@ function chips(a) {
 
 function warmupCard(a) {
   const legs = a.warmupKind === 'pierna';
+  const short = a.warmupKind === 'pino';
+  const extra = (a.warmupExtra || []).length;
+  const text = short ? '2-3 minutos para preparar muñecas y hombros antes del pino.'
+    : legs ? '8-10 minutos para subir la temperatura y preparar tobillos y caderas.' : '5-6 minutos para preparar muñecas, hombros y caderas.';
   return `
     <section class="card exercise">
       <div class="eyebrow">Antes de empezar</div>
-      <h2>Calentamiento${legs ? ' de pierna' : ''}</h2>
-      <p class="muted">${legs ? '8-10 minutos para subir la temperatura y preparar tobillos y caderas.' : '5-6 minutos para preparar muñecas, hombros y caderas.'} Marca cada ejercicio al terminarlo.</p>
+      <h2>Calentamiento${short ? ' corto' : legs ? ' de pierna' : ''}</h2>
+      <p class="muted">${text} Marca cada ejercicio al terminarlo.</p>
+      ${extra && !short ? `<p class="muted small">${icon('star', 13)} Incluye ${extra === 1 ? 'uno específico' : `${extra} específicos`} para las habilidades de hoy: preparan muñecas y hombros para lo que viene.</p>` : ''}
       <ul class="checklist">
         ${warmupList(a).map((w, i) => {
           const on = a.warmupChecks.includes(i);
@@ -81,7 +88,7 @@ function setRow(item, set, i) {
 // Pie común: añadir/quitar series, valoración y navegación.
 function cardFooter(a, item) {
   const isLast = a.current === a.items.length - 1;
-  const anyDone = item.sets.some((s) => s.done);
+  const anyDone = item.sets.some((s) => s.done) && !item.accessoryOf;
   return `
       <div class="row between">
         <button class="link" data-action="set-add">${icon('plus', 16)} Añadir serie</button>
@@ -138,9 +145,51 @@ function liftCard(state, a, item) {
     </section>`;
 }
 
+// Complementario de la habilidad de foco: series fijas, sin valoración ni progreso.
+function accCard(state, a, item) {
+  const info = accInfo(item.acc) || { name: '', cues: [] };
+  const last = lastAccessory(state, item.acc);
+  const skill = theName(item.accessoryOf);
+  return `
+    <section class="card exercise acc-card">
+      <div class="eyebrow">${item.prep ? 'Preparación' : 'Complementario'} · ${esc(ROADMAP_BY_ID[item.accessoryOf]?.name || '')}</div>
+      <h2>${esc(info.name)}</h2>
+      <div class="target-line">
+        <span class="pill accent">${icon('target', 16)} Hoy: ${item.plannedSets} × ${esc(unitLabel(item.type, item.goal))}${item.side ? ' por lado' : ''}</span>
+        <span class="muted small">Descanso ${fmtClock(restSeconds(state, item.rest))}</span>
+      </div>
+      <div class="muted small">${item.prep
+        ? `Prepara hombros y bíceps antes de los aguantes ${skill.startsWith('la ') ? 'de la' : 'del'} ${esc(skill.replace(/^(el|la) /, ''))}: suave y sin forzar el rango.`
+        : `Fortalece lo que pide ${esc(skill)}. Series fijas: no hace falta valorarlo.`}</div>
+      ${last ? `<div class="muted small">Última vez: ${esc(fmtSeries(item.type, last))}</div>` : ''}
+      ${videoCard({ name: info.name, video: info.video, query: info.query }, info.routeName || '')}
+      <details class="cues">
+        <summary>${icon('info', 18)} Claves técnicas</summary>
+        <ul>${(info.cues || []).map((c) => `<li>${esc(c)}</li>`).join('')}</ul>
+      </details>
+      <ol class="sets">${item.sets.map((s, i) => setRow(item, s, i)).join('')}</ol>
+      ${cardFooter(a, item)}
+    </section>`;
+}
+
+// Alternancia (cambio 10): con dos habilidades en el entreno (el pino no cuenta), tras una
+// serie de una se pasa a la otra, si le quedan series. Cada una descansa así 80 s + la serie
+// de la otra + 80 s, sin tocar el descanso.
+const isSkillItem = (it) => it.roadmapId && it.roadmapId !== PRACTICE_ID && ROADMAP_BY_ID[it.roadmapId]?.category === 'habilidad';
+function pairedSkill(a, i) {
+  if (!isSkillItem(a.items[i])) return -1;
+  const list = a.items.map((it, k) => (isSkillItem(it) ? k : -1)).filter((k) => k >= 0);
+  for (let n = 1; n < list.length; n++) {
+    const k = list[(list.indexOf(i) + n) % list.length];
+    if (!itemComplete(a.items[k])) return k;
+  }
+  return -1;
+}
+
 function exerciseCard(state, a) {
   const item = a.items[a.current];
   if (item.liftId) return liftCard(state, a, item);
+  if (item.acc) return accCard(state, a, item);
   const roadmap = ROADMAP_BY_ID[item.roadmapId];
   const step = roadmap.steps[item.stepIndex];
   const last = lastPerformance(state, item.roadmapId, item.stepIndex);
@@ -154,7 +203,9 @@ function exerciseCard(state, a) {
         <span class="pill accent">${icon('target', 16)} Hoy: ${item.plannedSets} × ${esc(unitLabel(item.type, goal))}${item.side ? ' por lado' : ''}</span>
         <span class="muted small">Descanso ${fmtClock(restSeconds(state, item.rest))}</span>
       </div>
+      ${pairedSkill(a, a.current) >= 0 && !itemComplete(item) ? `<div class="alt-note">${icon('swap', 15)}<span>Alternando con <strong>${esc(ROADMAP_BY_ID[a.items[pairedSkill(a, a.current)].roadmapId].name)}</strong>: una serie de cada una.</span></div>` : ''}
       ${item.role === 'mantener' ? '<div class="muted small">Para mantener: series limpias, sin llegar al fallo. Si te sale fácil, sigue subiendo.</div>' : ''}
+      ${item.trimmed ? `<div class="muted small">Hoy una serie menos: ${item.roadmapId === 'dominadas' ? 'el muscle-up' : 'la flexión de pino'} ya trabaja esto.</div>` : ''}
       ${practice && item.role === 'foco' ? '<div class="muted small">Intentos cortos y de calidad: el equilibrio mejora con práctica frecuente. Si te cansas, para.</div>' : ''}
       ${goal < item.target ? `<div class="muted small">Meta del paso: ${item.plannedSets} × ${esc(unitLabel(item.type, item.target))}. Tu valoración decide cuánto sube el objetivo.</div>` : ''}
       ${last ? `<div class="muted small">Última vez: ${esc(fmtSeries(item.type, last))}</div>` : ''}
@@ -221,7 +272,7 @@ function bottomSheet(a) {
 function holdOverlay(a) {
   if (!a.hold) return '';
   const item = a.items[a.hold.item];
-  const step = ROADMAP_BY_ID[item.roadmapId].steps[item.stepIndex];
+  const step = { name: itemName(item) };
   const prepMs = a.hold.startsAt - Date.now();
   const prepLeft = Math.ceil(prepMs / 1000);
   return `
@@ -387,11 +438,14 @@ function completeSet(s, itemIndex, setIndex) {
   else a.rest = null;
   // Si el ejercicio queda completo, pregunta la dificultad (durante el descanso)
   // y pasa al siguiente ejercicio pendiente.
+  const pair = pairedSkill(a, itemIndex);
   if (itemComplete(item)) {
-    if (!item.rating) a.ratePrompt = itemIndex;
+    if (!item.rating && !item.accessoryOf) a.ratePrompt = itemIndex;
     const next = a.items.findIndex((it, i) => i > itemIndex && !itemComplete(it));
-    const any = next >= 0 ? next : a.items.findIndex((it) => !itemComplete(it));
+    const any = pair >= 0 ? pair : next >= 0 ? next : a.items.findIndex((it) => !itemComplete(it));
     if (any >= 0) a.current = any;
+  } else if (pair >= 0) {
+    a.current = pair;
   }
 }
 

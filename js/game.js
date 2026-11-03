@@ -186,7 +186,8 @@ export function gameStats(state) {
     late: hours.some((h) => h >= 22),
     warmups: s.filter((x) => x.warmupFull).length,
     deloadSessions: s.filter((x) => x.deload).length,
-    perfect: s.filter((x) => x.items.length >= 3 && x.items.every((it) => it.goalMet && it.rating)).length,
+    // (los complementarios no se valoran: no cuentan aquí)
+    perfect: s.filter((x) => x.items.filter((it) => !it.acc).length >= 3 && x.items.every((it) => it.acc || (it.goalMet && it.rating))).length,
     legDays: s.filter((x) => x.items.some((it) => it.liftId)).length,
     loadUps: loadUpCount(state),
     videos: state.game?.videosWatched || 0,

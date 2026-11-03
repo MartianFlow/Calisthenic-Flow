@@ -159,9 +159,14 @@ test.describe('Foco y mantenimiento', () => {
       await page.locator('[data-action="pino-only"]').click();
       await expect(page).toHaveURL(/#\/entreno/);
       let s = await readState(page);
-      expect(s.active).toMatchObject({ dayType: 'pino', warmupDone: true });
+      expect(s.active).toMatchObject({ dayType: 'pino', warmupKind: 'pino', warmupDone: false });
       expect(s.active.items.map((it) => it.roadmapId)).toEqual(['pino']);
-      await expect(page.locator('.chip')).toHaveCount(2); // calentamiento (saltado) y pino
+      // Calentamiento corto: solo muñecas y hombros, no el general
+      await expect(page.locator('.exercise h2')).toHaveText('Calentamiento corto');
+      await expect(page.locator('.check-item')).toHaveCount(2);
+      await expect(page.locator('.checklist')).toContainText('Flexiones de muñeca sobre la palma y el dorso');
+      await page.locator('[data-action="warmup-done"]').first().click();
+      await expect(page.locator('.chip')).toHaveCount(2); // calentamiento y pino
       for (let i = 0; i < 3; i++) await page.locator('[data-action="set-toggle"]:not(.on)').first().click();
       await page.locator('.rate-panel [data-value="normal"]').click();
       await page.locator('[data-action="session-finish"]').first().click();
@@ -211,10 +216,13 @@ test.describe('Sin ninguna habilidad todavía', () => {
     await seed(page, makeState({ settings: { focus: 'planche', maintain: [] } }));
     await page.goto('/');
     await expect(page.locator('.prereq-note')).toContainText('Para la planche: llega a Flexiones arqueras 3 × 6 reps por lado y a Fondos en paralelas (volumen) 3 × 12 reps');
-    // Lunes de semana impar: Día B (remo, flexiones, isquios, core) → planche y luego flexiones
+    // Lunes de semana impar: Día B (remo, flexiones, isquios, core) → planche, su complementario
+    // (en el primer paso, solo uno) y luego las flexiones, antes que el remo
     const names = await page.locator('.ex-row .ex-title').allTextContents();
     expect(names[0]).toMatch(/Planche lean/);
-    expect(names[1]).toMatch(/Flexiones en pared/);
+    expect(names[1]).toMatch(/Flexiones pseudo planche/);
+    expect(names[2]).toMatch(/Flexiones en pared/);
+    expect(names[3]).toMatch(/Remo/);
     // Se puede empezar igual desde su primer paso
     await page.locator('[data-action="start-session"]').click();
     expect((await readState(page)).active.items[0]).toMatchObject({ roadmapId: 'planche', stepIndex: 0, role: 'foco' });

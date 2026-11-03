@@ -223,6 +223,11 @@ export const ROADMAPS = [
     equipment: 'Barra alta y barra baja',
     summary: 'Pasa por encima de la barra: tirón explosivo + transición + fondo.',
     prereq: [{ id: 'dominadas', step: 6 }, { id: 'fondos', step: 6 }],
+    accessories: [
+      { ref: 'muscleup/transiciones', sets: 3, target: 4, fromStep: 2 },
+      { ref: 'muscleup/explosivas', sets: 3, target: 3, fromStep: 3 },
+      { ref: 'fondos/barra-recta', sets: 3, target: 5 },
+    ],
     steps: [
       { key: 'pecho-barra', name: 'Dominadas pecho a barra', type: 'reps', sets: 3, target: 5,
         cues: ['Toca la barra con la parte baja del pecho.', 'Codos hacia abajo y atrás; inclina un poco el torso hacia atrás.', 'Cuerpo hueco, sin patada.'] },
@@ -250,6 +255,11 @@ export const ROADMAPS = [
     equipment: 'Pared y espacio libre para salir en rueda',
     summary: 'Del pino en pared al pino libre de un minuto, aprendiendo a caer seguro.',
     prereq: [{ id: 'flexiones', step: 2 }],
+    // Desde el pino de cara a la pared de 1 min (aunque aún no llegue al minuto): equilibrio y salida.
+    accessories: [
+      { ref: 'pino/despegues', sets: 3, target: 5, fromStep: 3 },
+      { ref: 'pino/rueda', sets: 3, target: 3, fromStep: 3 },
+    ],
     steps: [
       { key: 'pica', name: 'Pica con pies elevados', type: 'hold', sets: 3, target: 30,
         cues: ['Pies en un banco y cadera alta, en "L" invertida.', 'Empuja el suelo y mete las orejas entre los brazos.', 'Acostumbra muñecas y hombros a la carga.'] },
@@ -279,6 +289,7 @@ export const ROADMAPS = [
     equipment: 'Pared, cajón y paralettes (opcional)',
     summary: 'Fuerza de hombros máxima: de la flexión en pica a la HSPU libre.',
     prereq: [{ id: 'flexiones', step: 3 }, { id: 'pino', step: 3 }],
+    accessories: [{ id: 'encogimientos-pino', sets: 3, target: 8 }],
     steps: [
       { key: 'pica', name: 'Flexiones en pica', type: 'reps', sets: 3, target: 10,
         cues: ['Cadera alta, en "V" invertida.', 'La cabeza baja por delante de las manos y forma un triángulo con ellas.', 'Codos hacia atrás, no abiertos.'] },
@@ -286,8 +297,8 @@ export const ROADMAPS = [
         cues: ['Pies en un banco.', 'Torso lo más vertical posible.', 'La cabeza toca el suelo suavemente.'] },
       { key: 'cajon', name: 'Flexiones en pica en cajón', type: 'reps', sets: 3, target: 8,
         cues: ['Rodillas o pies en un cajón alto, cadera justo encima de los hombros.', 'Mismo triángulo cabeza-manos.', 'Empuja hasta bloquear los codos.'] },
-      { key: 'negativas-pared', name: 'Negativas de pino en pared', type: 'reps', sets: 3, target: 5,
-        cues: ['Pino de espaldas a la pared (o de cara para una línea más estricta).', 'Baja la cabeza al suelo en 5 s.', 'Baja de la pared para volver a subir.'] },
+      { key: 'negativas-pared', name: 'Negativas de pino en pared', type: 'reps', sets: 4, target: 3,
+        cues: ['Pino de espaldas a la pared (o de cara para una línea más estricta).', 'Baja la cabeza al suelo en 3–5 s.', 'Baja de la pared para volver a subir.'] },
       { key: 'parciales', name: 'Flexiones de pino en pared parciales', was: ['Flexiones de pino parciales'], type: 'reps', sets: 3, target: 5,
         cues: ['Pon un cojín o libros bajo la cabeza para acortar el recorrido.', 'Reduce la altura progresivamente.', 'Bloquea los codos arriba.'] },
       { key: 'pared', name: 'Flexiones de pino en pared', type: 'reps', sets: 3, target: 5,
@@ -310,6 +321,7 @@ export const ROADMAPS = [
     equipment: 'Paralelas, paralettes o suelo',
     summary: 'Compresión y fuerza de hombros hasta el inicio del V-sit.',
     prereq: [{ id: 'core', step: 3 }, { id: 'fondos', step: 1 }],
+    accessories: [{ ref: 'lsit/compresion', sets: 3, target: 8, fromStep: 1, prep: true }],
     steps: [
       { key: 'compresion', name: 'Elevaciones de piernas sentado', type: 'reps', sets: 3, target: 10,
         cues: ['Sentado con piernas estiradas y manos junto a las rodillas.', 'Levanta ambas piernas unos centímetros.', 'Inclínate hacia delante para comprimir.'] },
@@ -325,7 +337,7 @@ export const ROADMAPS = [
         cues: ['Piernas paralelas al suelo.', 'Respiración corta y controlada.', 'Base para el V-sit y la planche.'] },
       { key: 'suelo', name: 'L-sit en el suelo', type: 'hold', sets: 3, target: 15,
         cues: ['En el suelo hay menos espacio: más compresión y más empuje de hombros.', 'Manos junto a la cadera, dedos hacia delante o a los lados.', 'Empuja el suelo lejos de ti.'] },
-      { key: 'vsit', name: 'V-sit inicial', type: 'hold', sets: 3, target: 5,
+      { key: 'vsit', name: 'V-sit inicial', type: 'hold', sets: 5, target: 5,
         cues: ['Sube las piernas por encima de la horizontal (en tuck al principio).', 'Empuja hacia atrás con las manos y lleva la cadera adelante.', 'Pide mucha compresión y flexibilidad en pica.'] },
     ],
   },
@@ -338,20 +350,28 @@ export const ROADMAPS = [
     equipment: 'Barra alta o anillas',
     summary: 'Cuerpo horizontal boca arriba colgado de la barra.',
     prereq: [{ id: 'dominadas', step: 5 }, { id: 'core', step: 4 }],
+    // El jalón con banda entra cuando el remo en tuck front lever no toca (ver accessoriesFor).
+    accessories: [
+      { ref: 'remo/tuck-fl', sets: 3, target: 6, fromStep: 1 },
+      { ref: 'dominadas/escapulares', sets: 3, target: 10 },
+      { id: 'jalon-banda', sets: 3, target: 10 },
+    ],
+    // Plazos normales según las guías (PlayThenics, Fitloop · opinión): subir despacio es lo normal.
+    timeline: [['Tuck limpio', '1–3 meses'], ['Tuck avanzado', '3–6 meses'], ['Front lever completo', '1–3 años']],
     steps: [
       { key: 'tuck', name: 'Tuck front lever', was: ['Colgado en hollow', 'Tuck front lever 20 s'], type: 'hold', sets: 3, target: 15,
         cues: ['Rodillas al pecho y espalda horizontal.', 'Brazos rectos, empujando la barra hacia la cadera.', 'Escápulas abajo; la cadera no cae por debajo de los hombros.'] },
-      { key: 'tuck-avanzado', name: 'Tuck avanzado', type: 'hold', sets: 3, target: 12,
+      { key: 'tuck-avanzado', name: 'Tuck avanzado', type: 'hold', sets: 4, target: 15,
         cues: ['Espalda plana, cadera abierta a ~90°, rodillas por debajo de la cadera.', 'Si la espalda se redondea o cae la cadera, vuelve al tuck.', 'Mucho más exigente que el tuck.'] },
-      { key: 'una-pierna', name: 'Front lever a una pierna', type: 'hold', sets: 3, target: 8, side: true,
+      { key: 'una-pierna', name: 'Front lever a una pierna', type: 'hold', sets: 4, target: 8, side: true,
         cues: ['Una pierna estirada y la otra en tuck avanzado.', 'Cambia de pierna en cada serie.', 'Cadera alineada con los hombros.'] },
-      { key: 'straddle', name: 'Front lever straddle', type: 'hold', sets: 3, target: 8, rest: 180,
+      { key: 'straddle', name: 'Front lever straddle', type: 'hold', sets: 5, target: 8, rest: 180,
         cues: ['Piernas estiradas y abiertas: cuanto más abiertas, más fácil.', 'Cierra el ángulo poco a poco.', 'Glúteos y piernas apretados.'] },
-      { key: 'half-lay', name: 'Front lever half lay', type: 'hold', sets: 3, target: 8, rest: 180,
+      { key: 'half-lay', name: 'Front lever half lay', type: 'hold', sets: 5, target: 8, rest: 180,
         cues: ['Piernas juntas, rodillas dobladas a ~90° y cadera extendida.', 'Útil si te falta apertura para el straddle.', 'Hombros, cadera y rodillas en línea.'] },
-      { key: 'completo', name: 'Front lever completo', type: 'hold', sets: 3, target: 5, rest: 180,
+      { key: 'completo', name: 'Front lever completo', type: 'hold', sets: 6, target: 5, rest: 180,
         cues: ['Piernas juntas y cuerpo totalmente horizontal.', 'Brazos bloqueados.', 'Entra desde el tuck o desde una dominada invertida, con control.'] },
-      { key: 'completo-10', name: 'Front lever 10 s', type: 'hold', sets: 3, target: 10, rest: 180,
+      { key: 'completo-10', name: 'Front lever 10 s', type: 'hold', sets: 5, target: 10, rest: 180,
         cues: ['Consolida la posición.', 'Añade remos y elevaciones en front lever como accesorio.', 'Calidad sobre cantidad.'] },
     ],
   },
@@ -364,22 +384,26 @@ export const ROADMAPS = [
     equipment: 'Suelo o paralettes; banda elástica',
     summary: 'Cuerpo horizontal apoyado solo en las manos. Paciencia: es una skill de años.',
     prereq: [{ id: 'flexiones', step: 6 }, { id: 'fondos', step: 4 }],
+    accessories: [
+      { ref: 'planche/lean', sets: 3, target: 20, fromStep: 1 },
+      { ref: 'flexiones/pseudo-planche', sets: 3, target: 8 },
+    ],
     steps: [
       { key: 'lean', name: 'Planche lean', type: 'hold', sets: 3, target: 30,
-        cues: ['Posición de flexión con hombros por delante de las manos; dedos hacia fuera o atrás.', 'Brazos bloqueados, escápulas separadas (protracción) y glúteos apretados.', 'Avanza la inclinación poco a poco y calienta bien las muñecas.'] },
+        cues: ['Posición de flexión con los hombros unos 10 cm por delante de las muñecas; dedos hacia fuera o atrás.', 'Brazos bloqueados, escápulas separadas (protracción) y glúteos apretados.', 'Avanza la inclinación poco a poco y calienta bien las muñecas.'] },
       { key: 'frog', name: 'Frog stand (cuervo)', type: 'hold', sets: 3, target: 20,
         cues: ['Rodillas apoyadas en la parte trasera de los brazos, cerca de los codos.', 'Inclínate hasta levantar los pies.', 'Mirada un poco por delante de las manos.'] },
-      { key: 'tuck', name: 'Tuck planche', type: 'hold', sets: 3, target: 10,
+      { key: 'tuck', name: 'Tuck planche', type: 'hold', sets: 5, target: 10,
         cues: ['Brazos rectos, rodillas al pecho y pies en el aire.', 'Espalda redondeada y hombros adelantados (protracción).', 'Las paralettes ayudan a las muñecas.'] },
       { key: 'tuck-20', name: 'Tuck planche 20 s', type: 'hold', sets: 3, target: 20,
         cues: ['Sube la cadera hasta la altura de los hombros.', 'Empuja el suelo lejos de ti durante todo el hold.', 'Muñecas bien calentadas.'] },
-      { key: 'tuck-avanzado', name: 'Tuck avanzado', type: 'hold', sets: 3, target: 10,
+      { key: 'tuck-avanzado', name: 'Tuck avanzado', type: 'hold', sets: 5, target: 10,
         cues: ['Espalda plana y cadera a la altura de los hombros.', 'Rodillas alejadas del pecho.', 'Mucha protracción y depresión.'] },
-      { key: 'straddle-banda', name: 'Straddle planche con banda', type: 'hold', sets: 3, target: 10,
+      { key: 'straddle-banda', name: 'Straddle planche con banda', type: 'hold', sets: 5, target: 10,
         cues: ['Banda anclada arriba y pasada por la cadera.', 'Piernas abiertas y estiradas, cuerpo paralelo al suelo.', 'Usa una banda más fina al llegar a la meta.'] },
-      { key: 'straddle', name: 'Planche straddle', type: 'hold', sets: 3, target: 5, rest: 180,
+      { key: 'straddle', name: 'Planche straddle', type: 'hold', sets: 6, target: 5, rest: 180,
         cues: ['Piernas estiradas y abiertas.', 'Cuerpo paralelo al suelo, sin perder la protracción.', 'Cuenta cada segundo: el progreso es lento.'] },
-      { key: 'completa', name: 'Planche completa', type: 'hold', sets: 3, target: 5, rest: 180,
+      { key: 'completa', name: 'Planche completa', type: 'hold', sets: 6, target: 5, rest: 180,
         cues: ['Piernas juntas y cuerpo horizontal.', 'Brazos bloqueados.', 'Los tendones se adaptan más despacio que el músculo: sube el volumen con prudencia.'] },
     ],
   },
@@ -392,22 +416,27 @@ export const ROADMAPS = [
     equipment: 'Anillas (o barra alta con agarre prono)',
     summary: 'Cuerpo horizontal boca abajo. Cuida el tendón del bíceps: sin prisas.',
     prereq: [{ id: 'dominadas', step: 4 }, { id: 'fondos', step: 1 }],
+    // Preparación fija antes de los aguantes (el german hang sigue también con el back lever completo).
+    accessories: [
+      { ref: 'backlever/german-hang', sets: 2, target: 20, fromStep: 2, prep: true },
+      { ref: 'backlever/skin-the-cat', sets: 2, target: 3, fromStep: 2, prep: true },
+    ],
     steps: [
       { key: 'skin-the-cat', name: 'Skin the cat', type: 'reps', sets: 3, target: 5, rest: 120,
         cues: ['Empieza con anillas bajas o con los pies tocando el suelo.', 'Recoge las piernas y gira hacia atrás solo hasta donde lleguen los hombros sin dolor.', 'Lento y controlado, a la ida y a la vuelta.'] },
       { key: 'german-hang', name: 'German hang', type: 'hold', sets: 3, target: 30, rest: 120,
         cues: ['Entra con los pies apoyados para dosificar el peso.', 'Brazos rectos y hombros con algo de tensión: no te cuelgues "muerto" ni fuerces el rango.', 'Sal volviendo por donde entraste.'] },
-      { key: 'tuck', name: 'Tuck back lever', type: 'hold', sets: 3, target: 15,
+      { key: 'tuck', name: 'Tuck back lever', type: 'hold', sets: 3, target: 20,
         cues: ['Boca abajo, rodillas al pecho y espalda horizontal.', 'Brazos rectos y hombros empujando hacia abajo.', 'Mejor en anillas; en barra usa agarre prono, nunca supino.'] },
-      { key: 'tuck-avanzado', name: 'Tuck avanzado', type: 'hold', sets: 3, target: 10,
+      { key: 'tuck-avanzado', name: 'Tuck avanzado', type: 'hold', sets: 4, target: 15,
         cues: ['Espalda plana y cadera abierta a ~90°.', 'Rodillas por debajo de la cadera.', 'Si se doblan los codos, aún no toca este paso.'] },
-      { key: 'una-pierna', name: 'Back lever a una pierna', type: 'hold', sets: 3, target: 8, side: true,
+      { key: 'una-pierna', name: 'Back lever a una pierna', type: 'hold', sets: 4, target: 8, side: true,
         cues: ['Una pierna estirada y la otra en tuck avanzado.', 'Cambia de pierna en cada serie.', 'Cadera en línea con los hombros.'] },
-      { key: 'straddle', name: 'Back lever straddle', type: 'hold', sets: 3, target: 8, rest: 180,
+      { key: 'straddle', name: 'Back lever straddle', type: 'hold', sets: 5, target: 8, rest: 180,
         cues: ['Piernas estiradas y abiertas.', 'Glúteos apretados y pelvis en retroversión, sin arquear la lumbar.', 'Cadera a la altura de los hombros.'] },
-      { key: 'completo', name: 'Back lever completo', type: 'hold', sets: 3, target: 5, rest: 180,
+      { key: 'completo', name: 'Back lever completo', type: 'hold', sets: 6, target: 5, rest: 180,
         cues: ['Piernas juntas y cuerpo horizontal.', 'Bíceps y hombros a tope: calienta bien.', 'Sal siempre con control, nunca dejándote caer.'] },
-      { key: 'completo-10', name: 'Back lever 10 s', type: 'hold', sets: 3, target: 10, rest: 180,
+      { key: 'completo-10', name: 'Back lever 10 s', type: 'hold', sets: 5, target: 10, rest: 180,
         cues: ['Consolida la posición.', 'No subas el volumen deprisa: el tendón del bíceps se adapta despacio.', 'Calidad sobre cantidad.'] },
     ],
   },
@@ -430,6 +459,26 @@ export const DAY_TEMPLATES = {
   TA: { label: 'Torso A', badge: 'TA', focus: 'Dominadas y fondos primero · Remo · Flexiones · Core', ids: ['dominadas', 'fondos', 'remo', 'flexiones', 'core'] },
   TB: { label: 'Torso B', badge: 'TB', focus: 'Remo y flexiones primero · Dominadas · Fondos · Core', ids: ['remo', 'flexiones', 'dominadas', 'fondos', 'core'] },
 };
+
+// Complementarios que no son un paso de ninguna ruta (sin vídeo: sale «Buscar técnica en YouTube»).
+export const EXTRA_EXERCISES = {
+  'jalon-banda': {
+    name: 'Jalón con brazos rectos con banda', type: 'reps', query: 'straight arm pulldown banda front lever',
+    cues: ['Banda anclada arriba; de pie o de rodillas, con los brazos estirados al frente.', 'Lleva la banda hasta la cadera sin doblar los codos, bajando las escápulas.', 'Vuelve despacio: es el gesto del front lever con poca carga.'],
+  },
+  'encogimientos-pino': {
+    name: 'Encogimientos en pino contra la pared', type: 'reps', query: 'handstand shrugs pared',
+    cues: ['Pino de cara o de espaldas a la pared, con los brazos bloqueados.', 'Deja que los hombros bajen un poco y empuja para crecer lo más alto posible.', 'Movimiento corto y controlado, sin doblar los codos.'],
+  },
+};
+
+// Calentamiento extra según las habilidades del día (cambio 7). Es preparación específica:
+// no se presenta como algo que «previene lesiones» (Martonovich 2025).
+export const SKILL_WARMUP = [
+  { key: 'munecas', for: ['planche', 'pino', 'hspu'], name: 'Flexiones de muñeca sobre la palma y el dorso', detail: '2 × 10' },
+  { key: 'encogimientos', for: ['pino', 'hspu'], name: 'Encogimientos en pino contra la pared', detail: '2 × 8' },
+  { key: 'german-hang', for: ['backlever'], name: 'German hang suave con los pies apoyados', detail: '2 × 15 s' },
+];
 
 // Calentamiento de 8–10 min (RR, GMB; McCrary 2015, Ribeiro 2020/21).
 export const WARMUP = [

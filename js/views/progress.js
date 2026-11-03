@@ -5,7 +5,7 @@ import { headActions } from '../theme.js';
 import { ROADMAP_BY_ID } from '../data/roadmaps.js';
 import { LIFT_BY_ID } from '../data/gym.js';
 import { getState, update } from '../store.js';
-import { totals, weekStreak, weeklySeries, globalProgress, outcomeText, RATINGS } from '../logic.js';
+import { totals, weekStreak, weeklySeries, globalProgress, outcomeText, RATINGS, accInfo } from '../logic.js';
 import { dayLabel } from '../schedule.js';
 import { esc, icon, fmtDuration, fmtDurationHtml, fmtDate, fmtLongDate, fmtTime, unitLabel, fmtKg } from '../ui.js';
 import { weeklyBars } from '../charts.js';
@@ -134,6 +134,16 @@ function liftBlock(item) {
 // Bloque de un ejercicio registrado: series, valoración y qué cambia después.
 export function itemBlock(item) {
   if (item.liftId) return liftBlock(item);
+  if (item.acc) {
+    const info = accInfo(item.acc);
+    return `
+    <li class="summary-item acc-item">
+      <div class="eyebrow">Complementario · ${esc(ROADMAP_BY_ID[item.accessoryOf]?.name || '')}</div>
+      <div class="ex-title">${esc(info?.name || '')}</div>
+      <div class="set-pills">${item.sets.map((v) => `<span class="set-pill ${v >= item.target ? 'met' : ''}">${unitLabel(item.type, v)}</span>`).join('')}
+        <span class="muted tiny">meta ${unitLabel(item.type, item.target)}</span></div>
+    </li>`;
+  }
   const r = ROADMAP_BY_ID[item.roadmapId];
   if (!r) return '';
   const step = r.steps[item.stepIndex];

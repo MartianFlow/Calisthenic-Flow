@@ -8,6 +8,7 @@ import {
   defaultIds, estimateMinutes, stepOf, createSession, startOfWeek, dayOrder, isGymLegs,
   sessionsInWeek, roadmapPercent, lastPerformance, lastLift, liftState, liftGoal, workFor, deloadActive, deloadSuggestion, startDeload,
   skillRole, plannedSets, skillPicks, PRACTICE_ID, PRACTICE_DAY, noSkillsYet, recommendedSkills,
+  sessionLayout, accInfo, lastAccessory, trimmedRoutes,
 } from '../logic.js';
 import { todayInfo, buildWeek, DAY_INFO, WEEKDAYS, WD_SHORT, weekdayIndex } from '../schedule.js';
 import { esc, icon, fmtClock, progressBar, fmtDate, fmtKg, fmtSeries, fmtLiftSeries, toast } from '../ui.js';
@@ -65,7 +66,7 @@ function editButtons(id, idx) {
         </div>`;
 }
 
-function liftRow(state, id, idx, dayType) {
+function liftRow(state, id, idx, dayType, pos = idx) {
   const lift = LIFT_BY_ID[id];
   const p = liftState(state, id);
   const last = lastLift(state, id);
@@ -79,30 +80,47 @@ function liftRow(state, id, idx, dayType) {
         ${last ? `<div class="muted small">Última vez: ${esc(fmtLiftSeries(last.sets, last.loads))}</div>` : ''}
       </a>
       <div class="ex-target">${sets} × ${liftGoal(lift, p)}<small>${esc(fmtKg(p.kg))}</small></div>
-      ${editButtons(id, idx)}
+      ${editButtons(id, pos)}
     </li>`;
 }
 
-function exerciseRow(state, id, idx, dayType) {
-  if (LIFT_BY_ID[id]) return liftRow(state, id, idx, dayType);
+// Complementario de la habilidad de foco (no se edita: va con su habilidad).
+function accRow(state, e, idx) {
+  const info = accInfo(e.acc);
+  const last = lastAccessory(state, e.acc);
+  const sets = deloadActive(state) ? Math.max(2, e.sets - 1) : e.sets;
+  return `
+    <li class="ex-row acc-row">
+      <span class="num">${idx + 1}</span>
+      <div class="grow">
+        <div class="ex-title">${esc(info.name)}</div>
+        <div class="muted small">${e.prep ? 'Preparación' : 'Complementario'} · ${esc(ROADMAP_BY_ID[e.of].name)}</div>
+        ${last ? `<div class="muted small">Última vez: ${esc(fmtSeries(info.type, last))}</div>` : ''}
+      </div>
+      <div class="ex-target">${sets} × ${e.target}<small>${info.type === 'hold' ? 'seg' : 'reps'}${info.side ? ' /lado' : ''}</small></div>
+    </li>`;
+}
+
+function exerciseRow(state, id, idx, dayType, trim = new Set(), pos = idx) {
+  if (LIFT_BY_ID[id]) return liftRow(state, id, idx, dayType, pos);
   if (!ROADMAP_BY_ID[id]) return '';
   const { roadmap, step, index } = stepOf(id);
   const last = lastPerformance(state, id, index);
   const role = skillRole(state, id);
   const goal = workFor(id);
-  const sets = plannedSets(state, id, step, deloadActive(state));
+  const sets = Math.max(2, plannedSets(state, id, step, deloadActive(state)) - (trim.has(id) ? 1 : 0));
   const what = role && id === PRACTICE_ID ? 'Práctica de pino · 5–10 min' : `${esc(roadmap.name)} · paso ${index + 1}/${roadmap.steps.length}`;
   return `
     <li class="ex-row ${role ? `role-${role === 'foco' ? 'focus' : 'keep'}` : ''}">
       <span class="num">${idx + 1}</span>
       <a class="grow ex-link" href="#/ruta/${id}" aria-label="Ver ${esc(step.name)}: vídeo y técnica">
         <div class="ex-title">${titleWithPlay(step.name, !!step.video)}</div>
-        <div class="muted small">${what} ${roleTag(role)}</div>
+        <div class="muted small">${what} ${roleTag(role)}${trim.has(id) ? ' · <span class="trim-tag">−1 serie</span>' : ''}</div>
         ${last ? `<div class="muted small">Última vez: ${esc(fmtSeries(step.type, last))}</div>` : ''}
       </a>
       <div class="ex-target">${sets} × ${goal}<small>${step.type === 'hold' ? 'seg' : goal === 1 ? 'rep' : 'reps'}${step.side ? ' /lado' : ''}</small>
         ${goal < step.target ? `<small>meta ${step.target}</small>` : ''}</div>
-      ${editButtons(id, idx)}
+      ${editButtons(id, pos)}
     </li>`;
 }
 
@@ -163,6 +181,11 @@ function restCard(state, info) {
     </section>`;
 }
 
+function exerciseRows(state, plan) {
+  const trim = trimmedRoutes(plan.ids);
+  return sessionLayout(state, plan.ids).map((e, i) => (e.acc ? accRow(state, e, i) : exerciseRow(state, e.id, i, plan.dayType, trim, plan.ids.indexOf(e.id)))).join('');
+}
+
 function planCard(state, info) {
   const plan = info.plan;
   const tpl = DAY_INFO[plan.dayType];
@@ -180,7 +203,7 @@ function planCard(state, info) {
         </div>
         <div class="est">${icon('timer', 18)}<span>≈ ${minutes} min</span></div>
       </div>
-      <ol class="ex-list">${plan.ids.map((id, i) => exerciseRow(state, id, i, plan.dayType)).join('')}</ol>
+      <ol class="ex-list">${exerciseRows(state, plan)}</ol>
       ${editing ? '' : `<p class="muted tiny ex-hint">${icon('play', 11)} Toca un ejercicio para ver su vídeo y su técnica.</p>`}
       ${editing ? `
         <div class="edit-panel">
@@ -332,7 +355,7 @@ export const actions = {
     const state = getState();
     if (state.active && !confirm('Ya tienes un entreno en curso. ¿Descartarlo y empezar este?')) return;
     audio.unlock();
-    update((s) => { s.active = createSession(s, { dayType: PRACTICE_DAY, ids: [PRACTICE_ID], warmup: false }); });
+    update((s) => { s.active = createSession(s, { dayType: PRACTICE_DAY, ids: [PRACTICE_ID], warmup: 'extras' }); });
     wakeLock.request();
     navigate('#/entreno');
   },
