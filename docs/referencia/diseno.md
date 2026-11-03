@@ -78,6 +78,12 @@ El usuario pidió «muchas más animaciones» para que la app se sienta más pro
   - **Animaciones infinitas** (`.cta`, el ▶ del vídeo): en las pruebas con movimiento hay que pulsar con `dispatchEvent('click')`.
   - **La auditoría y casi todas las pruebas desactivan el movimiento.** Lo animado lo cubre `tests/e2e/motion.spec.js`, que en CI también corre en WebKit.
 
+## Números grandes que laten (Safari)
+
+- Bangers sobresale de su caja (el «7», por la derecha) y la sombra de cómic, aún más. Mientras el número late (`beat`), Safari recorta lo que sobresale: el usuario vio cortado el «27» del cronómetro de isometrías.
+- **Solución:** padding y el mismo margen en negativo, con `pointer-events: none`. La caja crece sin mover nada. Está en `.hold-clock` y `.rest-clock`. Hazlo igual en cualquier número grande que se anime.
+- **Comprobarlo:** pon un `outline` al elemento en una captura. Todo lo pintado tiene que quedar dentro.
+
 ## Cabeceras de las pestañas
 
 - Las 5 pantallas principales llevan arriba a la derecha `headActions()` (theme.js):

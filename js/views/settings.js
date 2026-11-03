@@ -57,6 +57,15 @@ export function restPicker(state) {
     </div>`;
 }
 
+// Cuenta atrás antes de cada isometría (para colocarse). Durante la cuenta atrás, «+5 s» la alarga.
+export function prepPicker(state) {
+  return `
+    <div class="field"><span>Cuenta atrás de las isometrías</span>
+      ${segmented('holdPrep', [[3, '3 s'], [5, '5 s'], [10, '10 s'], [15, '15 s']], state.settings.holdPrep)}
+      <span class="muted small hint">Tiempo para colocarte antes de que empiece a contar. Mientras cuenta, «+5 s» te da más.</span>
+    </div>`;
+}
+
 function goalPicker(state) {
   return `<div class="goal-picker">${skills().map((r) => {
     const on = state.settings.goals.includes(r.id);
@@ -105,6 +114,7 @@ export function render() {
     <section class="card">
       <h3>Entreno</h3>
       <div class="field"><span>Descanso entre series</span>${restPicker(state)}</div>
+      ${prepPicker(state)}
       ${toggle('warmup', st.warmup, 'Calentamiento guiado', 'Lista de movilidad antes de los ejercicios')}
       ${toggle('sound', st.sound, 'Sonido al acabar el descanso', 'El iPhone debe tener el modo silencio desactivado')}
       <button class="btn ghost small" data-action="test-sound">${icon('timer', 16)} Probar sonido</button>

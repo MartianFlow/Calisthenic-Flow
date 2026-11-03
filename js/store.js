@@ -23,6 +23,7 @@ export function defaultState() {
       theme: 'auto',        // 'auto' (sigue al iPhone) | 'light' | 'dark'
       restMode: 'fixed',    // 'fixed' (el mismo descanso en todo) | 'auto' (el recomendado por ejercicio)
       restSec: 80,          // descanso fijo entre series, en segundos
+      holdPrep: 5,          // cuenta atrás antes de cada isometría, en segundos
     },
     progress: {},           // id → { step, passes, done }
     lifts: {},              // ejercicio de gimnasio → { kg, reps, stall }
@@ -49,6 +50,14 @@ export function clampRest(sec) {
   const n = Math.round(Number(sec) / REST_RANGE.step) * REST_RANGE.step;
   if (!Number.isFinite(n) || n <= 0) return 80;
   return Math.min(REST_RANGE.max, Math.max(REST_RANGE.min, n));
+}
+
+// Cuenta atrás de las isometrías: de 3 a 30 s.
+export const PREP_RANGE = { min: 3, max: 30 };
+export function clampPrep(sec) {
+  const n = Math.round(Number(sec));
+  if (!Number.isFinite(n) || n <= 0) return 5;
+  return Math.min(PREP_RANGE.max, Math.max(PREP_RANGE.min, n));
 }
 
 let state = load();
@@ -109,6 +118,7 @@ export function normalize(data) {
   if (!['auto', 'light', 'dark'].includes(s.settings.theme)) s.settings.theme = 'auto';
   if (!['fixed', 'auto'].includes(s.settings.restMode)) s.settings.restMode = base.settings.restMode;
   s.settings.restSec = clampRest(s.settings.restSec);
+  s.settings.holdPrep = clampPrep(s.settings.holdPrep);
   s.lifts = s.lifts && typeof s.lifts === 'object' ? s.lifts : {};
   for (const [id, l] of Object.entries(s.lifts)) {
     if (!l || typeof l !== 'object') { delete s.lifts[id]; continue; }

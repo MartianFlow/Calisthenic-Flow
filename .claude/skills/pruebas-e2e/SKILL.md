@@ -20,7 +20,7 @@ description: Escribir, ejecutar y depurar las pruebas Playwright de Calisthenic 
 | `onboarding.spec.js` (6) | Bienvenida paso a paso: portada; recorrido completo con experiencia, pierna, niveles, objetivos, días, descanso y héroe; sin pasos de pierna en modo gimnasio; atrás, «Cambiar» y recargar a mitad; máximo 3 objetivos; importar una copia desde la portada |
 | `rest.spec.js` (4) | Descanso fijo de 80 s por defecto con −15/+15; cambiarlo en Ajustes; «Según ejercicio»; valores raros corregidos al cargar |
 | `motion.spec.js` (3) | **Con animaciones** (`reducedMotion: 'no-preference'`): pantallas visibles al terminar y sin scroll horizontal, pastilla de la pestaña, cabeceras fijas en el entreno y en la bienvenida |
-| `workout.spec.js` (3) | Flujo completo con isometría, descanso, valoración y resumen; recargar a mitad; +/− y descartar |
+| `workout.spec.js` (6) | Flujo completo con isometría, descanso, valoración y resumen; recargar a mitad; +/− y descartar; cuenta atrás de las isometrías (5 s, «+5 s», 10 s desde Ajustes) |
 | `progression.spec.js` (8) | Fácil +2, Normal +1, Fácil en la meta sube de paso, 2 pases en habilidades, recalibrado, reinicio al 80 %, descanso por paso («Según ejercicio») y fijo |
 | `plan.spec.js` (6) | Recomendación a principiantes; nivel con habilidades; cambiar días; front lever sin días seguidos; día de descanso; «Misión cumplida» |
 | `gym.spec.js` (9) | Semana L–V; 72 h entre piernas con el sábado; 5 días y 9 pesos; coma decimal; subida y bajada de peso; cambio de peso a mitad; ficha desde Hoy; ruta desde el Plan |

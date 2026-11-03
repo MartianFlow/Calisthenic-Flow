@@ -103,6 +103,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; } /* también en botones, que tienen display propio */
 html { -webkit-text-size-adjust: 100%; }
 
 body {
@@ -637,7 +638,13 @@ body.modal-open { overflow: hidden; }
   border-right: 2.5px solid var(--border);
   transition: width 0.25s linear; animation: stripes 0.94s linear infinite;
 }
-.rest-clock { font-family: var(--display); font-size: 58px; letter-spacing: 0.03em; line-height: 0.95; font-variant-numeric: tabular-nums; display: inline-block; transform-origin: left center; }
+.rest-clock {
+  font-family: var(--display); font-size: 58px; letter-spacing: 0.03em; line-height: 0.95; font-variant-numeric: tabular-nums;
+  display: inline-block; transform-origin: left center;
+  /* Igual que el cronómetro de isometrías: caja más grande para que Safari no recorte la letra al latir */
+  padding: 0.08em 0.22em 0.04em 0; margin: -0.08em -0.22em -0.04em 0;
+  pointer-events: none;
+}
 .rest-main { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .rest-info { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .rest-label { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
@@ -687,7 +694,14 @@ body.modal-open { overflow: hidden; }
   font-family: var(--display); font-size: 180px; line-height: 0.9; font-variant-numeric: tabular-nums; color: #fff;
   text-shadow: -4px -4px 0 #000, 4px -4px 0 #000, -4px 4px 0 #000, 4px 4px 0 #000, 10px 10px 0 var(--pink), 13px 13px 0 #000;
   display: inline-block;
+  /* La letra sobresale de su caja (sobre todo el «7», por la derecha) y la sombra aún más. Safari
+     recorta lo que sobresale mientras el número late: se agranda la caja con padding y se
+     compensa con margen negativo, así no se mueve nada. */
+  padding: 0.08em 0.28em 0.1em 0.06em; margin: -0.08em -0.28em -0.1em -0.06em;
+  pointer-events: none; /* la caja agrandada no debe quitar toques a los botones de al lado */
 }
+.hold-more { min-width: 96px; }
+.field .hint { font-weight: 600; }
 
 /* ─────────── Valoración ─────────── */
 /* Con la pregunta abierta el panel se compacta para no tapar el ejercicio. */

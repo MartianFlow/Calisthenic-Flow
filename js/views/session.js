@@ -11,7 +11,7 @@ import { videoCard } from '../video.js';
 import { burst, bump, beat, replay, confetti } from '../fx.js';
 import { totalXP, levelInfo, syncAchievements, itemsUnlockedBy } from '../game.js';
 
-const HOLD_COUNTDOWN = 3000;
+const PREP_STEP = 5;   // segundos que suma el botón «+5 s» de la cuenta atrás de las isometrías
 const REST_STEP = 15; // segundos que suman o quitan los botones del descanso
 const beeped = { holdStart: null, holdTarget: null };
 const lastSecond = { rest: null, hold: null };
@@ -218,11 +218,14 @@ function holdOverlay(a) {
   if (!a.hold) return '';
   const item = a.items[a.hold.item];
   const step = ROADMAP_BY_ID[item.roadmapId].steps[item.stepIndex];
+  const prepMs = a.hold.startsAt - Date.now();
+  const prepLeft = Math.ceil(prepMs / 1000);
   return `
     <div class="hold-overlay" role="dialog" aria-label="Cronómetro de isometría">
       <div class="eyebrow">${esc(step.name)} · serie ${a.hold.set + 1}</div>
       <div class="hold-phase" data-tick="hold-phase">Prepárate</div>
-      <div class="hold-clock" data-tick="hold">3</div>
+      <div class="hold-clock" data-tick="hold">${prepLeft > 0 ? prepLeft : Math.max(0, Math.floor(-prepMs / 1000))}</div>
+      <button class="btn ghost small hold-more" data-action="hold-more" data-tick="hold-more" aria-label="${PREP_STEP} segundos más de preparación" ${prepLeft > 0 ? '' : 'hidden'}>${icon('plus', 16)} ${PREP_STEP} s</button>
       <div class="muted">Objetivo: ${item.goal ?? item.target} s</div>
       <button class="btn primary huge" data-action="hold-stop">Parar</button>
       <button class="btn ghost" data-action="hold-cancel">Cancelar</button>
@@ -314,10 +317,20 @@ export function tick(ctx) {
     const ms = now - a.hold.startsAt;
     const phase = document.querySelector('[data-tick="hold-phase"]');
     const clock = document.querySelector('[data-tick="hold"]');
+    const more = document.querySelector('[data-tick="hold-more"]');
+    if (more) more.hidden = ms >= 0;
     if (ms < 0) {
       if (phase) phase.textContent = 'Prepárate';
       const n = String(Math.ceil(-ms / 1000));
-      if (clock && clock.textContent !== n) { clock.textContent = n; beat(clock); }
+      if (clock && clock.textContent !== n) {
+        clock.textContent = n;
+        beat(clock);
+        // Pitidos cortos en los 3 últimos segundos: para no tener que mirar la pantalla
+        if (Number(n) <= 3 && lastSecond.hold !== `${a.hold.startsAt}:${n}`) {
+          lastSecond.hold = `${a.hold.startsAt}:${n}`;
+          audio.beep({ times: 1, freq: 523, duration: 0.09 });
+        }
+      }
     } else {
       if (beeped.holdStart !== a.hold.startsAt) {
         beeped.holdStart = a.hold.startsAt;
@@ -583,7 +596,7 @@ export const actions = {
     const set = Number(el.dataset.set);
     update((s) => {
       s.active.rest = null;
-      s.active.hold = { item: s.active.current, set, startsAt: Date.now() + HOLD_COUNTDOWN };
+      s.active.hold = { item: s.active.current, set, startsAt: Date.now() + s.settings.holdPrep * 1000 };
     });
   },
   'hold-stop'() {
@@ -600,6 +613,17 @@ export const actions = {
     });
     burst(null, { big: true });
     if (getState().active.current !== before) window.scrollTo({ top: 0 });
+  },
+  // Más tiempo para colocarse antes de que empiece a contar la isometría.
+  'hold-more'() {
+    update((s) => {
+      const h = s.active?.hold;
+      if (h && h.startsAt > Date.now()) h.startsAt += PREP_STEP * 1000;
+    }, { silent: true });
+    const clock = document.querySelector('[data-tick="hold"]');
+    const h = getState().active?.hold;
+    if (clock && h) clock.textContent = String(Math.max(0, Math.ceil((h.startsAt - Date.now()) / 1000)));
+    bump(clock);
   },
   'hold-cancel'() {
     update((s) => { s.active.hold = null; });

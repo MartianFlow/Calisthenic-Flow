@@ -21,7 +21,7 @@ test.describe('Entreno', () => {
     await page.locator('[data-action="hold-start"][data-set="0"]').click();
     await expect(page.locator('.hold-overlay')).toBeVisible();
     await expect(page.locator('.hold-phase')).toHaveText('Prepárate');
-    await page.clock.runFor(3000 + 21000);
+    await page.clock.runFor(5000 + 21000); // 5 s de cuenta atrás y 21 s de isometría
     await expect(page.locator('[data-tick="hold"]')).toHaveText('21');
     await page.locator('[data-action="hold-stop"]').click();
     await expect(page.locator('.hold-overlay')).toBeHidden();
@@ -96,5 +96,42 @@ test.describe('Entreno', () => {
     const s = await readState(page);
     expect(s.active).toBeNull();
     expect(s.sessions).toHaveLength(0);
+  });
+});
+
+test.describe('Isometrías: cuenta atrás', () => {
+  async function openHold(page, settings = {}) {
+    await seed(page, makeState({ progress: { pino: { step: 0, passes: 0, done: false } }, settings }));
+    await page.goto('/#/ruta/pino');
+    await page.locator('[data-action="train-only"]').click();
+    await page.locator('[data-action="warmup-done"]').last().click();
+    await page.locator('[data-action="hold-start"][data-set="0"]').click();
+    await expect(page.locator('.hold-overlay')).toBeVisible();
+  }
+
+  test('empieza en 5 s, «+5 s» la alarga y desaparece al empezar a contar', async ({ page }) => {
+    await openHold(page);
+    await expect(page.locator('[data-tick="hold"]')).toHaveText('5');
+    await page.locator('[data-action="hold-more"]').click();
+    await expect(page.locator('[data-tick="hold"]')).toHaveText(/^(10|9)$/);
+    await page.clock.runFor(7000);
+    await expect(page.locator('.hold-phase')).toHaveText('Prepárate');
+    await page.clock.runFor(3000 + 4000);
+    await expect(page.locator('.hold-phase')).toHaveText('¡Aguanta!');
+    await expect(page.locator('[data-tick="hold"]')).toHaveText(/^[34]$/);
+    await expect(page.locator('[data-action="hold-more"]')).toBeHidden();
+  });
+
+  test('la cuenta atrás se elige en Ajustes', async ({ page }) => {
+    await seed(page, makeState());
+    await page.goto('/#/ajustes');
+    await page.locator('[data-action="set-setting"][data-key="holdPrep"][data-value="10"]').click();
+    expect((await readState(page)).settings.holdPrep).toBe(10);
+    await page.close();
+  });
+
+  test('con 10 s en Ajustes, la cuenta atrás empieza en 10', async ({ page }) => {
+    await openHold(page, { holdPrep: 10 });
+    await expect(page.locator('[data-tick="hold"]')).toHaveText('10');
   });
 });

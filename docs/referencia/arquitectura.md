@@ -63,7 +63,8 @@ tests/tools/             simular-actualizacion.js y la auditoría de diseño (ve
 { version: 2, onboarded,
   settings: { goals[≤3], daysPerWeek, passesToLevelUp, sound, warmup, legs: 'calistenia'|'gym',
               theme: 'auto'|'light'|'dark', schedule: { days[7 bool] } | null,
-              restMode: 'fixed'|'auto', restSec },                    // descanso: fijo (80 s por defecto) o por ejercicio
+              restMode: 'fixed'|'auto', restSec,                      // descanso: fijo (80 s por defecto) o por ejercicio
+              holdPrep },                                             // cuenta atrás de las isometrías (5 s)
   progress: { [rutaId]: { step, passes, done, work, stall, resets } },   // work = objetivo actual por serie
   lifts: { [liftId]: { kg, reps, stall } },                              // gimnasio: peso y reps objetivo
   levelLog[], sessions[] (de la más antigua a la más reciente), active, plan, lastDayType,

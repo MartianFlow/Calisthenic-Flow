@@ -10,7 +10,7 @@ import { esc, icon, targetLabel, progressBar, fmtClock } from '../ui.js';
 import { navigate } from '../router.js';
 import { recommendDays, trainingLevel, DEFAULT_DAYS, LEG_ROUTES, WD_SHORT } from '../schedule.js';
 import { dayChips, daysSegmented } from './plan.js';
-import { restPicker, toggle, MAX_GOALS } from './settings.js';
+import { restPicker, prepPicker, toggle, MAX_GOALS } from './settings.js';
 import { heroAvatar } from './hero.js';
 import { SKINS, HAIRS, HAIR_STYLES } from '../avatar.js';
 import { burst, flash, confetti } from '../fx.js';
@@ -263,6 +263,7 @@ function trainingBody(state) {
     <h2 class="wiz-title">¿Cuánto descansas entre series?</h2>
     <p class="wiz-hint">Usa siempre el mismo descanso o deja que la app ponga el recomendado para cada ejercicio. Durante el entreno puedes sumar o quitar 15 s.</p>
     <section class="card">${restPicker(state)}</section>
+    <section class="card">${prepPicker(state)}</section>
     <section class="card wiz-toggles">
       ${toggle('warmup', st.warmup, 'Calentamiento guiado', 'Una lista de movilidad de 5–6 minutos antes de empezar')}
       ${toggle('sound', st.sound, 'Sonido al acabar el descanso', 'Con el modo silencio del iPhone desactivado')}

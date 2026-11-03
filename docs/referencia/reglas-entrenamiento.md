@@ -27,6 +27,11 @@ Cómo decide la app objetivos, subidas, descansos y el plan semanal. Las fuentes
 - `restSeconds(state, recomendado)` (logic.js) da el que se usa. Se aplica al empezar cada descanso, así que un cambio en Ajustes vale también para el entreno en curso.
 - **Durante el descanso:** −15 / +15 s. Si se quita más de lo que queda, termina con su aviso.
 
+## Cuenta atrás de las isometrías
+
+- `settings.holdPrep`: 5 s por defecto (3, 5, 10 o 15 en Ajustes y en la bienvenida; se admite de 3 a 30). Lo pidió el usuario: con 3 s no le daba tiempo a colocarse.
+- Mientras cuenta, «+5 s» la alarga. Suenan pitidos cortos en los 3 últimos segundos y uno más agudo al empezar.
+
 ## Descansos por paso (`restFor`, con «Según ejercicio»)
 
 | Caso | Descanso |
