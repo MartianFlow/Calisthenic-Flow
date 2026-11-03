@@ -28,7 +28,10 @@ export function defaultState() {
       holdPrep: 5,          // cuenta atrás antes de cada isometría, en segundos
     },
     progress: {},           // id → { step, passes, done }
-    lifts: {},              // ejercicio de gimnasio → { kg, reps, stall }
+    lifts: {},              // ejercicio de gimnasio o propio → { kg, reps, stall }
+    custom: [],             // ejercicios propios (ver cleanCustom)
+    body: [],               // peso corporal: [{ date, kg }]
+    backup: { last: null, count: 0, snoozeUntil: null }, // copias exportadas y aviso para hacerlas
     levelLog: [],           // { date, roadmapId, from, to }
     sessions: [],           // historial de entrenos
     active: null,           // entreno en curso
@@ -74,6 +77,51 @@ export function clampPrep(sec) {
   const n = Math.round(Number(sec));
   if (!Number.isFinite(n) || n <= 0) return 5;
   return Math.min(PREP_RANGE.max, Math.max(PREP_RANGE.min, n));
+}
+
+// Ejercicios propios: { id: 'c-…', name, kind: 'reps' | 'hold', load (con kg, solo en reps),
+// inc (kg que sube), group, muscle, sets, min, max (rango en reps o segundos), side, video
+// (enlace), cues (claves técnicas), days (tipos de día en que va fijo), archived, createdAt }.
+export const CUSTOM_GROUPS = ['empuje', 'tiron', 'pierna', 'core', 'otro'];
+export const CUSTOM_LIMITS = { name: 40, muscle: 30, sets: [1, 8], reps: [1, 100], hold: [5, 600], cues: 8, cue: 160 };
+const int = (v, lo, hi, def) => { const n = Math.round(Number(v)); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : def; };
+
+export function cleanCustom(c) {
+  if (!c || typeof c !== 'object' || typeof c.id !== 'string' || !/^c-[\w-]{1,40}$/.test(c.id)) return null;
+  const name = String(c.name || '').trim().slice(0, CUSTOM_LIMITS.name);
+  if (!name) return null;
+  const kind = c.kind === 'hold' ? 'hold' : 'reps';
+  const [lo, hi] = CUSTOM_LIMITS[kind];
+  const min = int(c.min, lo, hi, kind === 'hold' ? 20 : 8);
+  const max = Math.max(min, int(c.max, lo, hi, kind === 'hold' ? 40 : 12));
+  const inc = Number(c.inc);
+  return {
+    id: c.id,
+    name,
+    kind,
+    load: kind === 'reps' && !!c.load,
+    inc: Number.isFinite(inc) && inc >= 0.25 && inc <= 20 ? inc : 2.5,
+    group: CUSTOM_GROUPS.includes(c.group) ? c.group : 'otro',
+    muscle: String(c.muscle || '').trim().slice(0, CUSTOM_LIMITS.muscle),
+    sets: int(c.sets, ...CUSTOM_LIMITS.sets, 3),
+    min,
+    max,
+    side: !!c.side,
+    video: typeof c.video === 'string' ? c.video.trim().slice(0, 300) : '',
+    cues: (Array.isArray(c.cues) ? c.cues : []).map((x) => String(x).trim().slice(0, CUSTOM_LIMITS.cue)).filter(Boolean).slice(0, CUSTOM_LIMITS.cues),
+    days: [...new Set((Array.isArray(c.days) ? c.days : []).filter((d) => typeof d === 'string' && d.length <= 24))].slice(0, 14),
+    archived: !!c.archived,
+    createdAt: Number(c.createdAt) || Date.now(),
+  };
+}
+
+// Peso corporal: de 20 a 300 kg, ordenado por fecha.
+export const BODY_RANGE = { min: 20, max: 300 };
+function cleanBody(list) {
+  return (Array.isArray(list) ? list : [])
+    .map((e) => ({ date: Number(e?.date), kg: Math.round(Number(e?.kg) * 10) / 10 }))
+    .filter((e) => Number.isFinite(e.date) && e.date > 0 && e.kg >= BODY_RANGE.min && e.kg <= BODY_RANGE.max)
+    .sort((a, b) => a.date - b.date);
 }
 
 let state = load();
@@ -152,6 +200,11 @@ export function normalize(data) {
     l.kg = l.kg == null || Number.isNaN(Number(l.kg)) ? null : Number(l.kg);
     l.stall = Math.max(0, l.stall | 0);
   }
+  const seen = new Set();
+  s.custom = (Array.isArray(s.custom) ? s.custom : []).map(cleanCustom).filter((c) => c && !seen.has(c.id) && seen.add(c.id));
+  s.body = cleanBody(s.body);
+  const b = s.backup && typeof s.backup === 'object' ? s.backup : {};
+  s.backup = { last: Number(b.last) > 0 ? Number(b.last) : null, count: Math.max(0, b.count | 0), snoozeUntil: Number(b.snoozeUntil) > 0 ? Number(b.snoozeUntil) : null };
   s.game = { ...base.game, ...(data.game || {}) };
   s.game.look = { ...base.game.look, ...(s.game.look || {}) };
   s.game.unlocked ||= {};

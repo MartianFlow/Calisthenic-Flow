@@ -99,6 +99,11 @@ El contexto de la persona y de sus peticiones. Las decisiones técnicas que sale
     - El pino ya iba también en los días de pierna, pero no había nada que dijera que es diario. **Versión 19:** tarjeta «Pino diario» en Hoy, con los 7 días de la semana y qué toca hoy («al principio de tu entreno», «Hecho hoy» o «Solo pino»).
     - El texto «¿Ya la dominas?» se cortaba en Safari: un elemento flexible sin anchura mínima junto a los botones. Ahora va en su propio párrafo.
 
+27. **«¿Algo más que haga falta?»** Propuso **ejercicios personalizados** y que cada persona **decida cómo divide la rutina** (por ejemplo, no todo el torso en una sesión, sino por grupos musculares). Se le propusieron 4 formas de dividir la semana (cuerpo completo, torso/pierna, empuje/tirón/pierna y «a tu manera») y 3 ideas: aviso de copia de seguridad, superseries y peso corporal.
+    - **Decisión (3/11/2026):** «las cuatro formas y las tres ideas, hazlo todo». Tiene en mente ejercicios de gimnasio para torso y para pierna. **La idea es que otras personas también la usen y se adapte a ellas.** Para él, seguirá con la rutina como está ahora (Torso A/B + Pierna en el gimnasio).
+    - **Versión 20 (parte 1):** ejercicios propios (Rutas → Mis ejercicios), aviso de copia de seguridad en Hoy y peso corporal en Progreso.
+    - **Parte 2 (siguiente):** las 4 formas de dividir la semana y las superseries.
+
 ## Pendiente de confirmar con el usuario
 
 - Que en Ajustes ve **«versión 19»** y que la tarjeta «Pino diario» le sirve. Se le pidió una captura de Hoy en un día de descanso.

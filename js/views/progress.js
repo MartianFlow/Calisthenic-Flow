@@ -4,11 +4,12 @@
 import { headActions } from '../theme.js';
 import { ROADMAP_BY_ID } from '../data/roadmaps.js';
 import { LIFT_BY_ID } from '../data/gym.js';
-import { getState, update } from '../store.js';
-import { totals, weekStreak, weeklySeries, globalProgress, outcomeText, RATINGS, accInfo } from '../logic.js';
+import { getState, update, BODY_RANGE } from '../store.js';
+import { totals, weekStreak, weeklySeries, globalProgress, outcomeText, RATINGS, accInfo, GROUPS } from '../logic.js';
 import { dayLabel } from '../schedule.js';
-import { esc, icon, fmtDuration, fmtDurationHtml, fmtDate, fmtLongDate, fmtTime, unitLabel, fmtKg } from '../ui.js';
-import { weeklyBars } from '../charts.js';
+import { esc, icon, fmtDuration, fmtDurationHtml, fmtDate, fmtLongDate, fmtTime, unitLabel, fmtKg, parseKg, toast } from '../ui.js';
+import { weeklyBars, progressLine } from '../charts.js';
+import { unlockCheck } from './hero.js';
 import { navigate } from '../router.js';
 import { takeCelebration } from './session.js';
 import { burst, flash, confetti } from '../fx.js';
@@ -51,6 +52,35 @@ function historyList(state) {
     </a></li>`).join('')}</ul>`;
 }
 
+// Peso corporal: apuntarlo de vez en cuando y ver cómo cambia (uno por día).
+function bodyCard(state) {
+  const list = state.body || [];
+  const last = list[list.length - 1];
+  const first = list[0];
+  const diff = list.length >= 2 ? Math.round((last.kg - first.kg) * 10) / 10 : null;
+  const points = list.slice(-20).map((e) => ({ date: e.date, value: e.kg }));
+  const low = points.length ? Math.min(...points.map((p) => p.value)) : 0;
+  const today = last && new Date(last.date).toDateString() === new Date().toDateString();
+  return `
+    <section class="card body-card" id="peso">
+      <div class="row between"><h3>Peso corporal</h3>${last ? `<span class="pill tiny accent">${esc(fmtKg(last.kg))}</span>` : ''}</div>
+      <p class="muted small">En calistenia levantas tu propio peso: si subes, las mismas repeticiones cuestan más, y si bajas, cuestan menos. Apúntalo cada 1–2 semanas, mejor por la mañana.</p>
+      ${points.length >= 2 ? progressLine(points, { unit: 'kg', label: 'peso', caption: 'Tu peso en cada registro · toca un punto', floor: Math.max(0, Math.floor(low - 3)) }) : ''}
+      ${diff != null ? `<p class="small">${diff === 0 ? 'Igual' : `${diff > 0 ? '+' : '−'}${esc(fmtKg(Math.abs(diff)))}`} desde el ${esc(fmtDate(first.date))}.</p>` : ''}
+      <div class="body-form">
+        <label class="load-field small" for="body-kg"><input id="body-kg" class="load-input" type="text" inputmode="decimal" autocomplete="off" placeholder="${last ? esc(String(last.kg).replace('.', ',')) : '—'}" aria-label="Tu peso de hoy en kg"><small>kg</small></label>
+        <button class="btn primary small" data-action="body-add">${icon('scale', 16)} ${today ? 'Cambiar el de hoy' : 'Apuntar hoy'}</button>
+      </div>
+      ${list.length ? `
+        <details class="body-log">
+          <summary class="small">Ver registros (${list.length})</summary>
+          <ul>${[...list].reverse().slice(0, 30).map((e) => `
+            <li><span class="grow">${esc(fmtDate(e.date))}</span><strong>${esc(fmtKg(e.kg))}</strong>
+              <button class="icon-btn danger" data-action="body-del" data-date="${e.date}" aria-label="Borrar el registro del ${esc(fmtDate(e.date))}">${icon('close', 16)}</button></li>`).join('')}</ul>
+        </details>` : ''}
+    </section>`;
+}
+
 export function render() {
   const state = getState();
   const t = totals(state);
@@ -71,6 +101,7 @@ export function render() {
       <h3>Minutos por semana</h3>
       ${weeklyBars(series, { caption: 'Últimas 8 semanas' })}
     </section>
+    ${bodyCard(state)}
     <section class="card">
       <h3>Subidas de nivel</h3>
       ${levelLogList(state)}
@@ -84,10 +115,10 @@ export function render() {
 
 const OUTCOME_ICON = {
   levelup: 'star', completed: 'trophy', pass: 'check', consolidate: 'target', up: 'plus', down: 'minus', keep: 'target',
-  'load-up': 'star', 'load-down': 'minus', reset: 'minus', 'no-kg': 'edit',
+  'load-up': 'star', 'load-down': 'minus', reset: 'minus', 'no-kg': 'edit', top: 'trophy',
 };
 // Clase de color del resultado (las subidas de peso se pintan como subidas de nivel).
-const OUTCOME_CLASS = { 'load-up': 'levelup', 'load-down': 'down', 'no-kg': 'keep' };
+const OUTCOME_CLASS = { 'load-up': 'levelup', 'load-down': 'down', 'no-kg': 'keep', top: 'levelup' };
 
 function ratingChip(item) {
   return item.rating && RATINGS[item.rating]
@@ -113,6 +144,28 @@ export function liftPills(item) {
   return item.sets.map((v, i) => pill(`${fmtKg(loads[i])} × ${v}`, v)).join(' ');
 }
 
+// Series de un ejercicio propio sin peso.
+export function freePills(item) {
+  return item.sets.map((v) => `<span class="set-pill ${v >= item.goal ? 'met' : ''}">${unitLabel(item.type, v)}</span>`).join(' ');
+}
+
+// Ejercicio propio: con peso como uno de gimnasio; si no, sus repeticiones o segundos.
+function customBlock(item) {
+  return `
+    <li class="summary-item ${item.load ? 'lift' : ''}">
+      <div class="row between">
+        <div class="grow">
+          <div class="eyebrow">Tu ejercicio · ${esc(GROUPS[item.group]?.label || '')}</div>
+          <div class="ex-title">${esc(itemName(item))}</div>
+        </div>
+        ${ratingChip(item)}
+      </div>
+      <div class="set-pills">${item.load ? liftPills(item) : freePills(item)}
+        <span class="muted tiny">objetivo ${esc(unitLabel(item.type, item.goal))} (rango ${item.min}–${item.max}${item.type === 'hold' ? ' s' : ''})</span></div>
+      ${outcomeLine(item)}
+    </li>`;
+}
+
 // Ejercicio de gimnasio: peso × repeticiones de cada serie.
 function liftBlock(item) {
   const lift = LIFT_BY_ID[item.liftId];
@@ -134,6 +187,7 @@ function liftBlock(item) {
 
 // Bloque de un ejercicio registrado: series, valoración y qué cambia después.
 export function itemBlock(item) {
+  if (item.customId) return customBlock(item);
   if (item.liftId) return liftBlock(item);
   if (item.acc) {
     const info = accInfo(item.acc);
@@ -207,7 +261,7 @@ function rewardCard(s, state) {
   const lvl = levelInfo(totalXP(state));
   const records = personalRecords(state).get(s.id) || [];
   const missions = (g.missions || []).map((id) => MISSION_BY_ID[id]).filter(Boolean);
-  const unit = (it, v) => (it.liftId ? `${String(v).replace('.', ',')} kg` : unitLabel(it.type, v));
+  const unit = (it, v) => (it.liftId || (it.customId && it.load) ? `${String(v).replace('.', ',')} kg` : unitLabel(it.type, v));
   return `
     <section class="px-panel reward-card">
       <div class="reward-top">
@@ -286,6 +340,24 @@ export function renderDetail({ id }) {
 }
 
 export const actions = {
+  'body-add'() {
+    const kg = parseKg(document.getElementById('body-kg')?.value || '');
+    if (kg == null || Number.isNaN(kg) || kg < BODY_RANGE.min || kg > BODY_RANGE.max) { toast('Escribe tu peso en kg, por ejemplo 72,5'); return; }
+    const value = Math.round(kg * 10) / 10;
+    update((s) => {
+      s.body ||= [];
+      const day = new Date().toDateString();
+      s.body = s.body.filter((e) => new Date(e.date).toDateString() !== day);
+      s.body.push({ date: Date.now(), kg: value });
+      s.body.sort((a, b) => a.date - b.date);
+    });
+    toast(`Apuntado: ${fmtKg(value)}`);
+    unlockCheck();
+  },
+  'body-del'(el) {
+    const date = Number(el.dataset.date);
+    update((s) => { s.body = (s.body || []).filter((e) => e.date !== date); });
+  },
   'delete-session'(el) {
     if (!confirm('¿Borrar este entreno del historial?')) return;
     update((s) => { s.sessions = s.sessions.filter((x) => x.id !== el.dataset.id); });

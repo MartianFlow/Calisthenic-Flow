@@ -8,7 +8,7 @@ import {
   defaultIds, estimateMinutes, stepOf, createSession, startOfWeek, dayOrder, isGymLegs,
   sessionsInWeek, roadmapPercent, lastPerformance, lastLift, liftState, liftGoal, workFor, deloadActive, deloadSuggestion, startDeload,
   skillRole, plannedSets, skillPicks, PRACTICE_ID, PRACTICE_DAY, noSkillsYet, recommendedSkills,
-  sessionLayout, accInfo, lastAccessory, trimmedRoutes,
+  sessionLayout, accInfo, lastAccessory, trimmedRoutes, customOf, activeCustom, GROUPS, backupDue,
 } from '../logic.js';
 import { todayInfo, buildWeek, DAY_INFO, WEEKDAYS, WD_SHORT, weekdayIndex } from '../schedule.js';
 import { esc, icon, fmtClock, progressBar, fmtDate, fmtKg, fmtSeries, fmtLiftSeries, toast } from '../ui.js';
@@ -16,6 +16,7 @@ import { navigate } from '../router.js';
 import { audio, wakeLock } from '../device.js';
 import { heroMini } from './hero.js';
 import { roleTag, prereqNote, achievedCard, skillsNotice, listText } from './skills.js';
+import { customTarget } from './custom.js';
 
 let editing = false;
 
@@ -84,6 +85,24 @@ function liftRow(state, id, idx, dayType, pos = idx) {
     </li>`;
 }
 
+// Ejercicio propio: enlaza a su ficha.
+function customRow(state, c, idx, pos = idx) {
+  const t = customTarget(state, c);
+  const last = lastLift(state, c.id);
+  const lastText = last ? (c.load && last.loads.length ? fmtLiftSeries(last.sets, last.loads) : fmtSeries(c.kind, last.sets)) : '';
+  return `
+    <li class="ex-row custom-row">
+      <span class="num">${idx + 1}</span>
+      <a class="grow ex-link" href="#/ejercicio/${esc(c.id)}" aria-label="Ver ${esc(c.name)}">
+        <div class="ex-title">${esc(c.name)}</div>
+        <div class="muted small">Tuyo · ${esc([GROUPS[c.group]?.label, c.muscle].filter(Boolean).join(' · '))}</div>
+        ${lastText ? `<div class="muted small">Última vez: ${esc(lastText)}</div>` : ''}
+      </a>
+      <div class="ex-target">${t.sets} × ${t.goal}<small>${t.unit}${c.side ? ' /lado' : ''}</small>${c.load ? `<small>${esc(fmtKg(t.kg))}</small>` : ''}</div>
+      ${editButtons(c.id, pos)}
+    </li>`;
+}
+
 // Complementario de la habilidad de foco (no se edita: va con su habilidad).
 function accRow(state, e, idx) {
   const info = accInfo(e.acc);
@@ -103,6 +122,8 @@ function accRow(state, e, idx) {
 
 function exerciseRow(state, id, idx, dayType, trim = new Set(), pos = idx) {
   if (LIFT_BY_ID[id]) return liftRow(state, id, idx, dayType, pos);
+  const custom = customOf(id, state);
+  if (custom) return customRow(state, custom, idx, pos);
   if (!ROADMAP_BY_ID[id]) return '';
   const { roadmap, step, index } = stepOf(id);
   const last = lastPerformance(state, id, index);
@@ -223,6 +244,7 @@ function planCard(state, info) {
   const minutes = estimateMinutes(state, plan.ids);
   const available = ROADMAPS.filter((r) => !plan.ids.includes(r.id));
   const availableLifts = isGymLegs(state) ? LIFTS.filter((l) => !plan.ids.includes(l.id)) : [];
+  const mine = activeCustom(state).filter((c) => !plan.ids.includes(c.id));
   const eyebrow = info.mode === 'scheduled' ? `Hoy toca · ${WEEKDAYS[weekdayIndex()]}` : plan.custom ? 'Entreno editado' : plan.picked ? 'Elegido para hoy' : 'Próximo entreno';
   return `
     <section class="card plan">
@@ -248,8 +270,12 @@ function planCard(state, info) {
               ${availableLifts.length ? `<optgroup label="Pierna en el gimnasio">
               ${availableLifts.map((l) => `<option value="${l.id}">${esc(l.name)}</option>`).join('')}
               </optgroup>` : ''}
+              ${mine.length ? `<optgroup label="Mis ejercicios">
+              ${mine.map((c) => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('')}
+              </optgroup>` : ''}
             </select>
           </label>
+          <a class="link" href="#/mis-ejercicios/nuevo">${icon('plus', 16)} Crear un ejercicio tuyo</a>
           <div class="field"><span>Entrenar otra rutina del plan</span>${routineChoices(state, plan.dayType)}</div>
           <button class="btn ghost" data-action="plan-reset">Restablecer</button>
         </div>` : ''}
@@ -324,6 +350,23 @@ function deloadCard(state) {
     </section>`;
 }
 
+// Recordatorio de copia de seguridad (cada 2–3 semanas, ver backupDue).
+function backupCard(state) {
+  const due = state.active ? null : backupDue(state);
+  if (!due) return '';
+  return `
+    <section class="card backup-card">
+      <span class="eyebrow">Copia de seguridad</span>
+      <h3>Guarda tus datos</h3>
+      <p class="small">Solo están en este iPhone: si borras la app o cambias de móvil, se pierden. ${due.last ? `Tu última copia es de hace ${due.days} días` : 'Aún no has hecho ninguna copia'} y llevas ${due.newer} entrenos nuevos.</p>
+      <div class="row gap wrap">
+        <button class="btn primary small" data-action="export-data">${icon('download', 16)} Exportar copia</button>
+        <button class="btn ghost small" data-action="backup-snooze">Ahora no</button>
+      </div>
+      <p class="muted tiny">Guárdala en Archivos o en iCloud Drive. Para recuperarla: Ajustes → Importar copia.</p>
+    </section>`;
+}
+
 export function render() {
   const state = getState();
   const active = state.active;
@@ -356,6 +399,7 @@ export function render() {
     ${achievedCard(state)}
     ${main}
     ${pinoDaily(state, info)}
+    ${backupCard(state)}
     ${heroMini(state)}
     ${deloadCard(state)}
     ${weekStrip(state)}

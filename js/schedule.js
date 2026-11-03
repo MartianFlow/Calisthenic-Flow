@@ -14,7 +14,7 @@
 import { ROADMAP_BY_ID, ROADMAPS, DAY_TEMPLATES } from './data/roadmaps.js';
 import { LEG_DAYS } from './data/gym.js';
 import { getProgress } from './store.js';
-import { currentPlan, startOfWeek, TORSO_TYPES, skillPicks, prioritizeBase, clashes, PRACTICE_ID, isWorkout } from './logic.js';
+import { currentPlan, startOfWeek, TORSO_TYPES, skillPicks, baseIds, clashes, PRACTICE_ID, isWorkout } from './logic.js';
 
 export const WEEKDAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 export const WD_SHORT = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
@@ -299,7 +299,7 @@ export function buildWeek(state, weekStart = startOfWeek(Date.now())) {
   }
   const week = WD_SHORT.map((_, i) => ({ weekday: i, type: 'R', skills: [], ids: [] }));
   const days = placeSkills(state, chosen, types, odd).map((d) => {
-    const base = prioritizeBase(state, DAY_INFO[d.type].ids);
+    const base = baseIds(state, d.type);
     return { ...d, ids: [...d.skills, ...base.filter((id) => !d.skills.includes(id))] };
   });
   // Sustituir en vez de sumar: el muscle-up ocupa el sitio de las dominadas de su día si otro

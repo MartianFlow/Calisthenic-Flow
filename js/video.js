@@ -33,6 +33,33 @@ export function videoCard(step, roadmapName = '') {
     </button>`;
 }
 
+// Enlace de vídeo de un ejercicio propio. De YouTube (watch, youtu.be, shorts, embed) se saca
+// el identificador para verlo dentro de la app; de otra web, se abre aparte. Solo http(s).
+export function parseVideo(text) {
+  const raw = String(text || '').trim();
+  if (!raw) return null;
+  let u;
+  try { u = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`); } catch { return null; }
+  if (!/^https?:$/.test(u.protocol) || !u.hostname.includes('.')) return null;
+  const host = u.hostname.replace(/^(www|m)\./, '');
+  let id = null;
+  if (host === 'youtu.be') id = u.pathname.split('/')[1];
+  else if (/(^|\.)youtube(-nocookie)?\.com$/.test(host)) id = u.searchParams.get('v') || (u.pathname.match(/^\/(shorts|embed|live)\/([^/?#]+)/) || [])[2];
+  const t = u.searchParams.get('t') || u.searchParams.get('start') || '';
+  const m = String(t).match(/^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s?)?$/);
+  const start = m ? (Number(m[1] || 0) * 3600 + Number(m[2] || 0) * 60 + Number(m[3] || 0)) : 0;
+  if (id && /^[\w-]{6,20}$/.test(id)) return { id, start };
+  return { url: u.href };
+}
+
+// Tarjeta del vídeo de un ejercicio propio: dentro de la app si es de YouTube; si no, enlace.
+export function userVideoCard(name, link) {
+  const v = parseVideo(link);
+  if (v?.id) return videoCard({ name, video: { id: v.id, start: v.start, title: 'Tu vídeo' } });
+  if (v?.url) return `<a class="video-search" href="${esc(v.url)}" target="_blank" rel="noopener">${icon('play', 16)} Abrir tu vídeo ↗</a>`;
+  return videoCard({ name, query: `${name} técnica` });
+}
+
 export function openVideo({ id, start = 0, title = '', name = '' }) {
   closeVideo();
   const params = new URLSearchParams({ autoplay: '1', playsinline: '1', rel: '0', modestbranding: '1' });

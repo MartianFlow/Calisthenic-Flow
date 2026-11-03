@@ -17,6 +17,7 @@ import * as hero from './views/hero.js';
 import * as planView from './views/plan.js';
 import * as exercise from './views/exercise.js';
 import * as skills from './views/skills.js';
+import * as custom from './views/custom.js';
 import { syncAchievements, syncMissions } from './game.js';
 import { applyTheme } from './theme.js';
 import { update } from './store.js';
@@ -35,6 +36,8 @@ addRoute('/logros', hero.renderAchievements, { tab: 'heroe' });
 addRoute('/equipo', hero.renderEquipment, { tab: 'heroe' });
 addRoute('/plan', planView.render, { tab: 'hoy' });
 addRoute('/ejercicio/:id', exercise.renderLift, { tab: 'hoy' });
+addRoute('/mis-ejercicios/nuevo', () => custom.renderForm({}), { tab: 'rutas' });
+addRoute('/mis-ejercicios/:id', custom.renderForm, { tab: 'rutas' });
 addRoute('/bienvenida', onboarding.render, { tab: null });
 
 const actions = {
@@ -50,6 +53,11 @@ const actions = {
   ...planView.actions,
   ...exercise.actions,
   ...skills.actions,
+  ...custom.actions,
+  // Baja hasta una sección de la misma pantalla (los enlaces con # cambiarían de ruta).
+  'scroll-to'(el) {
+    document.getElementById(el.dataset.target)?.scrollIntoView({ block: 'start', behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  },
   'chart-tip'(el) {
     const fig = el.closest('.chart');
     if (!fig) return;

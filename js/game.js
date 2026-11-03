@@ -71,11 +71,14 @@ export function personalRecords(state) {
     for (const it of ses.items) {
       let k;
       let value;
-      if (it.liftId) {
+      if (it.liftId || (it.customId && it.load)) {
         const kgs = (it.loads || []).map(Number).filter((v) => v > 0);
         if (!kgs.length) continue;
-        k = `lift:${it.liftId}`;
+        k = `lift:${it.liftId || it.customId}`;
         value = Math.max(...kgs);
+      } else if (it.customId) {
+        k = `custom:${it.customId}:${it.type}`;
+        value = Math.max(0, ...it.sets);
       } else if (it.acc) {
         k = `acc:${it.acc}`;
         value = Math.max(0, ...it.sets);
@@ -211,9 +214,10 @@ function routeFraction(id) {
   return (p.step + (p.done ? 1 : 0)) / r.steps.length;
 }
 
-// Subidas de peso en los ejercicios de gimnasio (del historial).
+// Subidas de peso en los ejercicios de pierna (los del gimnasio y los tuyos de pierna).
+const legItem = (it) => !!it.liftId || (it.customId && it.group === 'pierna' && it.load);
 export function loadUpCount(state) {
-  return state.sessions.reduce((a, s) => a + s.items.filter((it) => it.outcome?.kind === 'load-up').length, 0);
+  return state.sessions.reduce((a, s) => a + s.items.filter((it) => legItem(it) && it.outcome?.kind === 'load-up').length, 0);
 }
 
 export function attributes(state) {
@@ -313,7 +317,7 @@ export function gameStats(state) {
     deloadSessions: s.filter((x) => x.deload).length,
     // (los complementarios no se valoran: no cuentan aquí)
     perfect: s.filter(isPerfect).length,
-    legDays: s.filter((x) => x.items.some((it) => it.liftId)).length,
+    legDays: s.filter((x) => x.items.some(legItem)).length,
     loadUps: loadUpCount(state),
     videos: state.game?.videosWatched || 0,
     map: globalProgress(),
@@ -363,6 +367,10 @@ function moreStats(state) {
     missions: missionCount(state),
     hasFocus: !!state.settings.focus,
     mastered: (state.settings.maintain || []).some((id) => getProgress(id).done),
+    customCount: (state.custom || []).length,
+    customSessions: s.filter((x) => x.items.some((it) => it.customId)).length,
+    backups: state.backup?.count || 0,
+    bodyLogs: (state.body || []).length,
     pokes: state.game?.pokes || 0,
     themeFlips: state.game?.themeFlips || 0,
     named: !!state.game?.name && state.game.name !== 'Tu héroe',
@@ -488,6 +496,10 @@ export const ACHIEVEMENTS = [
   { id: 'mision-1', cat: 'habitos', rarity: 'bronce', name: 'A la orden', desc: 'Cumple tu primera misión de la semana.', check: (st) => [st.missions, 1] },
   { id: 'misiones-10', cat: 'habitos', rarity: 'plata', name: 'Cazador de misiones', desc: 'Cumple 10 misiones de la semana.', check: (st) => [st.missions, 10] },
   { id: 'misiones-50', cat: 'habitos', rarity: 'oro', name: 'Mercenario', desc: 'Cumple 50 misiones de la semana.', check: (st) => [st.missions, 50] },
+  { id: 'creador', cat: 'habitos', rarity: 'bronce', name: 'Creador', desc: 'Crea tu primer ejercicio propio.', check: (st) => [st.customCount, 1] },
+  { id: 'propio-10', cat: 'habitos', rarity: 'plata', name: 'Marca de la casa', desc: 'Entrena 10 veces con tus ejercicios propios.', check: (st) => [st.customSessions, 10] },
+  { id: 'a-salvo', cat: 'habitos', rarity: 'bronce', name: 'A salvo', desc: 'Exporta una copia de tus datos.', check: (st) => [st.backups, 1] },
+  { id: 'bascula', cat: 'habitos', rarity: 'bronce', name: 'En la báscula', desc: 'Apunta tu peso corporal 4 veces.', check: (st) => [st.bodyLogs, 4] },
 
   // Secretos: no se ve qué piden hasta conseguirlos, solo una pista.
   { id: 'ano-nuevo', cat: 'secretos', secret: true, rarity: 'oro', name: 'Año nuevo, héroe nuevo', desc: 'Entrena el 1 de enero.', hint: 'Empieza el año con buen pie.', check: (st) => n(st.newYear) },

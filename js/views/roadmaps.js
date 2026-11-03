@@ -12,6 +12,7 @@ import { navigate } from '../router.js';
 import { audio, wakeLock } from '../device.js';
 import { videoCard } from '../video.js';
 import { toMaintainButtons, prereqNote } from './skills.js';
+import { myExercisesSection } from './custom.js';
 
 function roadmapCard(state, r) {
   const { step, index, progress } = stepOf(r.id);
@@ -63,8 +64,10 @@ export function renderList() {
         <p class="muted small narrow">Toca una ruta para ver todos sus pasos, ajustar tu nivel o elegir qué habilidad aprendes y cuáles mantienes.</p>
       </div>
       ${progressBar(pct)}
+      <a class="link" href="#mis-ejercicios" data-action="scroll-to" data-target="mis-ejercicios">${icon('dumbbell', 16)} Mis ejercicios${(state.custom || []).length ? ` (${state.custom.filter((c) => !c.archived).length})` : ''}</a>
     </section>
     ${groups}
+    ${myExercisesSection(state)}
   `;
 }
 

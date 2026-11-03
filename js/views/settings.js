@@ -2,7 +2,7 @@
 
 import { getState, update, replaceState, resetState, clampRest, REST_RANGE } from '../store.js';
 import { deloadActive } from '../logic.js';
-import { esc, icon, toast, fmtClock } from '../ui.js';
+import { esc, icon, toast, fmtClock, fmtDate } from '../ui.js';
 import { navigate } from '../router.js';
 import { audio } from '../device.js';
 import { legsSegmented } from './plan.js';
@@ -110,7 +110,8 @@ export function render() {
 
     <section class="card">
       <h3>Tus datos</h3>
-      <p class="muted small">Todo se guarda solo en este iPhone. Haz una copia de vez en cuando por si cambias de móvil o borras la app.</p>
+      <p class="muted small">Todo se guarda solo en este iPhone. Haz una copia de vez en cuando por si cambias de móvil o borras la app: guárdala en Archivos o en iCloud Drive.</p>
+      <p class="small backup-last">${icon('download', 14)} ${state.backup?.last ? `Última copia: <strong>${esc(fmtDate(state.backup.last))}</strong>` : 'Aún no has hecho ninguna copia.'}</p>
       <div class="row gap wrap">
         <button class="btn ghost" data-action="export-data">${icon('download', 18)} Exportar copia</button>
         <label class="btn ghost">${icon('upload', 18)} Importar copia<input type="file" accept="application/json,.json" data-change="import-data" hidden></label>
@@ -132,12 +133,20 @@ export function render() {
   `;
 }
 
+// Apunta la copia (fecha y cuántas van) para el aviso de Hoy y el logro.
+function backupDone() {
+  update((s) => { s.backup = { last: Date.now(), count: (s.backup?.count || 0) + 1, snoozeUntil: null }; });
+  toast('Copia guardada. Para recuperarla: Ajustes → Importar copia');
+  unlockCheck();
+}
+
+// En el iPhone abre «Compartir» (Guardar en Archivos, iCloud Drive…); si se cancela, no cuenta.
 function downloadBackup(json) {
   const date = new Date().toISOString().slice(0, 10);
   const name = `calisthenic-flow-${date}.json`;
   const file = new File([json], name, { type: 'application/json' });
   if (navigator.canShare?.({ files: [file] })) {
-    navigator.share({ files: [file], title: 'Copia de Calisthenic Flow' }).catch(() => {});
+    navigator.share({ files: [file], title: 'Copia de Calisthenic Flow' }).then(backupDone).catch(() => {});
     return;
   }
   const url = URL.createObjectURL(file);
@@ -148,6 +157,7 @@ function downloadBackup(json) {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
+  backupDone();
 }
 
 export const actions = {
@@ -205,6 +215,9 @@ export const actions = {
   },
   'export-data'() {
     downloadBackup(JSON.stringify({ app: 'calisthenic-flow', exportedAt: new Date().toISOString(), data: getState() }, null, 2));
+  },
+  'backup-snooze'() {
+    update((s) => { s.backup = { ...(s.backup || {}), snoozeUntil: Date.now() + 7 * 864e5 }; });
   },
   'reset-data'() {
     if (!confirm('¿Borrar TODOS tus datos (historial, niveles y ajustes)? No se puede deshacer.')) return;

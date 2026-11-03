@@ -19,8 +19,35 @@ export function stepOf(id) {
 
 export const isLift = (id) => !!LIFT_BY_ID[id];
 
+// ─────────────────────────── Ejercicios propios ───────────────────────────
+// Los crea la persona (Rutas → Mis ejercicios): repeticiones o segundos, con o sin peso.
+// Suben con la misma progresión doble que la pierna del gimnasio (rango de repeticiones y,
+// si llevan peso, más kilos al llegar arriba). Su progreso va en state.lifts[id].
+export const GROUPS = {
+  empuje: { label: 'Empuje', hint: 'pecho, hombro y tríceps' },
+  tiron: { label: 'Tirón', hint: 'espalda y bíceps' },
+  pierna: { label: 'Pierna', hint: 'cuádriceps, isquios, glúteo y gemelo' },
+  core: { label: 'Core', hint: 'abdomen y lumbar' },
+  otro: { label: 'Otro', hint: 'movilidad, cardio…' },
+};
+export const CUSTOM_REST = { load: 120, free: 90 };
+
+export const customOf = (id, state = getState()) => (id && (state.custom || []).find((c) => c.id === id)) || null;
+export const isCustom = (id, state = getState()) => !!customOf(id, state);
+export const activeCustom = (state = getState()) => (state.custom || []).filter((c) => !c.archived);
+
+// Con la forma de un ejercicio de gimnasio, para reutilizar su progresión.
+export function customDef(c) {
+  return {
+    id: c.id, name: c.name, muscle: c.muscle || GROUPS[c.group]?.label || '', sets: c.sets, min: c.min, max: c.max,
+    inc: c.load ? c.inc : 0, rest: c.load ? CUSTOM_REST.load : CUSTOM_REST.free, rir: '1–2', cues: c.cues || [],
+    load: !!c.load, type: c.kind, side: !!c.side, failureOk: false, custom: true,
+  };
+}
+
 // Nombre del ejercicio de un ítem de entreno (paso de una ruta o ejercicio de gimnasio).
 export function itemName(item) {
+  if (item.customId) return customOf(item.customId)?.name || item.name || '';
   if (item.liftId) return LIFT_BY_ID[item.liftId]?.name || item.liftId;
   if (item.acc) return accInfo(item.acc)?.name || '';
   return ROADMAP_BY_ID[item.roadmapId]?.steps[item.stepIndex]?.name || '';
@@ -34,6 +61,11 @@ export const isGymLegs = (state) => state.settings.legs === 'gym';
 export function dayOrder(state) {
   if (isGymLegs(state)) return ['TA', 'TB', 'P'];
   return state.settings.goals.length ? ['A', 'B', 'S'] : ['A', 'B'];
+}
+
+// Tipos de día de tu plan, donde puede ir fijo un ejercicio propio.
+export function planDayTypes(state) {
+  return dayOrder(state);
 }
 
 // Siguiente día cuando no hay plan semanal: alterna A/B, o torso/pierna con los
@@ -221,10 +253,24 @@ export function trimmedRoutes(ids) {
   return out;
 }
 
+// Ejercicios fijos de un tipo de día (sin habilidades).
+export function templateIds(dayType) {
+  return LEG_DAYS[dayType] ? LEG_DAYS[dayType].ids : dayType === 'S' ? ['core'] : DAY_TEMPLATES[dayType]?.ids || [];
+}
+
+// Los de la plantilla más tus ejercicios de ese día (antes del core, que cierra el entreno),
+// con los básicos que le faltan al foco primero.
+export function baseIds(state, dayType) {
+  const base = [...templateIds(dayType)];
+  const mine = activeCustom(state).filter((c) => (c.days || []).includes(dayType) && !base.includes(c.id)).map((c) => c.id);
+  const at = base.indexOf('core');
+  base.splice(at >= 0 ? at : base.length, 0, ...mine);
+  return prioritizeBase(state, base);
+}
+
 export function defaultIds(state, dayType) {
   const ids = sessionGoals(state, dayType);
-  const base = LEG_DAYS[dayType] ? LEG_DAYS[dayType].ids : dayType === 'S' ? ['core'] : DAY_TEMPLATES[dayType]?.ids || [];
-  for (const id of prioritizeBase(state, base)) if (!ids.includes(id)) ids.push(id);
+  for (const id of baseIds(state, dayType)) if (!ids.includes(id)) ids.push(id);
   return ids;
 }
 
@@ -251,10 +297,10 @@ export function lastPerformance(state, roadmapId, stepIndex) {
   return null;
 }
 
-// Último registro de un ejercicio de gimnasio: { sets: reps[], loads: kg[] }.
+// Último registro de un ejercicio de gimnasio o propio: { sets: reps[], loads: kg[] }.
 export function lastLift(state, liftId) {
   for (let i = state.sessions.length - 1; i >= 0; i--) {
-    const item = state.sessions[i].items.find((x) => x.liftId === liftId);
+    const item = state.sessions[i].items.find((x) => (x.liftId || x.customId) === liftId);
     if (item && item.sets.length) return { sets: item.sets, loads: item.loads || [] };
   }
   return null;
@@ -273,6 +319,12 @@ export function estimateMinutes(state, ids, withWarmup = state.settings.warmup) 
     const lift = LIFT_BY_ID[e.id];
     if (lift) {
       sec += lift.sets * (((lift.min + lift.max) / 2) * 3.5 + 25) + (lift.sets - 1) * restSeconds(state, lift.rest) + 90;
+      continue;
+    }
+    const c = customOf(e.id, state);
+    if (c) {
+      const work = c.kind === 'hold' ? (c.min + c.max) / 2 : ((c.min + c.max) / 2) * 3.5;
+      sec += c.sets * (work * (c.side ? 2 : 1) + 25) + (c.sets - 1) * restSeconds(state, customDef(c).rest) + 60;
       continue;
     }
     if (!ROADMAP_BY_ID[e.id]) continue;
@@ -354,6 +406,21 @@ export function deloadSuggestion(state, now = Date.now()) {
   return null;
 }
 
+// Aviso de copia de seguridad: cada 2 semanas como mínimo y con 3 entrenos nuevos desde la última
+// copia (los datos solo viven en el iPhone). «Ahora no» lo aplaza una semana.
+export const BACKUP_EVERY_DAYS = 14;
+export function backupDue(state, now = Date.now()) {
+  const b = state.backup || {};
+  if (b.snoozeUntil && b.snoozeUntil > now) return null;
+  const sessions = state.sessions;
+  if (sessions.length < 3) return null;
+  const since = b.last || sessions[0].startedAt;
+  if (now - since < BACKUP_EVERY_DAYS * DAY_MS) return null;
+  const newer = sessions.filter((x) => x.startedAt > (b.last || 0)).length;
+  if (newer < 3) return null;
+  return { last: b.last, days: Math.floor((now - (b.last || since)) / DAY_MS), newer };
+}
+
 export function startDeload(s, days = 7) {
   const now = Date.now();
   s.deload = { start: now, until: now + days * DAY_MS };
@@ -422,8 +489,12 @@ function liftItem(state, id, deload, dayType) {
   };
 }
 
+// Ejercicios propios sin peso: al llegar arriba del rango no hay kilos que subir («top»), y
+// en los de segundos cada subida es mayor.
 function applyLiftProgress(p, lift, item) {
   const rating = item.rating || 'normal';
+  const free = lift.custom && !lift.load;
+  const bump = lift.type === 'hold' ? (rating === 'facil' ? 5 : 2) : rating === 'facil' ? 2 : 1;
   const done = item.sets.filter((x) => x.done);
   const loads = done.map((x) => Number(x.kg) || 0);
   const reps = done.map((x) => Number(x.value) || 0);
@@ -439,6 +510,7 @@ function applyLiftProgress(p, lift, item) {
     if (rating !== 'dificil' || lift.failureOk) {
       p.reps = lift.min;
       p.stall = 0;
+      if (free) { p.reps = lift.max; return { kind: 'top', next: lift.max }; }
       if (!hasKg) { p.reps = lift.max; return { kind: 'no-kg', next: lift.max }; }
       p.kg = kg + lift.inc;
       return { kind: 'load-up', from: kg, kg: p.kg, next: lift.min };
@@ -450,7 +522,7 @@ function applyLiftProgress(p, lift, item) {
       p.reps = goal;
       outcome = { kind: 'keep', next: goal, kg };
     } else {
-      const next = Math.min(lift.max, goal + (rating === 'facil' ? 2 : 1));
+      const next = Math.min(lift.max, goal + bump);
       p.reps = next;
       p.stall = 0;
       return { kind: 'up', from: goal, next, kg };
@@ -478,7 +550,36 @@ function applyLiftProgress(p, lift, item) {
     p.stall = 0;
     return { kind: 'reset', from: kg, kg: p.kg, next: lift.min };
   }
+  if (p.stall >= STALL_LIMIT && free && goal > lift.min) {
+    p.reps = lift.min;
+    p.stall = 0;
+    return { kind: 'reset', from: goal, next: lift.min };
+  }
   return outcome;
+}
+
+function customItem(state, c, deload) {
+  const p = liftState(state, c.id);
+  const goal = deload ? c.min : liftGoal(c, p);
+  const kg = !c.load || p.kg == null ? null : deload ? lighterLoad(p.kg, c.inc) : p.kg;
+  const sets = deload ? Math.max(2, c.sets - 1) : c.sets;
+  return {
+    customId: c.id,
+    name: c.name,
+    group: c.group,
+    type: c.kind,
+    load: !!c.load,
+    min: c.min,
+    max: c.max,
+    target: c.max,
+    goal,
+    kg,
+    plannedSets: sets,
+    side: !!c.side,
+    rest: customDef(c).rest,
+    rating: null,
+    sets: Array.from({ length: sets }, () => ({ value: goal, ...(c.load ? { kg } : {}), done: false })),
+  };
 }
 
 function accItem(e, deload) {
@@ -512,12 +613,14 @@ function warmupExtras(ids) {
 
 export function createSession(state, plan) {
   const deload = deloadActive(state);
-  const ids = plan.ids.filter((id) => ROADMAP_BY_ID[id] || LIFT_BY_ID[id]);
+  const ids = plan.ids.filter((id) => ROADMAP_BY_ID[id] || LIFT_BY_ID[id] || customOf(id, state));
   const trim = trimmedRoutes(ids);
   const items = sessionLayout(state, ids).map((e) => {
     if (e.acc) return accItem(e, deload);
     const id = e.id;
     if (LIFT_BY_ID[id]) return liftItem(state, id, deload, plan.dayType);
+    const c = customOf(id, state);
+    if (c) return customItem(state, c, deload);
     const { roadmap, step, index } = stepOf(id);
     const work = workFor(id);
     // Semana de descarga: una serie menos y objetivo al ~65 %.
@@ -546,7 +649,7 @@ export function createSession(state, plan) {
   const onlyExtras = plan.warmup === 'extras';
   const warmupKind = onlyExtras ? 'pino'
     // (la práctica de pino al principio de un día de pierna no cambia el calentamiento)
-    : items.some((it) => it.liftId) && items.every((it) => it.liftId || it.roadmapId === PRACTICE_ID || it.accessoryOf === PRACTICE_ID) ? 'pierna' : 'base';
+    : items.some((it) => it.liftId) && items.every((it) => it.liftId || it.group === 'pierna' || it.roadmapId === PRACTICE_ID || it.accessoryOf === PRACTICE_ID) ? 'pierna' : 'base';
   return {
     id: uid(),
     startedAt: now,
@@ -694,6 +797,34 @@ export function finishActiveSession() {
     for (const item of active.items) {
       const done = item.sets.filter((x) => x.done);
       if (!done.length) continue;
+      if (item.customId) {
+        // Se guarda el nombre: el historial sigue legible aunque luego lo cambies o lo borres.
+        const c = customOf(item.customId, s);
+        const entry = {
+          customId: item.customId,
+          name: c?.name || item.name || '',
+          group: c?.group || item.group || 'otro',
+          type: item.type,
+          load: !!item.load,
+          min: item.min,
+          max: item.max,
+          target: item.target,
+          goal: item.goal,
+          plannedSets: item.plannedSets,
+          side: item.side,
+          sets: done.map((x) => Number(x.value) || 0),
+          ...(item.load ? { loads: done.map((x) => (x.kg == null ? null : Number(x.kg))) } : {}),
+          met: stepMet(item),
+          goalMet: goalMet(item),
+          rating: item.rating || null,
+        };
+        session.items.push(entry);
+        if (!c) continue;
+        s.lifts ||= {};
+        const p = (s.lifts[item.customId] ||= { kg: null, reps: null, stall: 0 });
+        entry.outcome = active.deload ? { kind: 'deload' } : applyLiftProgress(p, customDef(c), item);
+        continue;
+      }
       if (item.liftId) {
         const lift = LIFT_BY_ID[item.liftId];
         const entry = {
@@ -785,7 +916,7 @@ export function finishActiveSession() {
 function liftOutcomeText(entry) {
   const o = entry.outcome;
   const sets = entry.plannedSets;
-  const lift = LIFT_BY_ID[entry.liftId];
+  const lift = LIFT_BY_ID[entry.liftId] || entry;
   const reps = (v) => `${v} ${v === 1 ? 'rep' : 'reps'}`;
   switch (o.kind) {
     case 'load-up':
@@ -809,9 +940,33 @@ function liftOutcomeText(entry) {
   }
 }
 
+// Ejercicio propio sin peso (repeticiones o segundos).
+function freeOutcomeText(entry) {
+  const o = entry.outcome;
+  const sets = entry.plannedSets;
+  const unit = (v) => (entry.type === 'hold' ? `${v} s` : `${v} ${v === 1 ? 'rep' : 'reps'}`);
+  switch (o.kind) {
+    case 'top':
+      return `¡Tope del rango (${sets} × ${unit(o.next)})! Si te sale fácil, pasa a una variante más difícil o ponle peso: edita el ejercicio`;
+    case 'up':
+      return `Próxima vez: ${sets} × ${unit(o.next)} (antes ${unit(o.from)})`;
+    case 'consolidate':
+      return `Tope del rango, pero costó: repite ${sets} × ${unit(o.next)} hasta que salga con margen`;
+    case 'down':
+      return `Recalibrado a tu mínimo de hoy: ${sets} × ${unit(o.next)}`;
+    case 'reset':
+      return `Llevas ${STALL_LIMIT} sesiones sin avanzar: vuelve a ${sets} × ${unit(o.next)} y reconstruye`;
+    case 'deload':
+      return 'Semana de descarga: sin cambios en tu progreso';
+    default:
+      return `Próxima vez: mantén ${sets} × ${unit(o.next)}`;
+  }
+}
+
 export function outcomeText(entry) {
   const o = entry.outcome;
   if (!o) return '';
+  if (entry.customId) return entry.load ? liftOutcomeText(entry) : freeOutcomeText(entry);
   if (entry.liftId) return liftOutcomeText(entry);
   const r = ROADMAP_BY_ID[entry.roadmapId];
   const unit = (v) => (entry.type === 'hold' ? `${v} s` : `${v} ${v === 1 ? 'rep' : 'reps'}`);

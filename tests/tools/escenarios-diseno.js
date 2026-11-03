@@ -165,6 +165,30 @@ const recordIdx = rich.sessions.map((x, i) => (i > 0 && x.items[0].sets[0] > ric
 const levelSessionId = rich.sessions.find((s) => s.levelUps.length).id;
 const gymSessionId = gym.sessions[gym.sessions.length - 1].id;
 
+// Ejercicios propios (v20): uno con peso en los torsos, uno de segundos por lado en pierna,
+// uno sin peso suelto y uno archivado; con historial, peso corporal y sin copia hecha.
+const CUSTOM = [
+  { id: 'c-curl', name: 'Curl de bíceps con mancuerna', kind: 'reps', load: true, inc: 2.5, group: 'tiron', muscle: 'Bíceps', sets: 3, min: 8, max: 12, video: 'https://youtu.be/dQw4w9WgXcQ', cues: ['Codos pegados al cuerpo', 'Baja en 2 segundos'], days: ['TA', 'TB'] },
+  { id: 'c-plank', name: 'Plancha lateral con elevación de cadera', kind: 'hold', group: 'core', muscle: 'Oblicuos', sets: 3, min: 20, max: 40, side: true, days: ['P'] },
+  { id: 'c-band', name: 'Face pull con banda', kind: 'reps', group: 'tiron', sets: 2, min: 12, max: 20, video: 'https://www.instagram.com/p/abc', days: [] },
+  { id: 'c-old', name: 'Press Arnold', kind: 'reps', load: true, inc: 1, group: 'empuje', sets: 3, min: 8, max: 12, days: ['TA'], archived: true },
+];
+const curlItem = (kg, sets, outcome) => ({ customId: 'c-curl', name: CUSTOM[0].name, group: 'tiron', type: 'reps', load: true, min: 8, max: 12, target: 12, goal: sets[0], plannedSets: 3, side: false, sets, loads: sets.map(() => kg), met: false, goalMet: true, rating: 'normal', outcome });
+const plankItem = (sets, outcome) => ({ customId: 'c-plank', name: CUSTOM[1].name, group: 'core', type: 'hold', load: false, min: 20, max: 40, target: 40, goal: sets[0], plannedSets: 3, side: true, sets, met: false, goalMet: true, rating: 'facil', outcome });
+const customSessions = [
+  session({ daysAgo: 12, dayType: 'TA', items: [curlItem(10, [10, 10, 9], { kind: 'up', from: 9, next: 10, kg: 10 })] }),
+  session({ daysAgo: 8, dayType: 'P', items: [plankItem([30, 30, 28], { kind: 'up', from: 28, next: 33 })] }),
+  session({ daysAgo: 5, dayType: 'TB', items: [curlItem(10, [12, 12, 12], { kind: 'load-up', from: 10, kg: 12.5, next: 8 })] }),
+  session({ daysAgo: 1, dayType: 'P', items: [plankItem([40, 40, 40], { kind: 'top', next: 40 })] }),
+];
+const mine = gymState({
+  custom: CUSTOM,
+  lifts: { ...gym.lifts, 'c-curl': { kg: 12.5, reps: 8, stall: 0 }, 'c-plank': { kg: null, reps: 40, stall: 0 } },
+  sessions: [...gym.sessions, ...customSessions],
+  body: [30, 20, 12, 4].map((d, i) => ({ date: NOW - d * DAY, kg: [79.6, 79.2, 78.9, 78.4][i] })),
+});
+const mineSessionId = customSessions[2].id;
+
 const scenarios = [
   // Bienvenida paso a paso
   { name: 'bienvenida', route: '/bienvenida', state: fresh() },
@@ -290,6 +314,28 @@ const scenarios = [
   { name: 'gym-progreso', route: '/progreso', state: gym },
   { name: 'gym-calendario-dia', route: '/calendario', state: gym, setup: prevMonthDay },
   { name: 'gym-ajustes', route: '/ajustes', state: gym },
+
+  // Mis ejercicios, copia de seguridad y peso corporal (v20)
+  { name: 'propios-rutas', route: '/rutas', state: mine, setup: async (page) => { await page.locator('#mis-ejercicios').scrollIntoViewIfNeeded(); } },
+  { name: 'propios-rutas-archivados', route: '/rutas', state: mine, setup: async (page) => { await page.locator('.archived-list summary').click(); } },
+  { name: 'propios-nuevo', route: '/mis-ejercicios/nuevo', state: mine },
+  { name: 'propios-nuevo-con-peso', route: '/mis-ejercicios/nuevo', state: mine, setup: click('[data-action="cx-toggle"][data-key="load"]') },
+  { name: 'propios-nuevo-segundos', route: '/mis-ejercicios/nuevo', state: mine, setup: click('[data-action="cx-set"][data-key="kind"][data-value="hold"]') },
+  { name: 'propios-editar', route: '/mis-ejercicios/c-curl', state: mine },
+  { name: 'propios-editar-sin-historial', route: '/mis-ejercicios/c-band', state: mine },
+  { name: 'propios-ficha-peso', route: '/ejercicio/c-curl', state: mine },
+  { name: 'propios-ficha-segundos', route: '/ejercicio/c-plank', state: mine },
+  { name: 'propios-ficha-enlace', route: '/ejercicio/c-band', state: mine },
+  { name: 'propios-ficha-archivado', route: '/ejercicio/c-old', state: mine },
+  { name: 'propios-hoy-torso', route: '/', state: mine },
+  { name: 'propios-hoy-editando', route: '/', state: mine, setup: click('[data-action="plan-edit"]') },
+  { name: 'propios-plan', route: '/plan', state: mine },
+  { name: 'propios-entreno-peso', route: '/', state: mine, setup: async (page) => { await startSession(page); await skipWarmup(page); await page.locator('.chip', { hasText: 'Curl de bíceps' }).click(); } },
+  { name: 'propios-entreno-segundos', route: '/', state: mine, now: TUE, setup: async (page) => { await startSession(page); await skipWarmup(page); await page.locator('.chip', { hasText: 'Plancha lateral' }).click(); } },
+  { name: 'propios-sesion-detalle', route: `/sesion/${mineSessionId}`, state: mine },
+  { name: 'propios-progreso-peso', route: '/progreso', state: mine, setup: async (page) => { await page.locator('.body-card').scrollIntoViewIfNeeded(); await page.locator('.body-log summary').click(); } },
+  { name: 'nuevo-progreso-peso', route: '/progreso', state: baseState(), setup: async (page) => { await page.locator('.body-card').scrollIntoViewIfNeeded(); } },
+  { name: 'propios-ajustes-copia', route: '/ajustes', state: gymState({ backup: { last: NOW - 3 * DAY, count: 2 } }) },
 ];
 
 module.exports = { scenarios, baseState, richState, gymState, NOW };

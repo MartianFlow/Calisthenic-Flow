@@ -89,7 +89,7 @@ export function progressLine(points, {
           <text class="axis" x="${W - right + 4}" y="${targetY + 4}">obj. ${target}</text>` : ''}
         <path class="line" d="${line}"/>
         ${dots}
-        ${last ? `<text class="val" x="${xFor(points.length - 1)}" y="${yFor(last.value) - 9}" text-anchor="middle">${last.value}</text>` : ''}
+        ${last ? `<text class="val" x="${xFor(points.length - 1)}" y="${yFor(last.value) - 9}" text-anchor="middle">${String(last.value).replace('.', ',')}</text>` : ''}
         ${points.length ? `
           <text class="axis" x="${left}" y="${H - 5}">${shortDate.format(new Date(points[0].date)).replace('.', '')}</text>
           <text class="axis" x="${W - right}" y="${H - 5}" text-anchor="end">${shortDate.format(new Date(last.date)).replace('.', '')}</text>` : ''}

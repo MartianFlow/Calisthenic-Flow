@@ -1737,3 +1737,42 @@ body[data-route="bienvenida"] .view { gap: 16px; min-height: 100vh; min-height: 
   /* Sin la animación de dibujado, la línea tiene que verse ya completa. */
   .chart .line { stroke-dasharray: none; stroke-dashoffset: 0; }
 }
+
+/* ─────────── Mis ejercicios (v20) ─────────── */
+.text-input {
+  width: 100%; min-width: 0; max-width: 100%; font-size: 16px; padding: 12px; border-radius: 8px; font-weight: 700; font-family: inherit;
+  border: 2.5px solid var(--border); background: var(--surface-2); color: var(--text); box-shadow: 3px 3px 0 var(--shadow);
+}
+.text-input::placeholder, textarea::placeholder { color: var(--muted); font-weight: 600; }
+.text-input:focus, textarea:focus { outline: 3px solid var(--pink); outline-offset: 1px; }
+.custom-form { gap: 16px; }
+.custom-form .field small { font-family: inherit; }
+.range-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.range-box {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px; min-width: 0;
+  border-radius: 8px; background: var(--surface-2); border: 2.5px solid var(--border); box-shadow: 3px 3px 0 var(--shadow);
+}
+.range-box .stepper { width: 100%; }
+.range-box .val { min-width: 48px; font-size: 34px; }
+.range-box .step-btn { width: 40px; height: 40px; }
+.cx-danger { padding-top: 4px; border-top: 2px dashed var(--border); }
+.custom-new {
+  display: flex; flex-direction: row; align-items: center; gap: 12px; border-style: dashed; text-decoration: none; color: var(--text);
+}
+.custom-new > svg { flex: none; padding: 6px; width: 36px; height: 36px; border-radius: 8px; background: var(--lime); color: #000; border: 2.5px solid #000; }
+.custom-new strong { font-family: var(--display); font-weight: 400; font-size: 24px; letter-spacing: 0.04em; }
+.custom-new .block { display: block; }
+.custom-card h3 { font-size: 26px; overflow-wrap: anywhere; }
+.custom-card.archived { opacity: 0.7; }
+.archived-list { margin-top: 14px; }
+.archived-list summary { font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+.ex-row.custom-row .num { background: var(--lime); }
+.mini-chip.custom { background: color-mix(in srgb, var(--yellow) 35%, var(--surface)); }
+.backup-card { box-shadow: var(--pop) var(--pop) 0 var(--yellow), calc(var(--pop) + 3px) calc(var(--pop) + 3px) 0 var(--border); }
+.backup-card .small { font-weight: 600; }
+.backup-last { display: flex; align-items: center; gap: 6px; font-weight: 700; }
+.body-form { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.body-log summary { font-weight: 800; cursor: pointer; }
+.body-log ul { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.body-log li { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+.body-log .icon-btn { width: 34px; height: 34px; }

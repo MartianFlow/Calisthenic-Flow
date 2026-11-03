@@ -5,11 +5,12 @@ import { LIFT_BY_ID } from '../data/gym.js';
 import { getState, update } from '../store.js';
 import {
   itemComplete, finishActiveSession, lastPerformance, lastLift, lastAccessory, nextUnrated, itemName, warmupList, restSeconds, RATINGS, PRACTICE_ID, accInfo,
+  customOf, GROUPS,
 } from '../logic.js';
 import { esc, icon, fmtClock, unitLabel, toast, fmtKg, kgInput, parseKg, fmtSeries, fmtLiftSeries } from '../ui.js';
 import { navigate } from '../router.js';
 import { audio, vibrate, wakeLock } from '../device.js';
-import { videoCard } from '../video.js';
+import { videoCard, userVideoCard } from '../video.js';
 import { burst, bump, beat, replay, confetti } from '../fx.js';
 import { totalXP, levelInfo, syncAchievements, syncMissions, itemsUnlockedBy, personalRecords } from '../game.js';
 import { roleTag, theName } from './skills.js';
@@ -29,7 +30,7 @@ export function takeCelebration() { const v = pendingCelebration; pendingCelebra
 function chips(a) {
   const warm = `<button class="chip ${a.warmupDone ? 'done' : ''} ${!a.warmupDone ? 'current' : ''}" data-action="session-goto" data-index="-1">Calent.</button>`;
   const items = a.items.map((item, i) => {
-    const name = item.liftId ? LIFT_BY_ID[item.liftId]?.name : item.acc ? `+ ${accInfo(item.acc)?.name || ''}` : ROADMAP_BY_ID[item.roadmapId]?.name;
+    const name = item.customId ? itemName(item) : item.liftId ? LIFT_BY_ID[item.liftId]?.name : item.acc ? `+ ${accInfo(item.acc)?.name || ''}` : ROADMAP_BY_ID[item.roadmapId]?.name;
     const cls = [itemComplete(item) ? 'done' : '', a.warmupDone && a.current === i ? 'current' : '', item.acc ? 'acc' : ''].join(' ');
     return `<button class="chip ${cls}" data-action="session-goto" data-index="${i}">${itemComplete(item) ? icon('check', 14) : ''}${esc(name || '')}</button>`;
   }).join('');
@@ -75,7 +76,7 @@ function setRow(item, set, i) {
         <span class="val ${met ? 'met' : ''}">${set.value}<small>${unit}</small></span>
         <button class="step-btn" data-action="set-inc" data-set="${i}" aria-label="Más">${icon('plus', 18)}</button>
       </div>
-      ${item.liftId
+      ${item.liftId || item.load
         ? `<span class="set-kg">${esc(fmtKg(set.kg).replace(' kg', ''))}<small>kg</small></span>`
         : item.type !== 'hold' ? ''
           : !set.done
@@ -145,6 +146,49 @@ function liftCard(state, a, item) {
     </section>`;
 }
 
+// Ejercicio propio: como uno de gimnasio (rango, y peso si lo lleva) o con su cronómetro.
+function customCard(state, a, item) {
+  const c = customOf(item.customId, state);
+  const last = lastLift(state, item.customId);
+  const unit = (v) => unitLabel(item.type, v);
+  const lastText = last ? (item.load && last.loads.length ? fmtLiftSeries(last.sets, last.loads) : fmtSeries(item.type, last.sets)) : '';
+  return `
+    <section class="card exercise lift-card">
+      <div class="eyebrow">Tu ejercicio · ${esc([GROUPS[item.group]?.label, c?.muscle].filter(Boolean).join(' · '))}</div>
+      <h2>${esc(itemName(item))}</h2>
+      <div class="target-line">
+        <span class="pill accent">${icon('target', 16)} Hoy: ${item.plannedSets} × ${esc(unit(item.goal))}${item.side ? ' por lado' : ''}${item.load ? ` · ${esc(fmtKg(item.kg))}` : ''}</span>
+        <span class="muted small">Descanso ${fmtClock(restSeconds(state, item.rest))}</span>
+      </div>
+      <div class="muted small">Rango ${item.min}–${item.max}${item.type === 'hold' ? ' s' : ' reps'}. ${item.load
+        ? `Cuando hagas ${item.max} en todas las series, sube ${esc(fmtKg(c?.inc ?? 2.5))}.`
+        : `Tu valoración decide cuánto sube; arriba del rango, toca una variante más difícil.`}</div>
+      ${lastText ? `<div class="muted small">Última vez: ${esc(lastText)}</div>` : ''}
+      ${item.load ? `
+      <div class="load-row">
+        <span class="load-label">Peso</span>
+        <div class="stepper">
+          <button class="step-btn" data-action="load-dec" aria-label="Menos peso">${icon('minus', 18)}</button>
+          <label class="load-field">
+            <input class="load-input" type="text" inputmode="decimal" autocomplete="off" value="${esc(kgInput(item.kg))}" placeholder="—" data-change="load-set" aria-label="Peso en kg">
+            <small>kg</small>
+          </label>
+          <button class="step-btn" data-action="load-inc" aria-label="Más peso">${icon('plus', 18)}</button>
+        </div>
+      </div>
+      ${item.kg == null ? '<p class="muted small">Apunta el peso con el que trabajas: la app te dirá cuándo subirlo.</p>' : ''}` : ''}
+      ${userVideoCard(itemName(item), c?.video)}
+      ${c?.cues?.length ? `
+      <details class="cues">
+        <summary>${icon('info', 18)} Claves técnicas</summary>
+        <ul>${c.cues.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
+      </details>` : ''}
+      ${item.side ? '<p class="muted small">Haz cada serie con los dos lados y apunta el lado más débil.</p>' : ''}
+      <ol class="sets">${item.sets.map((x, i) => setRow(item, x, i)).join('')}</ol>
+      ${cardFooter(a, item)}
+    </section>`;
+}
+
 // Complementario de la habilidad de foco: series fijas, sin valoración ni progreso.
 function accCard(state, a, item) {
   const info = accInfo(item.acc) || { name: '', cues: [] };
@@ -188,6 +232,7 @@ function pairedSkill(a, i) {
 
 function exerciseCard(state, a) {
   const item = a.items[a.current];
+  if (item.customId) return customCard(state, a, item);
   if (item.liftId) return liftCard(state, a, item);
   if (item.acc) return accCard(state, a, item);
   const roadmap = ROADMAP_BY_ID[item.roadmapId];
@@ -460,7 +505,7 @@ function adjust(el, delta) {
 // Cambia el peso del ejercicio actual (y de las series que faltan por hacer).
 function setLoad(s, kg) {
   const item = s.active.items[s.active.current];
-  if (!item?.liftId) return;
+  if (!item?.liftId && !item?.load) return;
   item.kg = kg;
   for (const set of item.sets) if (!set.done) set.kg = kg;
 }
@@ -468,10 +513,10 @@ function setLoad(s, kg) {
 function changeLoad(dir) {
   update((s) => {
     const item = s.active.items[s.active.current];
-    const lift = LIFT_BY_ID[item?.liftId];
-    if (!lift) return;
+    const inc = LIFT_BY_ID[item?.liftId]?.inc ?? (item?.load ? customOf(item.customId, s)?.inc ?? 2.5 : null);
+    if (inc == null) return;
     const base = Number(item.kg) || 0;
-    setLoad(s, Math.max(0, Math.round((base + dir * lift.inc) * 100) / 100));
+    setLoad(s, Math.max(0, Math.round((base + dir * inc) * 100) / 100));
   });
   bump(document.querySelector('.load-field'));
 }
@@ -609,7 +654,7 @@ export const actions = {
       const item = s.active.items[s.active.current];
       const last = item.sets[item.sets.length - 1];
       const set = { value: last ? last.value : item.goal ?? item.target, done: false };
-      if (item.liftId) set.kg = item.kg;
+      if (item.liftId || item.load) set.kg = item.kg;
       item.sets.push(set);
     });
   },

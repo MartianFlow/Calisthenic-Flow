@@ -3,7 +3,7 @@
 import { ROADMAP_BY_ID } from '../data/roadmaps.js';
 import { LIFTS, LIFT_BY_ID } from '../data/gym.js';
 import { getState, update } from '../store.js';
-import { stepOf, liftState, isGymLegs, sessionsInWeek, startOfWeek, skillRole, skillPicks } from '../logic.js';
+import { stepOf, liftState, isGymLegs, sessionsInWeek, startOfWeek, skillRole, skillPicks, customOf } from '../logic.js';
 import {
   WEEKDAYS, WD_SHORT, DEFAULT_DAYS, DAY_INFO, recommendDays, buildWeek, weekdayIndex,
   swapWeekDays, weekChanged, weekWarning,
@@ -66,6 +66,11 @@ function chipFor(d, id) {
   if (lift) {
     const kg = liftState(getState(), id).kg;
     return `<a class="mini-chip lift" href="#/ejercicio/${id}">${esc(lift.name)}${kg != null ? `<small> · ${esc(fmtKg(kg))}</small>` : ''}</a>`;
+  }
+  const c = customOf(id);
+  if (c) {
+    const kg = c.load ? liftState(getState(), id).kg : null;
+    return `<a class="mini-chip custom" href="#/ejercicio/${esc(id)}">${esc(c.name)}${kg != null ? `<small> · ${esc(fmtKg(kg))}</small>` : '<small> · tuyo</small>'}</a>`;
   }
   const r = ROADMAP_BY_ID[id];
   if (!r) return '';
@@ -282,7 +287,7 @@ export const actions = {
 export const changes = {
   'lift-kg'(el) {
     const id = el.dataset.id;
-    if (!LIFT_BY_ID[id]) return;
+    if (!LIFT_BY_ID[id] && !customOf(id)?.load) return;
     const kg = parseKg(el.value);
     if (Number.isNaN(kg)) { toast('Escribe el peso en kg, por ejemplo 62,5'); return; }
     el.value = kgInput(kg);
