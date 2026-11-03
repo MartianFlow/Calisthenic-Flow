@@ -78,6 +78,7 @@ El contexto de la persona y de sus peticiones. Las decisiones técnicas que sale
     - En Hoy se elige cualquier rutina del plan con un toque, en los días de descanso y al editar. Sustituye a «Cambiar de día», que iba rotando.
 23. **¿Las rutinas actuales son la mejor forma de mejorar en las habilidades?** Investigación con fuentes en `docs/investigacion-habilidades.md`: el calendario acierta, pero faltan complementarios por habilidad, volumen en los aguantes difíciles, descanso propio de las habilidades y práctica frecuente del pino. Propone 14 cambios.
     - **Decisión del usuario:** hacer todos menos el n.º 2. El descanso sigue fijo en 80 s para todo. Pidió documentarlo para hacerlo después de compactar la sesión: plan en `plan-habilidades.md`.
+24. **«Quiero centrarme en aprender una sola habilidad y mantener o fortalecer las que ya sé»**: en su caso, aprender el pino libre y mantener o mejorar el muscle-up y el front lever. Diseño en `plan-habilidades.md` («Petición 24»), por hacer junto al resto del plan después de compactar.
 
 ## Pendiente de confirmar con el usuario
 

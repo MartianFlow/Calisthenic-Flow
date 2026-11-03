@@ -4,7 +4,7 @@ La investigación con fuentes está en `docs/investigacion-habilidades.md`, en �
 
 ## Decisión del usuario (3/11/2026)
 
-- **Hacer todos los cambios recomendados, salvo el n.º 2.**
+- **Hacer todos los cambios recomendados, salvo el n.º 2, más el modelo de foco y mantenimiento** (petición 24, sección siguiente).
 - **El descanso sigue fijo en 80 s para todo, también en las habilidades** («el tiempo de descanso lo quiero seguir manteniendo así»).
   - No tocar `restSeconds` ni hacer que las habilidades descansen más.
   - Con la alternancia (cambio 10, aquí «B»), cada habilidad descansa entre sus series: 80 s + la serie de la otra + 80 s, unos 3 min. Así se recupera el descanso recomendado sin tocar los 80 s. Por eso la alternancia va pronto.
