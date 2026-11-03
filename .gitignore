@@ -3,3 +3,7 @@ node_modules/
 test-results/
 playwright-report/
 blob-report/
+
+# Notas e informes de trabajo de las investigaciones (el informe final se guarda en docs/)
+research_notes/
+reports/
