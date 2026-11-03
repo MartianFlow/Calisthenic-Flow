@@ -26,12 +26,17 @@ Documento de referencia para continuar el trabajo en sesiones futuras. Resume qu
   14. **Ver un ejercicio sin empezar el entreno.**
       - Los ejercicios de Hoy y del Plan semanal son enlaces: los de calistenia van a `#/ruta/:id`, que ahora muestra arriba el vídeo y las claves del paso actual.
       - Los de gimnasio van a `#/ejercicio/:id` (`views/exercise.js`): vídeo, objetivo, peso editable, claves y un historial con la gráfica del peso.
+  15. **«Toco el ejercicio y no pasa nada».** Era la versión antigua guardada en su iPhone. Se cambió la forma de actualizar (versión 9, ver Despliegue).
+      - Se le pidió cerrar la app del todo y abrirla dos veces, y comprobar en Ajustes que pone «versión 9». **Falta que lo confirme.**
+  16. **Lo siguiente que quiere:** una **serie de pruebas exhaustivas**. Ver la sección «Siguiente paso: pruebas exhaustivas».
+- **Usa la app en su iPhone real.** En una captura suya se veía el tema oscuro y el plan con «Pierna» el lunes y descanso el martes, así que tiene sus propios días configurados.
 
 ## Despliegue
 
 - **Repositorio:** `MartianFlow/Calisthenic-Flow` (público), rama `main`. Se trabaja y se sube directamente a `main`, que es lo que el usuario espera.
 - **Publicación:** GitHub Pages con *Deploy from a branch → main → / (root)*, en `https://martianflow.github.io/Calisthenic-Flow/`.
-  - El usuario debía activarlo a mano y dijo "listo", pero no se ha podido verificar: github.io está bloqueado desde el entorno cloud.
+  - Está activo: cada push lanza «pages build and deployment», y el usuario usa la app desde ahí.
+  - Desde el entorno cloud no se puede abrir github.io (proxy). El despliegue se comprueba con la API: `curl -s "https://api.github.com/repos/MartianFlow/Calisthenic-Flow/actions/runs?per_page=4"`.
 - **Instalación en el iPhone:** Safari → Compartir → Añadir a pantalla de inicio.
 - **Actualizaciones** (cambiado en la versión 9, porque el usuario seguía viendo la versión vieja en su iPhone):
   - El service worker usa **primero la red** con `cache: 'no-cache'` y cae a la caché si no hay conexión o pasan 3 s.
@@ -76,6 +81,7 @@ js/data/gym.js           Pierna en el gimnasio: 9 ejercicios con kg (LIFTS), LEG
 js/views/*.js            home, session, roadmaps, progress (+resumen/detalle), calendar, settings (+onboarding), hero (+logros/equipo), plan, exercise (ficha de gimnasio)
 docs/                    Investigación con fuentes (principios, progresiones y pierna en el gimnasio)
 tests/e2e/               49 pruebas Playwright + fixtures.js
+tests/tools/             simular-actualizacion.js: simula la actualización de la app instalada (no es parte de test:e2e)
 .github/workflows/e2e.yml  CI: Chromium + WebKit en cada push
 ```
 
@@ -261,8 +267,8 @@ Cada sesión del historial guarda:
   - `hspu/cajon` y `lsit/pies-apoyados`;
   - `frontlever/half-lay`.
   - Para añadirlos, editar `js/data/videos.js`.
-- **Los 87 vídeos no se han verificado:** se eligieron por el título que mostraba el buscador. Algunos pueden ser demostraciones sin voz o no permitir incrustarlos.
-- **No se ha probado en un iPhone real.** Solo en emulación con Chromium y WebKit.
+- **Los 87 vídeos de calistenia y los 9 de gimnasio no se han verificado:** se eligieron por el título que mostraba el buscador. Algunos pueden ser demostraciones sin voz o no permitir incrustarlos.
+- **iPhone real:** el usuario ya la usa, pero cada función nueva solo se ha probado en emulación (Chromium en local, WebKit en CI).
 - **La investigación solo usó resúmenes de búsqueda.** Los puntos dudosos están marcados como `[criterio propio]` o `[sin fuente verificada]` en `docs/`.
 - **El aviso sonoro del descanso** solo suena con la app en pantalla: iOS suspende las PWA en segundo plano y no hay notificaciones push.
 - **Ideas no hechas:**
@@ -271,6 +277,68 @@ Cada sesión del historial guarda:
   - superseries de antagonistas, que ahorrarían un 30–40 % de tiempo;
   - artículos de lectura sobre técnica (el usuario dijo "artículos" y se interpretó como objetos para equipar);
   - pregunta de dificultad por serie en vez de por ejercicio.
+
+## Siguiente paso: pruebas exhaustivas (lo pidió el usuario)
+
+### Qué cubren hoy las 49 pruebas
+
+| Archivo | Pruebas |
+|---|---|
+| `onboarding.spec.js` (3) | Bienvenida; guardar niveles, objetivos y días; máximo 3 objetivos |
+| `workout.spec.js` (3) | Flujo completo con isometría, descanso, valoración y resumen; recargar a mitad; +/− y descartar |
+| `progression.spec.js` (7) | Fácil +2, Normal +1, Fácil en la meta sube de paso, 2 pases en habilidades, recalibrado, reinicio al 80 %, descanso por paso |
+| `plan.spec.js` (6) | Recomendación a principiantes; nivel con habilidades; cambiar días; front lever sin días seguidos; día de descanso; «Misión cumplida» |
+| `gym.spec.js` (9) | Semana L–V; separación de 72 h con el sábado; recomendación de 5 días y 9 pesos; coma decimal; subida de peso; bajada de ~10 %; cambio de peso a mitad; ficha desde Hoy; ruta desde el Plan |
+| `navigation.spec.js` (9) | 14 rutas; visor de vídeo; búsqueda sin vídeo; nivel a mano; calendario; progreso; pestañas; tema forzado oscuro y claro |
+| `gamification.spec.js` (5) | Héroe; logros al abrir; artículos bloqueados; apariencia y nombre; mini héroe |
+| `deload.spec.js` (2) | Sugerencia por estancamiento y efecto; «Ahora no» |
+| `data.spec.js` (5) | Migración v1; exportar e importar; borrar datos; sin conexión (solo Chromium); versión igual en sw.js y version.js |
+
+### Huecos detectados (candidatos para las pruebas nuevas)
+
+- **Gimnasio, progresión:**
+  - Consolidar en un multiarticular (hack o piernas rígidas en el tope con Difícil) frente a una máquina `failureOk` (en el tope con Difícil, sube).
+  - `no-kg` (tope del rango sin peso apuntado).
+  - Estancamiento de 3 sesiones: −10 % y vuelta al mínimo.
+  - Descarga con ejercicios de gimnasio: una serie menos, −10 %, mínimo del rango y `outcome: deload`.
+- **Gimnasio, interfaz:**
+  - `set-add` copia el peso; botón «−» del peso; peso no válido muestra un aviso.
+  - Calentamiento de pierna y `warmupFull`.
+  - Gráfica e historial de la ficha con 2 o más sesiones; editar el peso en la ficha.
+- **Plan:**
+  - Variantes de `gymDays` (2, 3, 4, 6 y 7 días y días sueltos).
+  - `nextDayType` sin plan semanal en modo gimnasio.
+  - «Cambiar de día» TA → TB → P; volver a «Calistenia» recupera A/B.
+  - Bienvenida eligiendo Gimnasio.
+  - 3 objetivos rotando solo en días de torso.
+  - «Añadir ejercicio» con los de gimnasio.
+- **Nivel:** los cortes del 30 % y el 60 %; que el modo gimnasio excluya `piernas` y `bisagra`; la base de cada habilidad.
+- **Gamificación:**
+  - XP por subida de peso (+30).
+  - Logros `dia-pierna`, `pierna-25` y `mas-peso`.
+  - Atributo Piernas con las subidas de peso; título «¡MÁS PESO!» en el resumen.
+- **Datos:**
+  - Exportar e importar con `lifts` y `theme`.
+  - `normalize` con `lifts` o `theme` no válidos.
+  - Sesiones antiguas `PA`/`PB` en el historial (`dayLabel`).
+  - Calendario y progreso con ejercicios de gimnasio.
+- **Tema:** el script en línea de index.html aplica el tema antes de pintar; `theme-color` en automático.
+- **Actualización:**
+  - El botón «Actualizar la app».
+  - Que durante un entreno espere a salir de `/entreno`.
+  - `tests/tools/simular-actualizacion.js` como prueba automática, o al menos ejecutado antes de cada publicación.
+- **Movimiento reducido:** la línea de la gráfica visible (`stroke-dashoffset: 0`).
+- **Maquetación:**
+  - Ninguna pantalla con desbordamiento horizontal (`scrollWidth <= innerWidth`) en todas las rutas, a 375×667 (iPhone SE) y 390×844.
+  - Capturas en claro y oscuro. Ya se encontró una vez una fila de serie que se salía (la de gimnasio).
+- **Robustez:** fechas en cambio de semana y de año (semana ISO 53 o 1); sesiones de más de 3 h; historial grande (cientos de sesiones).
+
+### Trucos aprendidos
+
+- `page.waitForFunction` **no espera** a una función `async`: la promesa cuenta como verdadera. Hay que hacer el bucle en Node con `page.evaluate`.
+- Si falta un archivo de `ASSETS` (por ejemplo, uno sin commit al copiar con `git ls-files` sin `--others`), la instalación del service worker falla entera y se queda la versión vieja.
+- Una vista que solo cambia el hash (`#/…`) no recarga la página: el estado del módulo, como `pendingReload`, se mantiene.
+- Si las pruebas empiezan en `/`, tras «Volver» la URL queda sin `#/`. Comprueba el encabezado en vez de la URL.
 
 ## Forma de trabajar que ha funcionado
 
