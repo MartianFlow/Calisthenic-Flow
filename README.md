@@ -78,6 +78,8 @@ Estilo cómic de alto contraste, con:
 
 Respeta el ajuste del iPhone «Reducir movimiento». Tiene tema oscuro y claro automáticos.
 
+Está probado pantalla por pantalla en anchos de 320 a 430 px, que cubren todos los iPhone. La comprobación automática busca textos que se pisen, botones que se corten, contenido que se salga de la pantalla o quede tapado por las barras, y poco contraste.
+
 ## Investigación
 
 El razonamiento y las fuentes de cada decisión están en:
@@ -100,6 +102,7 @@ La carpeta [`tests/e2e`](tests/e2e) tiene una batería de pruebas con [Playwrigh
 | `navigation.spec.js` | Rutas, visor de vídeo, búsqueda en YouTube, cambio manual de nivel, calendario, progreso, pestañas y tema claro u oscuro |
 | `deload.spec.js` | Sugerencia y efecto de la semana de descarga |
 | `data.spec.js` | Migración desde la v1, exportar e importar la copia, borrar datos y funcionamiento sin conexión |
+| `layout.spec.js` | Diseño en móvil: 86 pantallas y estados a 320, 375, 390 y 430 px. Comprueba que nada se sale de la pantalla, que ningún texto se pisa, se corta o se sale de su botón, que nada queda tapado por las barras y que el contraste es suficiente |
 
 Las pruebas usan un reloj fijo (lunes 2/11/2026) y bloquean internet, así que siempre dan el mismo resultado. Además fallan si la app lanza cualquier error de JavaScript.
 
@@ -112,6 +115,13 @@ npm run test:e2e            # todas, con Chromium y WebKit (Safari)
 npm run test:e2e:webkit     # solo WebKit
 npm run test:e2e:ui         # modo visual: ves cada paso en el navegador
 npm run test:e2e:report     # informe HTML de la última ejecución
+```
+
+**Auditoría del diseño con capturas** (genera `test-results/diseno/` con un informe y una captura de cada pantalla):
+
+```bash
+node tests/tools/auditar-diseno.js              # 320, 375, 390 y 430 px, claro y oscuro
+node tests/tools/auditar-diseno.js --notch      # como la app instalada en un iPhone con notch
 ```
 
 **En GitHub** se ejecutan solas en cada cambio (pestaña *Actions* → *Pruebas e2e*). Si alguna falla, el informe con capturas y trazas se descarga desde la propia ejecución.

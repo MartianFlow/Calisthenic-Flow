@@ -29,6 +29,17 @@ Documento de referencia para continuar el trabajo en sesiones futuras. Resume qu
   15. **«Toco el ejercicio y no pasa nada».** Era la versión antigua guardada en su iPhone. Se cambió la forma de actualizar (versión 9, ver Despliegue).
       - Se le pidió cerrar la app del todo y abrirla dos veces, y comprobar en Ajustes que pone «versión 9». **Falta que lo confirme.**
   16. **Lo siguiente que quiere:** una **serie de pruebas exhaustivas**. Ver la sección «Siguiente paso: pruebas exhaustivas».
+  17. **«Hay cosas que no se ven bien o se solapan» en el móvil** (versión 10). Se auditaron todas las pantallas y estados a 320, 375, 390 y 430 px, en claro, oscuro y con notch. Ver «Maquetación en móvil».
+      - **Fallos encontrados y corregidos:**
+        - el botón «Empezar entreno» de Hoy cortaba su texto e icono;
+        - en las filas de series, el ✓ se salía de la tarjeta (gimnasio e isometrías);
+        - «Finalizar entreno» no cabía;
+        - al editar el plan de Hoy, los textos se montaban y el desplegable se salía;
+        - «Automático» se salía de su botón;
+        - el candado de Ajustes partía la línea;
+        - las mayúsculas pixel con tilde parecían minúsculas («TIRóN»);
+        - el detalle del calendario y las duraciones largas se partían mal;
+        - a 320 px se salían los días de la semana.
 - **Usa la app en su iPhone real.** En una captura suya se veía el tema oscuro y el plan con «Pierna» el lunes y descanso el martes, así que tiene sus propios días configurados.
 
 ## Despliegue
@@ -43,7 +54,7 @@ Documento de referencia para continuar el trabajo en sesiones futuras. Resume qu
   - Instala con `cache: 'reload'`, para no coger archivos de la caché HTTP de GitHub Pages (10 min).
   - Al volver a la app (`visibilitychange`) se llama a `reg.update()`. Si una versión nueva toma el control (`controllerchange`), la app se recarga sola; durante un entreno espera a salir de `/entreno`.
   - En Ajustes se ve la versión («versión 9») y hay un botón «Actualizar la app».
-  - **En cada publicación hay que subir la versión en dos sitios:** `VERSION` de `sw.js` y `APP_VERSION` de `js/version.js`. Ahora es `cf-v9`, y una prueba de `data.spec.js` comprueba que coincidan.
+  - **En cada publicación hay que subir la versión en dos sitios:** `VERSION` de `sw.js` y `APP_VERSION` de `js/version.js`. Ahora es `cf-v10`, y una prueba de `data.spec.js` comprueba que coincidan.
   - Sin subir la versión, al abrir la app en frío ya se ve lo nuevo (red primero), pero al volver de segundo plano no se recarga sola.
   - **Al añadir archivos**, hay que incluirlos también en `ASSETS` de `sw.js`. Si falta uno, la instalación falla entera.
   - **Paso de la versión 8 a la 9 en el iPhone:** el service worker antiguo servía primero la caché, así que la versión nueva se ve a la **segunda** apertura. Hay que cerrar la app del todo desde el selector de apps.
@@ -80,8 +91,10 @@ js/data/legacy.js        Nombres de pasos v1 para migrar progreso
 js/data/gym.js           Pierna en el gimnasio: 9 ejercicios con kg (LIFTS), LEG_DAYS (P = rutina completa) y LEG_WARMUP
 js/views/*.js            home, session, roadmaps, progress (+resumen/detalle), calendar, settings (+onboarding), hero (+logros/equipo), plan, exercise (ficha de gimnasio)
 docs/                    Investigación con fuentes (principios, progresiones y pierna en el gimnasio)
-tests/e2e/               49 pruebas Playwright + fixtures.js
-tests/tools/             simular-actualizacion.js: simula la actualización de la app instalada (no es parte de test:e2e)
+tests/e2e/               135 pruebas Playwright (49 funcionales + 86 de maquetación en layout.spec.js) + fixtures.js
+tests/tools/             simular-actualizacion.js (actualización de la app instalada) y auditoría de diseño:
+                         auditar-diseno.js (capturas + informe), comprobar-diseno.js (las comprobaciones),
+                         escenarios-diseno.js (pantallas y estados que se recorren)
 .github/workflows/e2e.yml  CI: Chromium + WebKit en cada push
 ```
 
@@ -225,6 +238,33 @@ Cada sesión del historial guarda:
   - `C` es el color del artículo; los colores fijos están en `FIXED`.
   - Los bloqueados se pintan con `silhouette`.
 
+### Maquetación en móvil (reglas tras la auditoría de la versión 10)
+
+- **Anchos que deben funcionar:**
+  - 320 px: iPhone SE de 1.ª generación, o cualquier iPhone con «Zoom de pantalla».
+  - 375 px: SE de 2.ª y 3.ª generación.
+  - 390 px: iPhone 12 a 16.
+  - 430 px: Pro Max.
+  - Por debajo de 360 px hay un bloque `@media (max-width: 359px)` al final del CSS: menos padding, letras algo menores y filas de series más compactas.
+- **Botones:** `.btn` puede pasar a dos líneas (`text-wrap: balance`) si no cabe; es mejor que salirse. `.btn.small` no se parte (`nowrap`).
+  - Si un botón principal comparte fila, el secundario va solo con icono: `.btn.square` (52 px, con `aria-label`). Así están «Editar»/«Listo» en Hoy y «Anterior» en el entreno.
+- **Filas de series (`.set`):** la unidad va debajo del número (`.set .val small`).
+  - Solo las isometrías llevan cronómetro o hueco (`.spacer`); las de repeticiones no.
+  - A 375 px caben: número 28, −/+ 44, valor 52, cronómetro o kg 40–42 y ✓ 48.
+- **Filas de Hoy (`.ex-row`):** son una rejilla de 3 columnas.
+  - El objetivo es compacto: «3 × 8» y debajo «seg /lado» y «meta 10».
+  - Los botones de edición van en una segunda línea.
+- **Textos:**
+  - «Última vez» lleva la unidad una sola vez: `fmtSeries` («16 · 16 · 15 s») y `fmtLiftSeries` («117,5 kg × 9 · 8 · 7»).
+  - Las duraciones grandes usan `fmtDurationHtml`, con las unidades en `<small>`.
+- **Iconos dentro de un texto:** `.icon` es `inline-block`. En flex o grid se comporta como bloque, así que un candado dentro de un párrafo ya no parte la línea.
+- **Rejillas de 7 días:** `repeat(7, minmax(0, 1fr))`. Con `1fr` a secas, el contenido mínimo las ensancha.
+- **`select` dentro de `.field`:** necesita `min-width: 0`, porque si no la opción más larga ensancha la tarjeta.
+- **Letra pixel:** Press Start 2P dibuja las mayúsculas con tilde más bajas y parecen minúsculas.
+  - `pixelCaps()` (app.js) quita la tilde en `.px-h`, `.px-sub`, `.px-title`, `.px-attr-label`, `.px-btn`, `.px-tabs button` y `.px-rarity`.
+  - La ñ se mantiene.
+  - Si añades otra clase pixel en mayúsculas, inclúyela en `PX_CAPS`.
+
 ## Pruebas e2e
 
 - **Comandos:** `npm install`, luego `npx playwright test --project=iphone-chromium`. En el entorno cloud solo hay Chromium; WebKit corre en CI.
@@ -235,8 +275,20 @@ Cada sesión del historial guarda:
   - **Errores:** falla si hay errores de JS.
   - **Ayudantes:** `seed()` (vía addInitScript, solo en el frame superior y una vez por pestaña), `makeState()`, `pastSession()`, `trainOnly()`, `completeCurrentExercise()` (solo las series del ejercicio actual) y `rate()`.
 - **Configuración:** `reducedMotion: 'reduce'` (las animaciones infinitas hacen que los elementos no sean "estables"). Los artículos bloqueados llevan `aria-disabled` y para pulsarlos hay que usar `click({ force: true })`.
-- **Resultados:** 49 pruebas.
+- **Resultados:** 135 pruebas: 49 funcionales y 86 de maquetación.
   - `gym.spec.js` cubre el modo de pierna en el gimnasio.
+  - **`layout.spec.js`** recorre los 86 escenarios de `tests/tools/escenarios-diseno.js` a 320, 375, 390 y 430 px con las comprobaciones de `tests/tools/comprobar-diseno.js`:
+    - scroll horizontal y elementos fuera de la pantalla;
+    - texto, icono o caja que se sale de la caja que lo contiene;
+    - texto recortado y textos que se pisan;
+    - contenido tapado siempre por una barra fija;
+    - contraste menor que 3:1.
+  - La letra San Francisco se sustituye por Inter. CI instala `fonts-inter`.
+  - **Pantalla o estado nuevo:** añádelo a `escenarios-diseno.js`.
+  - **Auditoría con capturas:** `node tests/tools/auditar-diseno.js [--anchos=320,375,390,430] [--temas=dark,light] [--capturas=375,390] [--notch] [--solo=texto]`.
+    - Escribe `test-results/diseno/informe.txt` y una captura por pantalla.
+    - `--notch` simula la app instalada (márgenes seguros de 47 y 34 px).
+    - Para revisar las capturas sirve juntarlas en hojas de 3 o 4 con PIL.
   - En `navigation.spec.js` están las del tema forzado, con `colorScheme` claro y oscuro.
   - **En CI:** pasan todas en Chromium y todas menos una en WebKit. La prueba sin conexión se salta en WebKit por una limitación de Playwright: `setOffline` con service worker da un error interno al recargar.
 - **CI:** `.github/workflows/e2e.yml`.
@@ -280,7 +332,7 @@ Cada sesión del historial guarda:
 
 ## Siguiente paso: pruebas exhaustivas (lo pidió el usuario)
 
-### Qué cubren hoy las 49 pruebas
+### Qué cubren hoy las pruebas funcionales (49) y la de maquetación (86 escenarios)
 
 | Archivo | Pruebas |
 |---|---|
@@ -293,6 +345,7 @@ Cada sesión del historial guarda:
 | `gamification.spec.js` (5) | Héroe; logros al abrir; artículos bloqueados; apariencia y nombre; mini héroe |
 | `deload.spec.js` (2) | Sugerencia por estancamiento y efecto; «Ahora no» |
 | `data.spec.js` (5) | Migración v1; exportar e importar; borrar datos; sin conexión (solo Chromium); versión igual en sw.js y version.js |
+| `layout.spec.js` (86) | Todas las pantallas y estados a 320, 375, 390 y 430 px:<br>• bienvenida, Hoy (normal, editando, descanso, hecho, descargas y entreno a medias), calendario y su detalle, las 14 rutas, Héroe, Logros, Equipo, Progreso, sesión, resumen, Ajustes y Plan con 3, 4 y 6 días;<br>• entreno: calentamiento, isometría, cronómetro, descanso, valorar, valorar al terminar, vídeo y último ejercicio;<br>• gimnasio: Hoy, Plan, las 9 fichas, entreno, descanso, valorar, resumen y calendario |
 
 ### Huecos detectados (candidatos para las pruebas nuevas)
 
@@ -328,9 +381,7 @@ Cada sesión del historial guarda:
   - Que durante un entreno espere a salir de `/entreno`.
   - `tests/tools/simular-actualizacion.js` como prueba automática, o al menos ejecutado antes de cada publicación.
 - **Movimiento reducido:** la línea de la gráfica visible (`stroke-dashoffset: 0`).
-- **Maquetación:**
-  - Ninguna pantalla con desbordamiento horizontal (`scrollWidth <= innerWidth`) en todas las rutas, a 375×667 (iPhone SE) y 390×844.
-  - Capturas en claro y oscuro. Ya se encontró una vez una fila de serie que se salía (la de gimnasio).
+- **Maquetación:** hecho en la versión 10 (`layout.spec.js`). Falta probar en WebKit real del iPhone (en CI se usa el WebKit de Playwright).
 - **Robustez:** fechas en cambio de semana y de año (semana ISO 53 o 1); sesiones de más de 3 h; historial grande (cientos de sesiones).
 
 ### Trucos aprendidos
@@ -339,6 +390,13 @@ Cada sesión del historial guarda:
 - Si falta un archivo de `ASSETS` (por ejemplo, uno sin commit al copiar con `git ls-files` sin `--others`), la instalación del service worker falla entera y se queda la versión vieja.
 - Una vista que solo cambia el hash (`#/…`) no recarga la página: el estado del módulo, como `pendingReload`, se mantiene.
 - Si las pruebas empiezan en `/`, tras «Volver» la URL queda sin `#/`. Comprueba el encabezado en vez de la URL.
+- **Con el reloj simulado** (`page.clock.install`), `page.waitForFunction` y `page.waitForURL` tras un cambio de hash pueden no avanzar. Espera desde Node: un bucle con `page.evaluate` y `page.waitForTimeout`.
+- En las pruebas no hay tiempo límite por acción: un `click()` sobre un elemento que ya no existe espera hasta agotar los 45 s de la prueba.
+- **Al sembrar datos:** hazlo antes de que cargue la app (`addInitScript`). Si se cargan después, la app ya ha redirigido a `#/bienvenida` y al recargar se queda allí.
+- **Pistas falsas en la auditoría:**
+  - El contenido de un `<details>` cerrado tiene posiciones aunque no se pinta.
+  - Las insignias con `position: absolute` sobresalen a propósito.
+  - En las capturas de página entera, la tab bar fija sale a media página.
 
 ## Forma de trabajar que ha funcionado
 

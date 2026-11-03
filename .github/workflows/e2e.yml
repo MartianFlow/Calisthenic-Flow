@@ -20,6 +20,9 @@ jobs:
       - run: npm ci
       - name: Instalar navegadores
         run: npx playwright install --with-deps chromium webkit
+      # Inter sustituye a San Francisco (la letra del iPhone) en la prueba de maquetación
+      - name: Instalar la fuente Inter
+        run: sudo apt-get install -y fonts-inter
       - name: Ejecutar pruebas
         run: npx playwright test
       - name: Guardar informe

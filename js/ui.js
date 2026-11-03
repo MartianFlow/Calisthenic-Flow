@@ -20,6 +20,11 @@ export function fmtClock(totalSeconds) {
 
 export const fmtRest = (sec) => (sec >= 60 ? fmtClock(sec) : `${sec} s`);
 
+// Duración para las cifras grandes, con las unidades en pequeño: 21 h 36 min.
+export function fmtDurationHtml(totalSeconds) {
+  return esc(fmtDuration(totalSeconds)).replace(/ (h|min)\b/g, ' <small>$1</small>');
+}
+
 export function fmtDuration(totalSeconds) {
   const min = Math.round(totalSeconds / 60);
   if (min < 1) return '<1 min';
@@ -40,6 +45,22 @@ export const fmtTime = (ts) => timeFmt.format(new Date(ts));
 export function unitLabel(type, value) {
   if (type === 'hold') return `${value} s`;
   return `${value} ${value === 1 ? 'rep' : 'reps'}`;
+}
+
+// Series seguidas con la unidad una sola vez: «16 · 16 · 15 s», «6 · 6 · 5 reps».
+export function fmtSeries(type, values) {
+  if (!values?.length) return '';
+  const last = values[values.length - 1];
+  return `${values.join(' · ')} ${type === 'hold' ? 's' : values.length === 1 && last === 1 ? 'rep' : 'reps'}`;
+}
+
+// Series de gimnasio. Con el mismo peso en todas: «117,5 kg × 9 · 8 · 7»;
+// si cambia: «100 kg × 8 · 105 kg × 6».
+export function fmtLiftSeries(sets, loads = []) {
+  if (!sets?.length) return '';
+  const same = loads.length && loads.every((v) => v === loads[0]);
+  if (same) return `${fmtKg(loads[0])} × ${sets.join(' · ')}`;
+  return sets.map((v, i) => `${fmtKg(loads[i])} × ${v}`).join(' · ');
 }
 
 // Peso con coma decimal: 62,5 kg. Sin peso apuntado: «— kg».

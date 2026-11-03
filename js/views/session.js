@@ -4,7 +4,7 @@ import { ROADMAP_BY_ID } from '../data/roadmaps.js';
 import { LIFT_BY_ID } from '../data/gym.js';
 import { getState, update } from '../store.js';
 import { itemComplete, finishActiveSession, lastPerformance, lastLift, nextUnrated, itemName, warmupList, RATINGS } from '../logic.js';
-import { esc, icon, fmtClock, unitLabel, toast, fmtKg, kgInput, parseKg } from '../ui.js';
+import { esc, icon, fmtClock, unitLabel, toast, fmtKg, kgInput, parseKg, fmtSeries, fmtLiftSeries } from '../ui.js';
 import { navigate } from '../router.js';
 import { audio, vibrate, wakeLock } from '../device.js';
 import { videoCard } from '../video.js';
@@ -42,8 +42,7 @@ function warmupCard(a) {
           const on = a.warmupChecks.includes(i);
           return `<li><button class="check-item ${on ? 'on' : ''}" data-action="warmup-check" data-i="${i}">
             <span class="box">${on ? icon('check', 16) : ''}</span>
-            <span class="grow">${esc(w.name)}</span>
-            <span class="muted small">${esc(w.detail)}</span>
+            <span class="grow"><span class="check-name">${esc(w.name)}</span><span class="muted small block">${esc(w.detail)}</span></span>
           </button></li>`;
         }).join('')}
       </ul>
@@ -67,9 +66,10 @@ function setRow(item, set, i) {
       </div>
       ${item.liftId
         ? `<span class="set-kg">${esc(fmtKg(set.kg).replace(' kg', ''))}<small>kg</small></span>`
-        : item.type === 'hold' && !set.done
-          ? `<button class="icon-btn timer-btn" data-action="hold-start" data-set="${i}" aria-label="Cronometrar">${icon('timer', 20)}</button>`
-          : '<span class="spacer"></span>'}
+        : item.type !== 'hold' ? ''
+          : !set.done
+            ? `<button class="icon-btn timer-btn" data-action="hold-start" data-set="${i}" aria-label="Cronometrar">${icon('timer', 20)}</button>`
+            : '<span class="spacer"></span>'}
       <button class="check-btn ${set.done ? 'on' : ''}" data-action="set-toggle" data-set="${i}" aria-label="${set.done ? 'Desmarcar serie' : 'Serie hecha'}">${icon('check', 22)}</button>
     </li>`;
 }
@@ -89,7 +89,7 @@ function cardFooter(a, item) {
           ${ratingButtons(a.current, item.rating, true)}
         </div>` : ''}
       <div class="row gap nav-row">
-        <button class="btn ghost" data-action="session-prev" ${a.current === 0 ? 'disabled' : ''}>${icon('back', 18)} Anterior</button>
+        <button class="btn ghost square" data-action="session-prev" aria-label="Ejercicio anterior" title="Anterior" ${a.current === 0 ? 'disabled' : ''}>${icon('back', 20)}</button>
         ${isLast
           ? `<button class="btn primary grow" data-action="session-finish">${icon('check', 18)} Finalizar entreno</button>`
           : `<button class="btn ghost grow" data-action="session-next">Siguiente ${icon('next', 18)}</button>`}
@@ -101,9 +101,7 @@ function liftCard(state, a, item) {
   const lift = LIFT_BY_ID[item.liftId];
   const last = lastLift(state, item.liftId);
   const kg = item.kg;
-  const lastText = last
-    ? last.sets.map((v, i) => `${fmtKg(last.loads[i])} × ${v}`).join(' · ')
-    : '';
+  const lastText = last ? fmtLiftSeries(last.sets, last.loads) : '';
   return `
     <section class="card exercise lift-card">
       <div class="eyebrow">Gimnasio · ${esc(lift.muscle)}</div>
@@ -152,7 +150,7 @@ function exerciseCard(state, a) {
         <span class="muted small">Descanso ${fmtClock(item.rest)}</span>
       </div>
       ${goal < item.target ? `<div class="muted small">Meta del paso: ${item.plannedSets} × ${esc(unitLabel(item.type, item.target))}. Tu valoración decide cuánto sube el objetivo.</div>` : ''}
-      ${last ? `<div class="muted small">Última vez: ${last.map((v) => unitLabel(item.type, v)).join(' · ')}</div>` : ''}
+      ${last ? `<div class="muted small">Última vez: ${esc(fmtSeries(item.type, last))}</div>` : ''}
       ${videoCard(step, roadmap.name)}
       <details class="cues">
         <summary>${icon('info', 18)} Claves técnicas</summary>

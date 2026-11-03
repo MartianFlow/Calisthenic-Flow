@@ -4,7 +4,7 @@
 import { ROADMAP_BY_ID } from '../data/roadmaps.js';
 import { getState } from '../store.js';
 import { dayLabel } from '../schedule.js';
-import { esc, icon, fmtDuration, fmtLongDate, fmtTime } from '../ui.js';
+import { esc, icon, fmtDuration, fmtDurationHtml, fmtLongDate, fmtTime } from '../ui.js';
 import { itemBlock } from './progress.js';
 
 let viewMonth = null; // { y, m }
@@ -67,7 +67,7 @@ function monthStats(state, y, m) {
   return `
     <div class="cal-stats">
       <div><strong>${days}</strong><span class="muted tiny">${days === 1 ? 'día' : 'días'}</span></div>
-      <div><strong>${seconds ? fmtDuration(seconds) : '0 min'}</strong><span class="muted tiny">entrenando</span></div>
+      <div><strong>${seconds ? fmtDurationHtml(seconds) : '0 <small>min</small>'}</strong><span class="muted tiny">entrenando</span></div>
       <div><strong>${levels}</strong><span class="muted tiny">${levels === 1 ? 'subida' : 'subidas'} de nivel</span></div>
     </div>`;
 }
@@ -95,7 +95,7 @@ function dayDetail(byDay) {
       return `
         <article class="cal-session">
           <div class="row between">
-            <div>
+            <div class="grow">
               <div class="eyebrow">${esc(dayLabel(s.dayType))} · ${fmtTime(s.startedAt)}</div>
               <strong>${fmtDuration(s.duration)} · ${s.items.length} ${s.items.length === 1 ? 'ejercicio' : 'ejercicios'}</strong>
             </div>

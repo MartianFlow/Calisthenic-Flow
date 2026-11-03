@@ -8,7 +8,7 @@ import {
   sessionsInWeek, roadmapPercent, lastPerformance, lastLift, liftState, liftGoal, workFor, deloadActive, deloadSuggestion, startDeload,
 } from '../logic.js';
 import { todayInfo, buildWeek, DAY_INFO, WEEKDAYS, WD_SHORT, weekdayIndex } from '../schedule.js';
-import { esc, icon, fmtClock, progressBar, unitLabel, fmtDate, fmtKg } from '../ui.js';
+import { esc, icon, fmtClock, progressBar, fmtDate, fmtKg, fmtSeries, fmtLiftSeries } from '../ui.js';
 import { navigate } from '../router.js';
 import { audio, wakeLock } from '../device.js';
 import { heroMini } from './hero.js';
@@ -73,10 +73,9 @@ function liftRow(state, id, idx, dayType) {
       <a class="grow ex-link" href="#/ejercicio/${id}" aria-label="Ver ${esc(lift.name)}: vídeo y técnica">
         <div class="ex-title">${titleWithPlay(lift.name, !!lift.video)}</div>
         <div class="muted small">Gimnasio · ${esc(lift.muscle)}</div>
-        ${last ? `<div class="muted small">Última vez: ${esc(last.sets.map((v, i) => `${fmtKg(last.loads[i])} × ${v}`).join(' · '))}</div>` : ''}
+        ${last ? `<div class="muted small">Última vez: ${esc(fmtLiftSeries(last.sets, last.loads))}</div>` : ''}
       </a>
-      <div class="ex-target">${sets} × ${liftGoal(lift, p)}
-        <div class="muted tiny">${esc(fmtKg(p.kg))}</div></div>
+      <div class="ex-target">${sets} × ${liftGoal(lift, p)}<small>${esc(fmtKg(p.kg))}</small></div>
       ${editButtons(id, idx)}
     </li>`;
 }
@@ -94,10 +93,10 @@ function exerciseRow(state, id, idx, dayType) {
       <a class="grow ex-link" href="#/ruta/${id}" aria-label="Ver ${esc(step.name)}: vídeo y técnica">
         <div class="ex-title">${titleWithPlay(step.name, !!step.video)}</div>
         <div class="muted small">${esc(roadmap.name)} · paso ${index + 1}/${roadmap.steps.length}${isGoal ? ' · <span class="accent-text">objetivo</span>' : ''}</div>
-        ${last ? `<div class="muted small">Última vez: ${last.map((v) => unitLabel(step.type, v)).join(' · ')}</div>` : ''}
+        ${last ? `<div class="muted small">Última vez: ${esc(fmtSeries(step.type, last))}</div>` : ''}
       </a>
-      <div class="ex-target">${step.sets} × ${esc(unitLabel(step.type, goal))}${step.side ? '<small> /lado</small>' : ''}
-        ${goal < step.target ? `<div class="muted tiny">meta ${step.target}${step.type === 'hold' ? ' s' : ''}</div>` : ''}</div>
+      <div class="ex-target">${step.sets} × ${goal}<small>${step.type === 'hold' ? 'seg' : goal === 1 ? 'rep' : 'reps'}${step.side ? ' /lado' : ''}</small>
+        ${goal < step.target ? `<small>meta ${step.target}</small>` : ''}</div>
       ${editButtons(id, idx)}
     </li>`;
 }
@@ -162,7 +161,9 @@ function planCard(state, info) {
         </div>` : ''}
       <div class="row gap">
         <button class="btn primary grow cta" data-action="start-session" ${plan.ids.length ? '' : 'disabled'}>${icon('play', 18)} Empezar entreno</button>
-        <button class="btn ghost" data-action="plan-edit">${editing ? 'Listo' : `${icon('edit', 18)} Editar`}</button>
+        ${editing
+          ? `<button class="btn ghost square" data-action="plan-edit" aria-label="Listo: terminar de editar" title="Listo">${icon('check', 22)}</button>`
+          : `<button class="btn ghost square" data-action="plan-edit" aria-label="Editar el entreno de hoy" title="Editar">${icon('edit', 20)}</button>`}
       </div>
     </section>`;
 }

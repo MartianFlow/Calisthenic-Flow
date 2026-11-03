@@ -7,6 +7,7 @@ import { getState } from '../store.js';
 import { liftState, liftGoal, outcomeText } from '../logic.js';
 import { esc, icon, fmtClock, fmtDate, fmtKg, kgInput } from '../ui.js';
 import { progressLine } from '../charts.js';
+import { liftPills } from './progress.js';
 import { navigate } from '../router.js';
 import { videoCard } from '../video.js';
 
@@ -45,9 +46,9 @@ export function renderLift({ id }) {
     <section class="card">
       ${videoCard({ name: lift.name, video: lift.video, query: `${lift.name} técnica gimnasio` })}
       <div class="work-box">
-        <div><span class="muted small">Tu objetivo ahora</span><strong>${lift.sets} × ${goal} · ${esc(fmtKg(p.kg))}</strong></div>
+        <div><span class="muted small">Tu objetivo ahora</span><strong>${lift.sets} × ${goal}</strong> <span class="small">con ${esc(fmtKg(p.kg))}</span></div>
         ${icon('next', 18)}
-        <div><span class="muted small">Para subir peso</span><strong>${lift.sets} × ${lift.max}</strong></div>
+        <div><span class="muted small">Para subir peso</span><strong>${lift.sets} × ${lift.max}</strong> <span class="small">+${esc(fmtKg(lift.inc))}</span></div>
       </div>
       <p class="muted small">Rango ${lift.min}–${lift.max} reps dejando ${esc(lift.rir)} en reserva · descanso ${fmtClock(lift.rest)}. Cuando hagas ${lift.max} en todas las series, la app te sube ${esc(fmtKg(lift.inc))}.</p>
       <label class="load-row" for="kg-${lift.id}">
@@ -75,7 +76,7 @@ export function renderLift({ id }) {
         <ul class="summary-list">${history.slice(0, 8).map(({ date, item }) => `
           <li class="summary-item lift">
             <div class="eyebrow">${esc(fmtDate(date))}</div>
-            <div class="set-pills">${item.sets.map((v, i) => `<span class="set-pill ${v >= item.goal ? 'met' : ''}">${esc(fmtKg(item.loads?.[i]))} × ${v}</span>`).join('')}</div>
+            <div class="set-pills">${liftPills(item)}</div>
             ${item.outcome ? `<div class="outcome">${esc(outcomeText(item))}</div>` : ''}
           </li>`).join('')}</ul>`
         : '<p class="muted">Aún no lo has entrenado con la app. Aquí verás tus pesos y repeticiones de cada sesión.</p>'}

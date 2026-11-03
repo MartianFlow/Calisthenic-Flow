@@ -129,7 +129,7 @@ test.describe('Ver un ejercicio sin empezar el entreno', () => {
     await page.locator('.ex-link').first().click();
     await expect(page).toHaveURL(/#\/ejercicio\/hack$/);
     await expect(page.getByRole('heading', { name: 'Sentadilla hack' })).toBeVisible();
-    await expect(page.locator('.work-box')).toContainText('3 × 8 · 100 kg');
+    await expect(page.locator('.work-box')).toContainText('3 × 8 con 100 kg');
     await page.locator('[data-action="video-open"]').click();
     await expect(page.locator('.video-modal iframe')).toHaveAttribute('src', /youtube-nocookie\.com\/embed\/VNpkYdex6Yc/);
     await page.locator('.video-modal-panel [data-action="video-close"]').click();

@@ -6,7 +6,7 @@ import { LIFT_BY_ID } from '../data/gym.js';
 import { getState, update } from '../store.js';
 import { totals, weekStreak, weeklySeries, globalProgress, outcomeText, RATINGS } from '../logic.js';
 import { dayLabel } from '../schedule.js';
-import { esc, icon, fmtDuration, fmtDate, fmtLongDate, fmtTime, unitLabel, fmtKg } from '../ui.js';
+import { esc, icon, fmtDuration, fmtDurationHtml, fmtDate, fmtLongDate, fmtTime, unitLabel, fmtKg } from '../ui.js';
 import { weeklyBars } from '../charts.js';
 import { navigate } from '../router.js';
 import { takeCelebration } from './session.js';
@@ -60,7 +60,7 @@ export function render() {
     </header>
     <section class="tiles">
       ${tile('Entrenos', t.sessions)}
-      ${tile('Tiempo total', t.seconds ? fmtDuration(t.seconds) : '0 min')}
+      ${tile('Tiempo total', t.seconds ? fmtDurationHtml(t.seconds) : '0 <small>min</small>')}
       ${tile('Racha', `${streak}`, `${streak === 1 ? 'semana' : 'semanas'} con ${state.settings.daysPerWeek}+ entrenos`)}
       ${tile('Mapa', `${globalProgress()}%`, 'de todas las rutas')}
     </section>
@@ -100,6 +100,16 @@ function outcomeLine(item) {
   return item.met ? `<div class="outcome pass">${icon('check', 15)}<span>Objetivo cumplido</span></div>` : '';
 }
 
+// Series de gimnasio: con el mismo peso en todas, el peso una vez y las reps de cada serie.
+export function liftPills(item) {
+  const loads = item.loads || [];
+  const pill = (text, v) => `<span class="set-pill ${v >= item.goal ? 'met' : ''}">${esc(text)}</span>`;
+  if (loads.length && loads.every((v) => v === loads[0])) {
+    return `<span class="set-load">${esc(fmtKg(loads[0]))} ×</span> ${item.sets.map((v) => pill(String(v), v)).join(' ')}`;
+  }
+  return item.sets.map((v, i) => pill(`${fmtKg(loads[i])} × ${v}`, v)).join(' ');
+}
+
 // Ejercicio de gimnasio: peso × repeticiones de cada serie.
 function liftBlock(item) {
   const lift = LIFT_BY_ID[item.liftId];
@@ -113,7 +123,7 @@ function liftBlock(item) {
         </div>
         ${ratingChip(item)}
       </div>
-      <div class="set-pills">${item.sets.map((v, i) => `<span class="set-pill ${v >= item.goal ? 'met' : ''}">${esc(fmtKg(loads[i]))} × ${v}</span>`).join('')}
+      <div class="set-pills">${liftPills(item)}
         <span class="muted tiny">objetivo ${item.goal} reps (rango ${item.min}–${item.max})</span></div>
       ${outcomeLine(item)}
     </li>`;
@@ -161,7 +171,7 @@ function sessionBody(s, state) {
   const sets = s.items.reduce((a, it) => a + it.sets.length, 0);
   return `
     <section class="tiles three">
-      ${[['Duración', fmtDuration(s.duration)], ['Ejercicios', s.items.length], ['Series', sets]].map(([l, v]) => tile(l, v)).join('')}
+      ${[['Duración', fmtDurationHtml(s.duration)], ['Ejercicios', s.items.length], ['Series', sets]].map(([l, v]) => tile(l, v)).join('')}
     </section>
     ${levelUps ? `<section class="card celebrate">${levelUps}</section>` : ''}
     <section class="card">

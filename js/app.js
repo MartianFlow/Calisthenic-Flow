@@ -64,6 +64,21 @@ let lastPath = null;
 let pendingReload = false; // hay una versión nueva esperando a que acabe el entreno
 let enterTimer = null;
 
+// La letra pixel (Press Start 2P) dibuja las mayúsculas con tilde más bajas, para que
+// quepa la tilde en su celda de 8 px, y parecen minúsculas («TIRóN»). En sus textos en
+// mayúsculas se quita la tilde (la ñ se queda), como en los juegos retro.
+const PX_CAPS = '.px-h, .px-sub, .px-title, .px-attr-label, .px-btn, .px-tabs button, .px-rarity';
+function pixelCaps(root) {
+  for (const el of root.querySelectorAll(PX_CAPS)) {
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) {
+      const t = walker.currentNode;
+      const plain = t.nodeValue.normalize('NFD').replace(/[\u0301\u0308]/g, '').normalize('NFC');
+      if (plain !== t.nodeValue) t.nodeValue = plain;
+    }
+  }
+}
+
 function render() {
   const state = getState();
   applyTheme(state.settings.theme); // también tras importar una copia o borrar los datos
@@ -76,6 +91,7 @@ function render() {
   if (pendingReload && route.path !== '/entreno') { location.reload(); return; }
   currentRoute = route;
   viewEl.innerHTML = route.view(route.params);
+  pixelCaps(viewEl);
   document.body.classList.toggle('no-tabs', route.options.tab === null);
   document.body.dataset.route = route.path.split('/')[1] || 'hoy';
   tabbar.querySelectorAll('a').forEach((a) => {

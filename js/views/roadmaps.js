@@ -83,7 +83,7 @@ function stepItem(r, s, i, progress) {
         </summary>
         ${videoCard(s, r.name)}
         <ul class="cue-list">${s.cues.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>
-        ${state !== 'current' ? `<button class="btn ghost small" data-action="set-level" data-id="${r.id}" data-step="${i}">Establecer como nivel actual</button>` : ''}
+        ${state !== 'current' ? `<button class="btn ghost small" data-action="set-level" data-id="${r.id}" data-step="${i}">${icon('target', 16)} Es mi nivel actual</button>` : ''}
       </details>
     </li>`;
 }

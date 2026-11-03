@@ -15,7 +15,7 @@ test.describe('Héroe y gamificación', () => {
     await expect(page.locator('.px-lv.big')).toContainText('LV');
     await expect(page.locator('.px-title').first()).toBeVisible();
     await expect(page.locator('.px-attrs li')).toHaveCount(6);
-    await expect(page.locator('.px-attrs li').first()).toContainText('Tirón');
+    await expect(page.locator('.px-attrs li').first()).toContainText(/Tir[óo]n/); // en la letra pixel las mayúsculas van sin tilde
   });
 
   test('los logros del historial se desbloquean al abrir la app', async ({ page }) => {
