@@ -44,7 +44,7 @@ function historyList(state) {
   return `<ul class="history">${list.map((s) => `
     <li><a href="#/sesion/${s.id}" class="history-row">
       <div class="grow">
-        <div class="history-title">${esc(fmtDate(s.startedAt))} · ${esc(dayLabel(s.dayType))}</div>
+        <div class="history-title">${esc(fmtDate(s.startedAt))} · ${esc(dayLabel(s.dayType, s))}</div>
         <div class="muted small">${fmtDuration(s.duration)} · ${s.items.length} ${s.items.length === 1 ? 'ejercicio' : 'ejercicios'}</div>
       </div>
       ${s.levelUps.length ? `<span class="pill accent tiny">${icon('star', 13)} +${s.levelUps.length}</span>` : ''}
@@ -330,7 +330,7 @@ export function renderDetail({ id }) {
   return `
     <header class="page-head">
       <a class="back" href="#/progreso">${icon('back', 18)} Progreso</a>
-      <div class="eyebrow">${esc(dayLabel(s.dayType))} · ${fmtTime(s.startedAt)}</div>
+      <div class="eyebrow">${esc(dayLabel(s.dayType, s))} · ${fmtTime(s.startedAt)}</div>
       <h1>${esc(fmtLongDate(s.startedAt))}</h1>
     </header>
     ${sessionBody(s, state)}

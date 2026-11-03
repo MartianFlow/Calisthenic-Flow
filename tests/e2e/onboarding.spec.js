@@ -77,6 +77,12 @@ test.describe('Configuración inicial', () => {
     await expect(step(page)).toHaveAttribute('data-step', 'nivel-frontlever');
     await next(page);
 
+    // Cómo divide la semana: con calistenia, las 4 formas, y cuerpo completo de partida
+    await expect(step(page)).toHaveAttribute('data-step', 'division');
+    await expect(page.locator('.wiz-option')).toHaveCount(4);
+    await expect(page.locator('.wiz-option.on')).toContainText('Cuerpo completo');
+    await next(page);
+
     // Días: propone los recomendados para su nivel; se añade el sábado
     await expect(step(page)).toHaveAttribute('data-step', 'dias');
     await expect(page.locator('.wiz-rec')).toContainText('Para ti');

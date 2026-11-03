@@ -1,7 +1,7 @@
 // Ajustes y copia de seguridad. La bienvenida (configuración inicial) está en onboarding.js.
 
 import { getState, update, replaceState, resetState, clampRest, REST_RANGE } from '../store.js';
-import { deloadActive } from '../logic.js';
+import { deloadActive, SPLITS, splitOf } from '../logic.js';
 import { esc, icon, toast, fmtClock, fmtDate } from '../ui.js';
 import { navigate } from '../router.js';
 import { audio } from '../device.js';
@@ -82,8 +82,9 @@ export function render() {
     <section class="card">
       <h3>Plan semanal</h3>
       <a class="btn ghost" href="#/plan">${icon('route', 18)} ${state.settings.schedule ? `${st.daysPerWeek} días por semana · ver plan` : 'Crear plan semanal'}</a>
-      <div class="field"><span>Pierna</span>${legsSegmented(state)}</div>
-      ${st.legs === 'gym' ? '<p class="muted small">Tus pesos de pierna se apuntan en «Plan semanal» o durante el entreno.</p>' : ''}
+      <p class="small split-now">${icon('swap', 14)} Divides tu semana: <strong>${esc(SPLITS[splitOf(state)].label)}</strong> · <a class="link" href="#/plan" data-action="scroll-plan">Cambiar</a></p>
+      ${splitOf(state) !== 'propia' ? `<div class="field"><span>Pierna</span>${legsSegmented(state)}</div>
+      ${st.legs === 'gym' ? '<p class="muted small">Tus pesos de pierna se apuntan en «Plan semanal» o durante el entreno.</p>' : ''}` : ''}
       <div class="field"><span>Sesiones con la meta cumplida para subir en habilidades</span>${segmented('passesToLevelUp', [[1, '1'], [2, '2'], [3, '3']], st.passesToLevelUp)}</div>
       <p class="muted small">En los básicos de fuerza basta 1 sesión. En habilidades de brazos rectos se recomiendan 2, porque los tendones se adaptan más despacio que el músculo.</p>
       ${deloadActive(state)
@@ -103,6 +104,7 @@ export function render() {
       <h3>Entreno</h3>
       <div class="field"><span>Descanso entre series</span>${restPicker(state)}</div>
       ${prepPicker(state)}
+      ${toggle('supersets', st.supersets, 'Superseries', 'Alterna una serie de cada en parejas que no se estorban (dominadas y fondos, remo y flexiones…), con medio descanso entre medias. Cada ejercicio descansa lo de siempre o más y el entreno se acorta.')}
       ${toggle('warmup', st.warmup, 'Calentamiento guiado', 'Lista de movilidad antes de los ejercicios')}
       ${toggle('sound', st.sound, 'Sonido al acabar el descanso', 'El iPhone debe tener el modo silencio desactivado')}
       <button class="btn ghost small" data-action="test-sound">${icon('timer', 16)} Probar sonido</button>
@@ -215,6 +217,10 @@ export const actions = {
   },
   'export-data'() {
     downloadBackup(JSON.stringify({ app: 'calisthenic-flow', exportedAt: new Date().toISOString(), data: getState() }, null, 2));
+  },
+  'scroll-plan'() {
+    navigate('#/plan');
+    setTimeout(() => document.getElementById('division')?.scrollIntoView({ block: 'start' }), 80);
   },
   'backup-snooze'() {
     update((s) => { s.backup = { ...(s.backup || {}), snoozeUntil: Date.now() + 7 * 864e5 }; });

@@ -18,6 +18,7 @@ import * as planView from './views/plan.js';
 import * as exercise from './views/exercise.js';
 import * as skills from './views/skills.js';
 import * as custom from './views/custom.js';
+import * as days from './views/days.js';
 import { syncAchievements, syncMissions } from './game.js';
 import { applyTheme } from './theme.js';
 import { update } from './store.js';
@@ -38,6 +39,7 @@ addRoute('/plan', planView.render, { tab: 'hoy' });
 addRoute('/ejercicio/:id', exercise.renderLift, { tab: 'hoy' });
 addRoute('/mis-ejercicios/nuevo', () => custom.renderForm({}), { tab: 'rutas' });
 addRoute('/mis-ejercicios/:id', custom.renderForm, { tab: 'rutas' });
+addRoute('/mis-dias', days.render, { tab: 'hoy' });
 addRoute('/bienvenida', onboarding.render, { tab: null });
 
 const actions = {
@@ -54,6 +56,7 @@ const actions = {
   ...exercise.actions,
   ...skills.actions,
   ...custom.actions,
+  ...days.actions,
   // Baja hasta una sección de la misma pantalla (los enlaces con # cambiarían de ruta).
   'scroll-to'(el) {
     document.getElementById(el.dataset.target)?.scrollIntoView({ block: 'start', behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
@@ -67,7 +70,7 @@ const actions = {
   },
 };
 
-const changes = { ...home.changes, ...progress.changes, ...settings.changes, ...session.changes, ...planView.changes, ...onboarding.changes };
+const changes = { ...home.changes, ...progress.changes, ...settings.changes, ...session.changes, ...planView.changes, ...onboarding.changes, ...days.changes };
 
 const viewEl = document.getElementById('view');
 const tabbar = document.getElementById('tabbar');

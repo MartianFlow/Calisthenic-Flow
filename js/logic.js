@@ -53,14 +53,41 @@ export function itemName(item) {
   return ROADMAP_BY_ID[item.roadmapId]?.steps[item.stepIndex]?.name || '';
 }
 
-// Días con trabajo de torso (donde van las habilidades).
-export const TORSO_TYPES = ['A', 'B', 'TA', 'TB'];
-export const isGymLegs = (state) => state.settings.legs === 'gym';
+// ─────────────────────────── Cómo se divide la semana ───────────────────────────
+// · completo: cuerpo completo (Día A / Día B, y Día S con habilidades y 5+ días).
+// · torso-pierna: Torso A / Torso B y Pierna (en el gimnasio o con calistenia).
+// · etp: empuje / tirón / pierna, con un torso completo de relleno cuando sobra un día.
+// · propia: días que crea la persona (settings.myDays) en los días de la semana que elige
+//   (settings.myWeek).
+export const SPLITS = {
+  completo: { label: 'Cuerpo completo', short: 'Todo el cuerpo en cada entreno', text: 'Todo el cuerpo en cada entreno, alternando Día A y Día B. Lo mejor con 2–4 días.' },
+  'torso-pierna': { label: 'Torso y pierna', short: 'Días de torso y días de pierna', text: 'Días de torso (tirón y empuje) y días de pierna. Con 4–5 días.' },
+  etp: { label: 'Empuje, tirón y pierna', short: 'Un día para cada grupo', text: 'Un día para empujar (pecho, hombro y tríceps), otro para tirar (espalda y bíceps) y otro de pierna. Con 5–6 días.' },
+  propia: { label: 'A tu manera', short: 'Tú creas tus días', text: 'Creas tus días con los ejercicios que quieras y eliges qué día de la semana va cada uno.' },
+};
+export const splitOf = (state) => (SPLITS[state.settings.split] ? state.settings.split : state.settings.legs === 'gym' ? 'torso-pierna' : 'completo');
+export const myDays = (state) => state.settings.myDays || [];
+export const myDayOf = (state, id) => myDays(state).find((d) => d.id === id) || null;
 
-// Rutinas del plan para elegir en la pantalla Hoy (Día A, Día B, Día S / Torso A, Torso B, Pierna).
+// Días con todo el torso (aquí caben todas las habilidades).
+export const TORSO_TYPES = ['A', 'B', 'TA', 'TB', 'TC'];
+export function isGymLegs(state) {
+  const split = splitOf(state);
+  if (split === 'completo') return false;
+  if (split === 'propia') return myDays(state).some((d) => d.ids.some((id) => LIFT_BY_ID[id]));
+  return state.settings.legs === 'gym';
+}
+// Día de pierna: en el gimnasio (P) o con calistenia (PC).
+export const legType = (state) => (state.settings.legs === 'gym' ? 'P' : 'PC');
+
+// Rutinas del plan para elegir en la pantalla Hoy (Día A, Día B, Día S / Torso A, Torso B, Pierna…).
 export function dayOrder(state) {
-  if (isGymLegs(state)) return ['TA', 'TB', 'P'];
-  return state.settings.goals.length ? ['A', 'B', 'S'] : ['A', 'B'];
+  switch (splitOf(state)) {
+    case 'torso-pierna': return ['TA', 'TB', legType(state)];
+    case 'etp': return ['T', 'E', legType(state), 'TC'];
+    case 'propia': return myDays(state).map((d) => d.id);
+    default: return state.settings.goals.length ? ['A', 'B', 'S'] : ['A', 'B'];
+  }
 }
 
 // Tipos de día de tu plan, donde puede ir fijo un ejercicio propio.
@@ -68,15 +95,52 @@ export function planDayTypes(state) {
   return dayOrder(state);
 }
 
-// Siguiente día cuando no hay plan semanal: alterna A/B, o torso/pierna con los
-// torsos alternando TA/TB.
+// Siguiente día cuando no hay plan semanal: alterna A/B; torso/pierna con los torsos
+// alternando TA/TB; empuje → tirón → pierna; o tus días en orden.
 export function nextDayType(state) {
-  if (isGymLegs(state)) {
-    if (state.lastDayType === 'TA' || state.lastDayType === 'TB') return 'P';
-    const lastTorso = [...state.sessions].reverse().find((s) => s.dayType === 'TA' || s.dayType === 'TB');
-    return lastTorso?.dayType === 'TA' ? 'TB' : 'TA';
+  const split = splitOf(state);
+  const lastOf = (types) => [...state.sessions].reverse().find((s) => types.includes(s.dayType))?.dayType;
+  if (split === 'torso-pierna') {
+    const leg = legType(state);
+    if (state.lastDayType === 'TA' || state.lastDayType === 'TB') return leg;
+    return lastOf(['TA', 'TB']) === 'TA' ? 'TB' : 'TA';
+  }
+  if (split === 'etp' || split === 'propia') {
+    const order = split === 'etp' ? ['T', 'E', legType(state)] : dayOrder(state);
+    if (!order.length) return 'A';
+    const i = order.indexOf(lastOf(order));
+    return order[(i + 1) % order.length];
   }
   return state.lastDayType === 'A' ? 'B' : 'A';
+}
+
+// ─────────────────────────── Grupos musculares ───────────────────────────
+// Para saber qué trabaja cada día: dónde caben las habilidades, avisos de frecuencia y
+// superseries (empuje con tirón, pierna con core…).
+const ROUTE_GROUP = {
+  dominadas: 'tiron', remo: 'tiron', fondos: 'empuje', flexiones: 'empuje', piernas: 'pierna', bisagra: 'pierna', core: 'core',
+  frontlever: 'tiron', muscleup: 'tiron', backlever: 'tiron', planche: 'empuje', hspu: 'empuje', pino: 'empuje', lsit: 'core',
+};
+export function groupOf(id, state = getState()) {
+  if (ROUTE_GROUP[id]) return ROUTE_GROUP[id];
+  if (LIFT_BY_ID[id]) return 'pierna';
+  return customOf(id, state)?.group || null;
+}
+export function dayGroups(state, type) {
+  return new Set(baseIds(state, type).map((id) => groupOf(id, state)).filter(Boolean));
+}
+// ¿Cabe esta habilidad en este tipo de día? En los de torso completo, todas; en los demás,
+// las de su grupo (front lever, muscle-up y back lever en los de tirón; planche, flexión de
+// pino y pino en los de empuje; el L-sit en cualquiera con torso o core). Sin habilidad:
+// ¿es un día con torso?
+export function dayAccepts(state, type, skillId = null) {
+  if (type === 'S' || TORSO_TYPES.includes(type)) return true;
+  const g = dayGroups(state, type);
+  const upper = g.has('empuje') || g.has('tiron');
+  if (!skillId) return upper;
+  const sg = ROUTE_GROUP[skillId];
+  if (sg === 'core') return upper || g.has('core');
+  return g.has(sg);
 }
 
 // ─────────────────────────── Habilidades: foco y mantenimiento ───────────────────────────
@@ -155,15 +219,17 @@ export function noSkillsYet(state) {
 // turnos entre sesiones, una de mantener (cada una sale más o menos una sesión de cada dos).
 export function sessionGoals(state, dayType = 'A') {
   const { focus, maintain } = skillPicks(state);
-  const torso = dayType === 'S' || TORSO_TYPES.includes(dayType);
+  const torso = dayAccepts(state, dayType);
   const out = [];
   if (focus === PRACTICE_ID) out.push(PRACTICE_ID);
   if (!torso) return out;
-  const n = state.sessions.filter((s) => s.dayType === 'S' || TORSO_TYPES.includes(s.dayType)).length;
+  const n = state.sessions.filter((s) => s.dayType === 'S' || TORSO_TYPES.includes(s.dayType) || ['T', 'E'].includes(s.dayType) || myDayOf(state, s.dayType)).length;
   if (maintain.includes(PRACTICE_ID) && n % 2 === 1) out.push(PRACTICE_ID);
   const others = maintain.filter((id) => id !== PRACTICE_ID);
   const slots = others.length >= 2 ? others : others.length ? [others[0], null] : [];
-  const m = slots.length ? slots[n % slots.length] : null;
+  let m = slots.length ? slots[n % slots.length] : null;
+  // En los días de un solo grupo (tirón, empuje, los tuyos), la de mantener que sea de ese grupo.
+  if (m && !dayAccepts(state, dayType, m)) m = others.find((id) => dayAccepts(state, dayType, id)) || null;
   const main = focus && focus !== PRACTICE_ID ? focus : null;
   if (main && m && CLASH[m] === main) {
     // Back lever y planche no se juntan: una de cada tres veces la de mantener ocupa el sitio del foco.
@@ -244,6 +310,31 @@ export function sessionLayout(state, ids) {
   return out;
 }
 
+// ─────────────────────────── Superseries ───────────────────────────
+// Con «Superseries» en Ajustes, dos básicos seguidos de grupos que no se estorban (tirón con
+// empuje, pierna con core…) se alternan: una serie de cada uno, con medio descanso entre
+// medias. Cada ejercicio sigue descansando lo de siempre o más (medio descanso + la serie del
+// otro + medio descanso) y el entreno se acorta. Las habilidades y los complementarios no entran.
+export const SS_MIN_REST = 30;
+const ssCompatible = (a, b) => a && b && a !== b && a !== 'otro' && b !== 'otro';
+export function supersetPairs(state, layout) {
+  const pairs = new Map(); // posición → posición de su pareja
+  if (!state.settings.supersets) return pairs;
+  const base = (e) => e && !e.acc && ROADMAP_BY_ID[e.id]?.category !== 'habilidad';
+  for (let i = 0; i < layout.length - 1; i++) {
+    const a = layout[i];
+    const b = layout[i + 1];
+    if (!base(a) || !base(b) || !ssCompatible(groupOf(a.id, state), groupOf(b.id, state))) continue;
+    pairs.set(i, i + 1);
+    pairs.set(i + 1, i);
+    i++;
+  }
+  return pairs;
+}
+export const supersetRest = (state, rest) => Math.max(SS_MIN_REST, Math.round(restSeconds(state, rest) / 2));
+// Cómo se dice esa pausa: «40 s» con el descanso fijo, «medio descanso» si va según el ejercicio.
+export const ssPause = (state) => (state.settings.restMode === 'auto' ? 'medio descanso' : `${supersetRest(state, 0)} s`);
+
 // Sustituir en vez de sumar (cambio 8): con muscle-up, las dominadas del día llevan una serie
 // menos; con flexión de pino, los fondos (o, si no hay, las flexiones). Mínimo 2 series.
 export function trimmedRoutes(ids) {
@@ -254,14 +345,17 @@ export function trimmedRoutes(ids) {
 }
 
 // Ejercicios fijos de un tipo de día (sin habilidades).
-export function templateIds(dayType) {
-  return LEG_DAYS[dayType] ? LEG_DAYS[dayType].ids : dayType === 'S' ? ['core'] : DAY_TEMPLATES[dayType]?.ids || [];
+export function templateIds(dayType, state = getState()) {
+  if (LEG_DAYS[dayType]) return LEG_DAYS[dayType].ids;
+  if (dayType === 'S') return ['core'];
+  if (DAY_TEMPLATES[dayType]) return DAY_TEMPLATES[dayType].ids;
+  return myDayOf(state, dayType)?.ids || [];
 }
 
 // Los de la plantilla más tus ejercicios de ese día (antes del core, que cierra el entreno),
 // con los básicos que le faltan al foco primero.
 export function baseIds(state, dayType) {
-  const base = [...templateIds(dayType)];
+  const base = [...templateIds(dayType, state)];
   const mine = activeCustom(state).filter((c) => (c.days || []).includes(dayType) && !base.includes(c.id)).map((c) => c.id);
   const at = base.indexOf('core');
   base.splice(at >= 0 ? at : base.length, 0, ...mine);
@@ -309,8 +403,14 @@ export function lastLift(state, liftId) {
 export function estimateMinutes(state, ids, withWarmup = state.settings.warmup) {
   let sec = withWarmup ? 6 * 60 : 0;
   const trim = trimmedRoutes(ids);
-  const block = (sets, work, sides, rest, extra) => sets * (work * sides + 20) + (sets - 1) * restSeconds(state, rest) + extra;
-  for (const e of sessionLayout(state, ids)) {
+  const layout = sessionLayout(state, ids);
+  const pairs = supersetPairs(state, layout);
+  let pos = -1;
+  // En superserie, entre serie y serie del mismo ejercicio va la del otro: se cuenta medio descanso.
+  const restOf = (rest) => (pairs.has(pos) ? restSeconds(state, rest) / 2 : restSeconds(state, rest));
+  const block = (sets, work, sides, rest, extra) => sets * (work * sides + 20) + (sets - 1) * restOf(rest) + extra;
+  for (const e of layout) {
+    pos++;
     if (e.acc) {
       const info = accInfo(e.acc);
       sec += block(e.sets, info.type === 'hold' ? e.target : e.target * 3, info.side ? 2 : 1, ACC_REST, 45);
@@ -318,13 +418,13 @@ export function estimateMinutes(state, ids, withWarmup = state.settings.warmup) 
     }
     const lift = LIFT_BY_ID[e.id];
     if (lift) {
-      sec += lift.sets * (((lift.min + lift.max) / 2) * 3.5 + 25) + (lift.sets - 1) * restSeconds(state, lift.rest) + 90;
+      sec += lift.sets * (((lift.min + lift.max) / 2) * 3.5 + 25) + (lift.sets - 1) * restOf(lift.rest) + 90;
       continue;
     }
     const c = customOf(e.id, state);
     if (c) {
       const work = c.kind === 'hold' ? (c.min + c.max) / 2 : ((c.min + c.max) / 2) * 3.5;
-      sec += c.sets * (work * (c.side ? 2 : 1) + 25) + (c.sets - 1) * restSeconds(state, customDef(c).rest) + 60;
+      sec += c.sets * (work * (c.side ? 2 : 1) + 25) + (c.sets - 1) * restOf(customDef(c).rest) + 60;
       continue;
     }
     if (!ROADMAP_BY_ID[e.id]) continue;
@@ -615,7 +715,8 @@ export function createSession(state, plan) {
   const deload = deloadActive(state);
   const ids = plan.ids.filter((id) => ROADMAP_BY_ID[id] || LIFT_BY_ID[id] || customOf(id, state));
   const trim = trimmedRoutes(ids);
-  const items = sessionLayout(state, ids).map((e) => {
+  const layout = sessionLayout(state, ids);
+  const items = layout.map((e) => {
     if (e.acc) return accItem(e, deload);
     const id = e.id;
     if (LIFT_BY_ID[id]) return liftItem(state, id, deload, plan.dayType);
@@ -643,6 +744,9 @@ export function createSession(state, plan) {
       sets: Array.from({ length: sets }, () => ({ value: goal, done: false })),
     };
   });
+  // Superseries: las dos partes de cada pareja comparten número (ss).
+  let ssN = 0;
+  for (const [i, j] of supersetPairs(state, layout)) if (i < j) { items[i].ss = ssN; items[j].ss = ssN; ssN++; }
   const now = Date.now();
   const extras = warmupExtras(ids);
   // «Solo pino»: sin el calentamiento general, solo el específico (muñecas y hombros).
@@ -655,6 +759,7 @@ export function createSession(state, plan) {
     startedAt: now,
     lastActivityAt: now,
     dayType: plan.dayType,
+    ...(myDayOf(state, plan.dayType) ? { dayName: myDayOf(state, plan.dayType).name } : {}),
     deload,
     warmupKind,
     warmupExtra: extras,
@@ -786,6 +891,7 @@ export function finishActiveSession() {
     endedAt,
     duration: Math.round(duration / 1000),
     dayType: active.dayType,
+    ...(active.dayName ? { dayName: active.dayName } : {}),
     deload: !!active.deload,
     warmupFull: (active.warmupChecks || []).length >= warmupList(active).length,
     items: [],
@@ -814,6 +920,7 @@ export function finishActiveSession() {
           side: item.side,
           sets: done.map((x) => Number(x.value) || 0),
           ...(item.load ? { loads: done.map((x) => (x.kg == null ? null : Number(x.kg))) } : {}),
+          ...(item.ss != null ? { ss: item.ss } : {}),
           met: stepMet(item),
           goalMet: goalMet(item),
           rating: item.rating || null,
@@ -838,6 +945,7 @@ export function finishActiveSession() {
           side: false,
           sets: done.map((x) => Number(x.value) || 0),
           loads: done.map((x) => (x.kg == null ? null : Number(x.kg))),
+          ...(item.ss != null ? { ss: item.ss } : {}),
           met: stepMet(item),
           goalMet: goalMet(item),
           rating: item.rating || null,
@@ -870,6 +978,7 @@ export function finishActiveSession() {
         roadmapId: item.roadmapId,
         stepIndex: item.stepIndex,
         ...(item.role ? { role: item.role } : {}),
+        ...(item.ss != null ? { ss: item.ss } : {}),
         type: item.type,
         target: item.target,
         goal: item.goal ?? item.target,
@@ -907,7 +1016,7 @@ export function finishActiveSession() {
     s.sessions.push(session);
     s.active = null;
     s.plan = null;
-    if (['A', 'B', 'TA', 'TB', 'P'].includes(active.dayType)) s.lastDayType = active.dayType;
+    if (active.dayType && !['pino', 'libre'].includes(active.dayType)) s.lastDayType = active.dayType;
   });
   return session;
 }

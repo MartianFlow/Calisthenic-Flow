@@ -1,16 +1,16 @@
 // Bienvenida: configuración inicial paso a paso.
 // Tú (experiencia y pierna) → nivel en cada básico → habilidades (las que ya dominas, la que
 // quieres aprender y su nivel) →
-// semana (días) → entreno (descanso, calentamiento y sonido) → héroe → resumen.
+// semana (cómo la divides y qué días) → entreno (descanso, calentamiento y sonido) → héroe → resumen.
 // Cada respuesta se guarda al momento en el estado; aquí solo se recuerda en qué paso se va.
 
 import { ROADMAPS, ROADMAP_BY_ID } from '../data/roadmaps.js';
 import { getState, update, getProgress } from '../store.js';
-import { prereqStatus, skillPicks, recommendedSkills, noSkillsYet } from '../logic.js';
+import { prereqStatus, skillPicks, recommendedSkills, noSkillsYet, SPLITS, splitOf } from '../logic.js';
 import { esc, icon, targetLabel, progressBar, fmtClock } from '../ui.js';
 import { navigate } from '../router.js';
 import { recommendDays, trainingLevel, DEFAULT_DAYS, LEG_ROUTES, WD_SHORT } from '../schedule.js';
-import { dayChips, daysSegmented } from './plan.js';
+import { dayChips, daysSegmented, seedMyDays, syncMyWeek } from './plan.js';
 import { restPicker, prepPicker, toggle } from './settings.js';
 import { setFocus, toggleMaintain, clearMaintain, skillRoutes, listText } from './skills.js';
 import { MAX_MAINTAIN } from '../store.js';
@@ -86,6 +86,7 @@ function steps(state) {
     { key: 'mantener', section: 2 },
     { key: 'foco', section: 2 },
     ...goals.map((r, i) => ({ key: `nivel-${r.id}`, kind: 'nivel', roadmap: r, section: 2, goal: true, n: i + 1, of: goals.length })),
+    { key: 'division', section: 3 },
     { key: 'dias', section: 3 },
     { key: 'entreno', section: 3 },
     { key: 'heroe', section: 4 },
@@ -120,7 +121,7 @@ function move(delta) {
   // Al llegar a la semana por primera vez, propone los días recomendados para su nivel.
   if (next.key === 'dias' && !wiz.daysSet) {
     wiz.daysSet = true;
-    update((s) => { s.settings.daysPerWeek = recommendDays(s).days; s.plan = null; }, { silent: true });
+    update((s) => { s.settings.daysPerWeek = recommendDays(forRec(s)).days; s.plan = null; }, { silent: true });
   }
   go(next.key, delta);
   update(() => {});
@@ -283,8 +284,28 @@ function focusBody(state) {
     </div>`;
 }
 
+// Forma de dividir la semana de partida según dónde entrena pierna.
+const baseSplit = (state) => (state.settings.legs === 'gym' ? 'torso-pierna' : 'completo');
+// (con «A tu manera» los días se eligen después: se recomienda con la forma de partida)
+const forRec = (state) => (splitOf(state) === 'propia' ? { ...state, settings: { ...state.settings, split: baseSplit(state) } } : state);
+
+function divisionBody(state) {
+  const gym = state.settings.legs === 'gym';
+  const cur = splitOf(state);
+  const options = Object.entries(SPLITS).filter(([k]) => !(gym && k === 'completo')).map(([key, sp]) => ({ key, title: sp.label, text: sp.text }));
+  const ic = { completo: 'route', 'torso-pierna': 'swap', etp: 'target', propia: 'edit' };
+  return `
+    <span class="eyebrow">Tu semana</span>
+    <h2 class="wiz-title">¿Cómo quieres dividir tu semana?</h2>
+    <p class="wiz-hint">Si dudas, ${gym ? 'torso y pierna' : 'cuerpo completo'}: es lo que mejor funciona para empezar. Lo puedes cambiar cuando quieras en el Plan semanal.</p>
+    <div class="wiz-options" role="radiogroup" aria-label="Cómo divides tu semana">
+      ${options.map((o) => optionCard(o, cur === o.key, 'wiz-split', `<span class="opt-ic">${icon(ic[o.key], 24)}</span>`)).join('')}
+    </div>
+    ${cur === 'propia' ? `<p class="wiz-note">${icon('info', 14)}<span>Al terminar, creas tus días (por ejemplo «Pecho y tríceps» o «Espalda y bíceps») y eliges qué día de la semana va cada uno. Empiezas con ${gym ? 'torso y pierna' : 'cuerpo completo'} para que no tengas que partir de cero.</span></p>` : ''}`;
+}
+
 function daysBody(state) {
-  const rec = recommendDays(state);
+  const rec = recommendDays(forRec(state));
   return `
     <span class="eyebrow">Tu semana</span>
     <h2 class="wiz-title">¿Qué días puedes entrenar?</h2>
@@ -362,6 +383,7 @@ function doneBody(state) {
     <h2 class="wiz-title center">Tu plan está preparado</h2>
     <ul class="wiz-summary">
       ${summaryRow('chart', 'Tu nivel', esc(level.label), 'experiencia', progressBar(Math.round(level.frac * 100)) + routeChips(state))}
+      ${summaryRow('swap', 'Divides tu semana', esc(SPLITS[splitOf(state)].label), 'division')}
       ${summaryRow('calendar', 'Tu semana', `${st.daysPerWeek} días por semana`, 'dias',
         `<span class="sum-days">${WD_SHORT.map((d, i) => `<i class="${days[i] ? 'on' : ''}">${d}</i>`).join('')}</span>`)}
       ${summaryRow('star', 'Quieres aprender', focus ? esc(ROADMAP_BY_ID[focus].name) : 'Ninguna por ahora', 'foco')}
@@ -375,6 +397,7 @@ function doneBody(state) {
 const BODIES = {
   experiencia: experienceBody,
   pierna: legsBody,
+  division: divisionBody,
   nivel: levelBody,
   mantener: keepBody,
   foco: focusBody,
@@ -455,10 +478,20 @@ export const actions = {
     const value = el.dataset.value === 'gym' ? 'gym' : 'calistenia';
     update((s) => {
       s.settings.legs = value;
+      // La forma de dividir la semana de partida sigue a la pierna hasta que se elige una.
+      if (!wiz.splitSet || (value === 'gym' && s.settings.split === 'completo')) s.settings.split = value === 'gym' ? 'torso-pierna' : 'completo';
       s.plan = null;
       s.lastDayType = null;
     });
     autoAdvance('pierna');
+  },
+  'wiz-split'(el) {
+    const value = el.dataset.value;
+    if (!SPLITS[value]) return;
+    wiz.splitSet = true;
+    saveWiz();
+    update((s) => { s.settings.split = value; s.plan = null; s.lastDayType = null; });
+    if (value !== 'propia') autoAdvance('division');
   },
   // Elegir la habilidad que aprende: avanza sola (tocar la elegida la quita y no avanza).
   'wiz-focus'(el) {
@@ -479,13 +512,22 @@ export const actions = {
     update((s) => { s.progress[id] = { step, passes: 0, done: false }; s.plan = null; });
   },
   'finish-onboarding'() {
+    let own = false;
     update((s) => {
       s.onboarded = true;
       s.settings.schedule ||= { days: [...DEFAULT_DAYS] };
       for (const r of ROADMAPS) if (!s.progress[r.id]) s.progress[r.id] = { step: 0, passes: 0, done: false };
+      // «A tu manera»: empieza con los días de la forma de partida, para cambiarlos a su gusto.
+      if (s.settings.split === 'propia' && !(s.settings.myDays || []).length) {
+        s.settings.split = baseSplit(s);
+        seedMyDays(s);
+        s.settings.split = 'propia';
+        syncMyWeek(s);
+        own = true;
+      }
     }, { silent: true });
     resetWizard();
-    navigate('#/', { replace: true });
+    navigate(own ? '#/mis-dias' : '#/', { replace: true });
     flash();
     burst(null, { text: '¡A ENTRENAR!', big: true });
     confetti({ count: 60 });

@@ -114,6 +114,6 @@ test.describe('Artículos nuevos', () => {
     await expect(page.locator('[data-action="equip"][data-item]:not([data-item=""])')).toHaveCount(70);
     await expect(page.locator('.px-slot-row', { hasText: 'Mascota' })).toBeVisible();
     await page.goto('/#/logros');
-    await expect(page.locator('.px-stats')).toContainText('/112');
+    await expect(page.locator('.px-stats')).toContainText('/114');
   });
 });

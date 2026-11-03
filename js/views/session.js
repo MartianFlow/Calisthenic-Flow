@@ -5,7 +5,7 @@ import { LIFT_BY_ID } from '../data/gym.js';
 import { getState, update } from '../store.js';
 import {
   itemComplete, finishActiveSession, lastPerformance, lastLift, lastAccessory, nextUnrated, itemName, warmupList, restSeconds, RATINGS, PRACTICE_ID, accInfo,
-  customOf, GROUPS,
+  customOf, GROUPS, supersetRest, ssPause,
 } from '../logic.js';
 import { esc, icon, fmtClock, unitLabel, toast, fmtKg, kgInput, parseKg, fmtSeries, fmtLiftSeries } from '../ui.js';
 import { navigate } from '../router.js';
@@ -122,6 +122,7 @@ function liftCard(state, a, item) {
         <span class="pill accent">${icon('target', 16)} Hoy: ${item.plannedSets} × ${esc(unitLabel('reps', item.goal))} · ${esc(fmtKg(kg))}</span>
         <span class="muted small">Descanso ${fmtClock(restSeconds(state, item.rest))}</span>
       </div>
+      ${ssNote(state, a, item)}
       <div class="muted small">Rango ${lift.min}–${lift.max} reps dejando ${esc(lift.rir)} en reserva. Cuando hagas ${lift.max} en todas las series, sube ${esc(fmtKg(lift.inc))}.</div>
       ${lastText ? `<div class="muted small">Última vez: ${esc(lastText)}</div>` : ''}
       <div class="load-row">
@@ -160,6 +161,7 @@ function customCard(state, a, item) {
         <span class="pill accent">${icon('target', 16)} Hoy: ${item.plannedSets} × ${esc(unit(item.goal))}${item.side ? ' por lado' : ''}${item.load ? ` · ${esc(fmtKg(item.kg))}` : ''}</span>
         <span class="muted small">Descanso ${fmtClock(restSeconds(state, item.rest))}</span>
       </div>
+      ${ssNote(state, a, item)}
       <div class="muted small">Rango ${item.min}–${item.max}${item.type === 'hold' ? ' s' : ' reps'}. ${item.load
         ? `Cuando hagas ${item.max} en todas las series, sube ${esc(fmtKg(c?.inc ?? 2.5))}.`
         : `Tu valoración decide cuánto sube; arriba del rango, toca una variante más difícil.`}</div>
@@ -230,6 +232,18 @@ function pairedSkill(a, i) {
   return -1;
 }
 
+// Superseries: la pareja del ejercicio i (comparten «ss») o -1.
+function ssPartner(a, i) {
+  const it = a.items[i];
+  if (it?.ss == null) return -1;
+  return a.items.findIndex((x, k) => k !== i && x.ss === it.ss);
+}
+function ssNote(state, a, item) {
+  const k = ssPartner(a, a.current);
+  if (k < 0 || itemComplete(item) || itemComplete(a.items[k])) return '';
+  return `<div class="alt-note ss-note">${icon('swap', 15)}<span>Superserie con <strong>${esc(itemName(a.items[k]))}</strong>: una serie de cada, con ${esc(ssPause(state))} entre medias. Cada uno descansa así lo de siempre o más.</span></div>`;
+}
+
 function exerciseCard(state, a) {
   const item = a.items[a.current];
   if (item.customId) return customCard(state, a, item);
@@ -248,6 +262,7 @@ function exerciseCard(state, a) {
         <span class="pill accent">${icon('target', 16)} Hoy: ${item.plannedSets} × ${esc(unitLabel(item.type, goal))}${item.side ? ' por lado' : ''}</span>
         <span class="muted small">Descanso ${fmtClock(restSeconds(state, item.rest))}</span>
       </div>
+      ${ssNote(state, a, item)}
       ${pairedSkill(a, a.current) >= 0 && !itemComplete(item) ? `<div class="alt-note">${icon('swap', 15)}<span>Alternando con <strong>${esc(ROADMAP_BY_ID[a.items[pairedSkill(a, a.current)].roadmapId].name)}</strong>: una serie de cada una.</span></div>` : ''}
       ${item.role === 'mantener' ? '<div class="muted small">Para mantener: series limpias, sin llegar al fallo. Si te sale fácil, sigue subiendo.</div>' : ''}
       ${item.trimmed ? `<div class="muted small">Hoy una serie menos: ${item.roadmapId === 'dominadas' ? 'el muscle-up' : 'la flexión de pino'} ya trabaja esto.</div>` : ''}
@@ -456,8 +471,7 @@ export function tick(ctx) {
   }
 }
 
-function startRest(s, item) {
-  const sec = restSeconds(s, item.rest);
+function startRest(s, item, sec = restSeconds(s, item.rest)) {
   s.active.rest = { endsAt: Date.now() + sec * 1000, total: sec };
 }
 
@@ -479,7 +493,10 @@ function completeSet(s, itemIndex, setIndex) {
   item.sets[setIndex].done = true;
   a.lastActivityAt = Date.now();
   const allDone = a.items.every(itemComplete);
-  if (!allDone) startRest(s, item);
+  // Superserie: se pasa a la pareja con medio descanso (si le quedan series).
+  const ss = ssPartner(a, itemIndex);
+  const ssGo = ss >= 0 && !itemComplete(a.items[ss]);
+  if (!allDone) startRest(s, item, ssGo ? supersetRest(s, item.rest) : undefined);
   else a.rest = null;
   // Si el ejercicio queda completo, pregunta la dificultad (durante el descanso)
   // y pasa al siguiente ejercicio pendiente.
@@ -487,10 +504,12 @@ function completeSet(s, itemIndex, setIndex) {
   if (itemComplete(item)) {
     if (!item.rating && !item.accessoryOf) a.ratePrompt = itemIndex;
     const next = a.items.findIndex((it, i) => i > itemIndex && !itemComplete(it));
-    const any = pair >= 0 ? pair : next >= 0 ? next : a.items.findIndex((it) => !itemComplete(it));
+    const any = pair >= 0 ? pair : ssGo ? ss : next >= 0 ? next : a.items.findIndex((it) => !itemComplete(it));
     if (any >= 0) a.current = any;
   } else if (pair >= 0) {
     a.current = pair;
+  } else if (ssGo) {
+    a.current = ss;
   }
 }
 

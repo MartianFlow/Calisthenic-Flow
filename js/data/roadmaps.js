@@ -458,6 +458,12 @@ export const DAY_TEMPLATES = {
   // el orden alternado, porque lo que va primero es lo que más fuerza gana (Nunes 2021).
   TA: { label: 'Torso A', badge: 'TA', focus: 'Dominadas y fondos primero · Remo · Flexiones · Core', ids: ['dominadas', 'fondos', 'remo', 'flexiones', 'core'] },
   TB: { label: 'Torso B', badge: 'TB', focus: 'Remo y flexiones primero · Dominadas · Fondos · Core', ids: ['remo', 'flexiones', 'dominadas', 'fondos', 'core'] },
+  // Empuje / tirón / pierna (v21): cada día un grupo; con 5 días, un torso completo de relleno.
+  T: { label: 'Tirón', badge: 'T', focus: 'Espalda y bíceps: dominadas · Remo · Core', ids: ['dominadas', 'remo', 'core'] },
+  E: { label: 'Empuje', badge: 'E', focus: 'Pecho, hombro y tríceps: fondos · Flexiones · Core', ids: ['fondos', 'flexiones', 'core'] },
+  TC: { label: 'Torso completo', badge: 'TC', focus: 'Dominadas · Fondos · Remo · Flexiones · Core', ids: ['dominadas', 'fondos', 'remo', 'flexiones', 'core'] },
+  // Día de pierna con calistenia (torso/pierna o empuje/tirón/pierna sin gimnasio).
+  PC: { label: 'Pierna', badge: 'P', focus: 'Sentadillas y zancadas · Bisagra (isquios y glúteo)', ids: ['piernas', 'bisagra'] },
 };
 
 // Complementarios que no son un paso de ninguna ruta (sin vídeo: sale «Buscar técnica en YouTube»).

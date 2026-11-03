@@ -5,7 +5,7 @@
 import { LIFT_BY_ID } from '../data/gym.js';
 import { getState } from '../store.js';
 import { liftState, liftGoal, outcomeText, restSeconds, customOf, customDef, planDayTypes } from '../logic.js';
-import { DAY_INFO } from '../schedule.js';
+import { dayInfo } from '../schedule.js';
 import { esc, icon, fmtClock, fmtDate, fmtKg, kgInput, unitLabel } from '../ui.js';
 import { progressLine } from '../charts.js';
 import { liftPills, freePills } from './progress.js';
@@ -40,7 +40,7 @@ function renderCustom(state, c) {
     .map((h) => ({ date: h.date, value: best(h.item) })).filter((pt) => pt.value > 0);
   const u = (v) => unitLabel(c.kind, v);
   const types = planDayTypes(state);
-  const days = (c.days || []).filter((t) => types.includes(t) && DAY_INFO[t]).map((t) => DAY_INFO[t].label);
+  const days = (c.days || []).filter((t) => types.includes(t)).map((t) => dayInfo(t).label);
   return `
     <header class="page-head">
       <button class="back" data-action="go-back" data-fallback="#/rutas">${icon('back', 18)} Volver</button>

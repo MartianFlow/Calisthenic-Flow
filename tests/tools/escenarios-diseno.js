@@ -189,6 +189,19 @@ const mine = gymState({
 });
 const mineSessionId = customSessions[2].id;
 
+// «A tu manera»: cuatro días propios (uno con nombre largo) en la semana.
+const OWN_DAYS = [
+  { id: 'd-pecho', name: 'Pecho, hombro y tríceps', ids: ['fondos', 'flexiones', 'c-curl', 'core'] },
+  { id: 'd-espalda', name: 'Espalda y bíceps', ids: ['dominadas', 'remo', 'c-band'] },
+  { id: 'd-pierna', name: 'Pierna', ids: ['hack', 'peso-muerto', 'extension', 'c-plank'] },
+  { id: 'd-movilidad', name: 'Movilidad', ids: [] },
+];
+const ownState = gymState({
+  custom: CUSTOM,
+  lifts: mine.lifts,
+  settings: { ...gym.settings, split: 'propia', myDays: OWN_DAYS, myWeek: ['d-pecho', 'd-espalda', null, 'd-pierna', 'd-pecho', 'd-movilidad', null], daysPerWeek: 5, schedule: { days: [true, true, false, true, true, true, false] } },
+});
+
 const scenarios = [
   // Bienvenida paso a paso
   { name: 'bienvenida', route: '/bienvenida', state: fresh() },
@@ -336,6 +349,23 @@ const scenarios = [
   { name: 'propios-progreso-peso', route: '/progreso', state: mine, setup: async (page) => { await page.locator('.body-card').scrollIntoViewIfNeeded(); await page.locator('.body-log summary').click(); } },
   { name: 'nuevo-progreso-peso', route: '/progreso', state: baseState(), setup: async (page) => { await page.locator('.body-card').scrollIntoViewIfNeeded(); } },
   { name: 'propios-ajustes-copia', route: '/ajustes', state: gymState({ backup: { last: NOW - 3 * DAY, count: 2 } }) },
+
+  // Cómo divides tu semana y superseries (v21)
+  { name: 'division-plan-etp', route: '/plan', state: gymState({ settings: { ...gym.settings, split: 'etp', schedule: { days: [true, false, true, false, true, true, true] } } }) },
+  { name: 'division-plan-etp-3-dias', route: '/plan', state: baseState({ settings: { split: 'etp', daysPerWeek: 3 } }) },
+  { name: 'division-plan-torso-pierna-calistenia', route: '/plan', state: richState({ settings: { ...rich.settings, split: 'torso-pierna', daysPerWeek: 4, schedule: { days: [true, true, false, true, true, false, false] } } }) },
+  { name: 'division-plan-propia', route: '/plan', state: ownState },
+  { name: 'division-mis-dias', route: '/mis-dias', state: ownState },
+  { name: 'division-mis-dias-sin-usar', route: '/mis-dias', state: gymState({ settings: { ...gym.settings, myDays: OWN_DAYS } }) },
+  { name: 'division-mis-dias-vacio', route: '/mis-dias', state: baseState({ settings: { split: 'propia' } }) },
+  { name: 'division-hoy-propia', route: '/', state: ownState },
+  { name: 'division-hoy-etp', route: '/', state: gymState({ settings: { ...gym.settings, split: 'etp' } }), now: '2026-11-04T10:00:00+01:00' },
+  { name: 'division-ajustes', route: '/ajustes', state: ownState },
+  { name: 'superseries-hoy', route: '/', state: richState({ settings: { ...rich.settings, supersets: true } }) },
+  { name: 'superseries-entreno', route: '/', state: richState({ settings: { ...rich.settings, supersets: true, focus: null, maintain: [] } }), setup: async (page) => { await startSession(page); await skipWarmup(page); } },
+  { name: 'superseries-entreno-descanso', route: '/', viewportOnly: true, state: richState({ settings: { ...rich.settings, supersets: true, focus: null, maintain: [] } }), setup: async (page) => { await startSession(page); await skipWarmup(page); await doSet(page, 0); } },
+  { name: 'bienvenida-division', route: '/bienvenida', state: fresh(), setup: wizTo('division') },
+  { name: 'bienvenida-division-propia', route: '/bienvenida', state: fresh({ settings: { legs: 'gym', split: 'propia' } }), setup: wizTo('division') },
 ];
 
 module.exports = { scenarios, baseState, richState, gymState, NOW };

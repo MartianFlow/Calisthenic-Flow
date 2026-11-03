@@ -3,10 +3,13 @@
 import { ROADMAP_BY_ID } from '../data/roadmaps.js';
 import { LIFTS, LIFT_BY_ID } from '../data/gym.js';
 import { getState, update } from '../store.js';
-import { stepOf, liftState, isGymLegs, sessionsInWeek, startOfWeek, skillRole, skillPicks, customOf } from '../logic.js';
+import {
+  stepOf, liftState, isGymLegs, sessionsInWeek, startOfWeek, skillRole, skillPicks, customOf, SPLITS, splitOf, legType, myDays,
+  baseIds, dayOrder, uid,
+} from '../logic.js';
 import {
   WEEKDAYS, WD_SHORT, DEFAULT_DAYS, DAY_INFO, recommendDays, buildWeek, weekdayIndex,
-  swapWeekDays, weekChanged, weekWarning,
+  swapWeekDays, weekChanged, weekWarning, dayInfo, frequencyWarnings, pickDays,
 } from '../schedule.js';
 import { esc, icon, fmtKg, kgInput, parseKg, toast } from '../ui.js';
 import { navigate } from '../router.js';
@@ -46,19 +49,48 @@ function liftWeights(state) {
 }
 
 function legsCard(state) {
+  const split = splitOf(state);
+  if (split === 'propia') return '';
   const gym = isGymLegs(state);
   return `
     <section class="card legs-card">
       <h3>Pierna</h3>
       ${legsSegmented(state)}
       <p class="muted small">${gym
-        ? 'Los días de torso hacen dominadas, fondos, remo, flexiones y core, con tus habilidades al principio. La pierna va en 2 días propios de gimnasio, con pesos y progresión por kilos.'
-        : 'La pierna se entrena con las rutas de calistenia (sentadillas, pistol, curl nórdico) dentro de los días A y B.'}</p>
+        ? 'La pierna va en sus propios días de gimnasio, con pesos y progresión por kilos.'
+        : split === 'completo'
+          ? 'La pierna se entrena con las rutas de calistenia (sentadillas, pistol, curl nórdico) dentro de los días A y B. Con «Gimnasio», la semana pasa a torso y pierna.'
+          : 'La pierna va en sus propios días, con las rutas de calistenia: sentadillas, zancadas, pistol, bisagra y curl nórdico.'}</p>
       ${gym ? `
         <h4>Tus pesos de trabajo</h4>
         <p class="muted small">Apunta el peso con el que haces hoy cada ejercicio. La app lo subirá cuando completes el rango de repeticiones. También puedes cambiarlo durante el entreno.</p>
         ${liftWeights(state)}` : ''}
     </section>`;
+}
+
+// Cómo divides tu semana: las 4 formas, con lo que significa cada una.
+function splitCard(state) {
+  const cur = splitOf(state);
+  const gymNote = state.settings.legs === 'gym' && cur === 'completo'
+    ? `<p class="wiz-note">${icon('info', 14)}<span>En cuerpo completo la pierna va dentro de cada día, con calistenia. Para hacerla en el gimnasio, elige torso y pierna o empuje, tirón y pierna.</span></p>` : '';
+  return `
+    <section class="card split-card" id="division">
+      <h3>Cómo divides tu semana</h3>
+      <div class="split-options" role="radiogroup" aria-label="Cómo divides tu semana">${Object.entries(SPLITS).map(([k, sp]) => `
+        <button class="split-opt ${k === cur ? 'on' : ''}" role="radio" aria-checked="${k === cur}" data-action="set-split" data-value="${k}">
+          <span class="split-ic">${k === cur ? icon('check', 16) : ''}</span>
+          <span class="grow"><strong>${esc(sp.label)}</strong><span class="muted small block">${esc(sp.text)}</span></span>
+        </button>`).join('')}</div>
+      ${gymNote}
+      ${cur === 'propia' ? `<a class="btn primary" href="#/mis-dias">${icon('edit', 18)} Editar tus días</a>` : ''}
+    </section>`;
+}
+
+// Avisos si un grupo muscular se queda con un solo día (o ninguno) a la semana.
+function frequencyCard(state, week) {
+  const list = frequencyWarnings(state, week);
+  if (!list.length) return '';
+  return `<div class="freq-warn">${list.map((t) => `<p class="wiz-note">${icon('info', 14)}<span>${esc(t)}</span></p>`).join('')}</div>`;
 }
 
 function chipFor(d, id) {
@@ -98,7 +130,7 @@ function dayActions(d, ctx) {
 }
 
 function dayRow(d, ctx) {
-  const info = DAY_INFO[d.type];
+  const info = dayInfo(d.type);
   const isToday = d.weekday === ctx.today;
   const names = d.ids.map((id) => chipFor(d, id)).join('');
   const cls = [
@@ -110,7 +142,7 @@ function dayRow(d, ctx) {
   return `
     <li class="week-row type-${d.type} ${cls}">
       <div class="week-day"><strong>${WD_SHORT[d.weekday]}</strong><span class="muted tiny">${WEEKDAYS[d.weekday].slice(0, 3)}</span></div>
-      <span class="type-badge t-${d.type}">${esc(info.badge || d.type)}</span>
+      <span class="type-badge t-${info.mine ? 'mine' : d.type}">${esc(info.badge || d.type)}</span>
       <div class="grow">
         <div class="week-title">${esc(info.label)}${isToday ? ' <span class="pill tiny accent">Hoy</span>' : ''}${d.movedFrom !== undefined ? ` <span class="pill tiny">${icon('swap', 12)} del ${esc(WEEKDAYS[d.movedFrom].toLowerCase())}</span>` : ''}</div>
         ${d.type === 'R' ? `<div class="muted small">${esc(info.focus)}</div>` : `<div class="mini-chips">${names}</div>`}
@@ -134,7 +166,7 @@ function weekCard(state, week) {
       <h3>Esta semana</h3>
       ${src
         ? `<div class="move-banner">
-            <p><strong>¿A qué día pasas el ${esc(DAY_INFO[src.type].label)} del ${esc(WEEKDAYS[moving].toLowerCase())}?</strong> Si ese día ya tiene entreno, se intercambian.</p>
+            <p><strong>¿A qué día pasas ${dayInfo(src.type).mine ? `«${esc(dayInfo(src.type).label)}»` : `el ${esc(dayInfo(src.type).label)}`} del ${esc(WEEKDAYS[moving].toLowerCase())}?</strong> Si ese día ya tiene entreno, se intercambian.</p>
             <button class="btn ghost small" data-action="week-move-cancel">${icon('close', 16)} Cancelar</button>
           </div>`
         : '<p class="muted small">¿Un día no puedes? Toca «Mover» y elige otro. ¿Te apetece otra rutina? «Entrenar hoy». Los cambios valen solo para esta semana.</p>'}
@@ -144,6 +176,7 @@ function weekCard(state, week) {
           <button class="link" data-action="week-reset">Deshacer cambios</button>
         </div>` : ''}
       ${warning ? `<p class="wiz-note">${icon('info', 14)}<span>${esc(warning)}</span></p>` : ''}
+      ${frequencyCard(state, week)}
       <ol class="week-list">${week.map((d) => dayRow(d, ctx)).join('')}</ol>
       <p class="muted tiny">Toca un ejercicio para ver su vídeo y su técnica.</p>
     </section>`;
@@ -158,7 +191,43 @@ function skillReasons(state) {
         <li>Brazos rectos (front lever, planche, back lever): como mucho 2 por sesión, 3 días por semana y nunca en días seguidos. Back lever y planche, nunca el mismo día.</li>`;
 }
 
+const legendRow = (t) => `<li><span class="type-badge t-${t}">${esc(DAY_INFO[t].badge)}</span><div><strong>${esc(DAY_INFO[t].label)}</strong><span class="muted small">${esc(DAY_INFO[t].focus)}</span></div></li>`;
+
 function legend(state) {
+  const split = splitOf(state);
+  if (split === 'etp') {
+    return `
+      <ul class="split-legend">${['T', 'E', legType(state), 'TC'].map(legendRow).join('')}</ul>
+      <ul class="reasons">
+        <li>Cada día trabaja un grupo: tirón (espalda y bíceps), empuje (pecho, hombro y tríceps) o pierna. Así cada sesión es más corta y puedes darle más volumen a cada grupo.</li>
+        <li>Con 5 días: 2 de pierna, uno de tirón, uno de empuje y uno de torso completo, para que tirón y empuje se trabajen 2 veces. Con 6, empuje-tirón-pierna dos veces. Con 3, cada grupo solo una vez (te avisa arriba).</li>
+        <li>Tus ejercicios propios van en los días que elijas (Rutas → Mis ejercicios).</li>
+        ${skillReasons(state)}
+        <li>Las de mantener van en los días de su grupo: front lever, muscle-up y back lever en los de tirón; planche y flexión de pino en los de empuje. Si no caben, en otro día con torso.</li>
+        <li>Cada 5–6 semanas, una semana de descarga.</li>
+      </ul>`;
+  }
+  if (split === 'propia') {
+    return `
+      <ul class="split-legend">${myDays(state).map((d) => { const info = dayInfo(d.id); return `<li><span class="type-badge t-mine">${esc(info.badge)}</span><div><strong>${esc(d.name)}</strong><span class="muted small">${esc(info.focus)}</span></div></li>`; }).join('')}</ul>
+      <ul class="reasons">
+        <li>Tus días, en los días de la semana que elegiste. Los cambias en «Editar tus días».</li>
+        <li>Si un grupo (tirón, empuje o pierna) se queda con un solo día, te avisa: con 2 por semana se progresa más.</li>
+        ${skillReasons(state)}
+        <li>Las de mantener van en los días que tienen ejercicios de su grupo; si no hay ninguno, en otro día con torso.</li>
+        <li>Cada 5–6 semanas, una semana de descarga.</li>
+      </ul>`;
+  }
+  if (split === 'torso-pierna' && !isGymLegs(state)) {
+    return `
+      <ul class="split-legend">${['TA', 'TB', 'PC'].map(legendRow).join('')}</ul>
+      <ul class="reasons">
+        <li>Torso y pierna alternos. Cada día de torso trabaja los 4 patrones (tirón vertical y horizontal, fondos y flexiones); A y B cambian el orden.</li>
+        <li>Los días de pierna llevan sentadillas y bisagra de calistenia, separados para no caer seguidos.</li>
+        ${skillReasons(state)}
+        <li>Cada 5–6 semanas, una semana de descarga.</li>
+      </ul>`;
+  }
   if (isGymLegs(state)) {
     const row = (t) => `<li><span class="type-badge t-${t}">${esc(DAY_INFO[t].badge)}</span><div><strong>${esc(DAY_INFO[t].label)}</strong><span class="muted small">${esc(DAY_INFO[t].focus)}</span></div></li>`;
     return `
@@ -188,7 +257,8 @@ export function render() {
   const state = getState();
   const sched = state.settings.schedule || { days: DEFAULT_DAYS };
   const rec = recommendDays(state);
-  const week = buildWeek({ ...state, settings: { ...state.settings, schedule: sched } });
+  const empty = WD_SHORT.map((_, i) => ({ weekday: i, type: 'R', skills: [], ids: [] }));
+  const week = buildWeek({ ...state, settings: { ...state.settings, schedule: sched } }) || empty;
   const trainDays = week.filter((d) => d.type !== 'R').length;
   return `
     <header class="page-head">
@@ -199,7 +269,9 @@ export function render() {
 
     ${weekCard(state, week)}
 
-    <section class="card rec-card">
+    ${splitCard(state)}
+
+    ${splitOf(state) === 'propia' ? '' : `<section class="card rec-card">
       <span class="eyebrow">Recomendado para ti</span>
       <div class="row gap">
         <div class="hero-num">${rec.days}<small> días</small></div>
@@ -215,7 +287,7 @@ export function render() {
       <div class="field"><span>Días de entreno por semana</span>${daysSegmented(state, rec)}</div>
       ${!state.settings.schedule ? '<button class="btn primary" data-action="plan-enable">Activar plan semanal</button>' : ''}
       <p class="muted small">El plan reparte los ${trainDays} días para dejar descanso entre sesiones. ★ = recomendado.</p>
-    </section>
+    </section>`}
 
     ${legsCard(state)}
 
@@ -244,7 +316,7 @@ export const actions = {
     if (from === null || from === to) { update(() => {}); return; }
     const type = buildWeek(getState())?.[from]?.type;
     update((s) => { swapWeekDays(s, from, to); });
-    if (type && type !== 'R') toast(`${DAY_INFO[type].label} pasa al ${WEEKDAYS[to].toLowerCase()}`);
+    if (type && type !== 'R') toast(`${dayInfo(type).label} pasa al ${WEEKDAYS[to].toLowerCase()}`);
   },
   'week-reset'() {
     moving = null;
@@ -257,7 +329,7 @@ export const actions = {
     if (!day || day.type === 'R') return;
     moving = null;
     update((s) => { s.plan = { dayType: day.type, ids: [...day.ids], custom: false, picked: true }; });
-    toast(`Hoy: ${DAY_INFO[day.type].label}`);
+    toast(`Hoy: ${dayInfo(day.type).label}`);
     navigate('#/');
   },
   'plan-day'(el) {
@@ -278,11 +350,52 @@ export const actions = {
     update((s) => {
       if (s.settings.legs === value) return;
       s.settings.legs = value;
+      // En cuerpo completo la pierna va dentro de cada día: en el gimnasio necesita sus días.
+      if (value === 'gym' && s.settings.split === 'completo') s.settings.split = 'torso-pierna';
       s.plan = null;
       s.lastDayType = null;
     });
   },
+  'set-split'(el) {
+    const value = el.dataset.value;
+    if (!SPLITS[value] || splitOf(getState()) === value) return;
+    let seeded = false;
+    update((s) => {
+      // La primera vez «A tu manera» empieza con tus días de ahora, para cambiarlos a tu gusto.
+      if (value === 'propia' && !myDays(s).length) { seedMyDays(s); seeded = true; }
+      s.settings.split = value;
+      if (value === 'propia') syncMyWeek(s);
+      s.plan = null;
+      s.lastDayType = null;
+      s.weekMoves = null;
+    });
+    toast(`Tu semana: ${SPLITS[value].label.toLowerCase()}`);
+    if (seeded) navigate('#/mis-dias');
+  },
 };
+
+// «A tu manera» con los días de la semana de ahora: cada tipo de día pasa a ser un día tuyo
+// con sus ejercicios (sin las habilidades, que se colocan solas).
+export function seedMyDays(s) {
+  const week = buildWeek(s);
+  const types = week ? [...new Set(week.filter((d) => d.type !== 'R').map((d) => d.type))] : dayOrder(s).slice(0, 2);
+  const map = {};
+  s.settings.myDays = types.map((t) => {
+    const id = `d-${uid()}`;
+    map[t] = id;
+    return { id, name: dayInfo(t, s).label, ids: baseIds(s, t) };
+  });
+  const days = week ? week.map((d) => map[d.type] || null) : pickDays(DEFAULT_DAYS, types.length).reduce((acc, wd, i) => { acc[wd] = map[types[i]]; return acc; }, Array(7).fill(null));
+  s.settings.myWeek = days;
+}
+
+// En «A tu manera», los días de entreno son los que tienen uno de tus días.
+export function syncMyWeek(s) {
+  const n = (s.settings.myWeek || []).filter(Boolean).length;
+  if (n) s.settings.daysPerWeek = n;
+  s.settings.schedule = { days: (s.settings.myWeek || []).map(Boolean) };
+  if (!s.settings.schedule.days.some(Boolean)) s.settings.schedule = null;
+}
 
 export const changes = {
   'lift-kg'(el) {

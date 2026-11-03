@@ -22,6 +22,10 @@ export function defaultState() {
       sound: true,
       warmup: true,
       legs: 'calistenia',   // 'calistenia' | 'gym' (pierna en el gimnasio con pesos)
+      split: null,          // cómo se divide la semana: 'completo' | 'torso-pierna' | 'etp' | 'propia'
+      myDays: [],           // «A tu manera»: [{ id: 'd-…', name, ids }]
+      myWeek: [null, null, null, null, null, null, null], // id del día tuyo de cada día de la semana
+      supersets: false,     // alternar básicos de grupos distintos (tirón con empuje…)
       theme: 'auto',        // 'auto' (sigue al iPhone) | 'light' | 'dark'
       restMode: 'fixed',    // 'fixed' (el mismo descanso en todo) | 'auto' (el recomendado por ejercicio)
       restSec: 80,          // descanso fijo entre series, en segundos
@@ -115,6 +119,25 @@ export function cleanCustom(c) {
   };
 }
 
+// «A tu manera»: hasta 7 días propios, con nombre y ejercicios, y en qué día de la semana va cada uno.
+export const SPLIT_KEYS = ['completo', 'torso-pierna', 'etp', 'propia'];
+export const MY_DAYS_MAX = 7;
+export const MY_DAY_NAME = 30;
+function cleanMyDays(st) {
+  const seen = new Set();
+  st.myDays = (Array.isArray(st.myDays) ? st.myDays : [])
+    .filter((d) => d && typeof d.id === 'string' && /^d-[\w-]{1,40}$/.test(d.id) && !seen.has(d.id) && seen.add(d.id))
+    .map((d) => ({
+      id: d.id,
+      name: String(d.name || '').trim().slice(0, MY_DAY_NAME) || 'Mi día',
+      ids: [...new Set((Array.isArray(d.ids) ? d.ids : []).filter((x) => typeof x === 'string' && x.length <= 48))].slice(0, 20),
+    }))
+    .slice(0, MY_DAYS_MAX);
+  const valid = new Set(st.myDays.map((d) => d.id));
+  const wk = Array.isArray(st.myWeek) ? st.myWeek : [];
+  st.myWeek = Array.from({ length: 7 }, (_, i) => (valid.has(wk[i]) ? wk[i] : null));
+}
+
 // Peso corporal: de 20 a 300 kg, ordenado por fecha.
 export const BODY_RANGE = { min: 20, max: 300 };
 function cleanBody(list) {
@@ -188,6 +211,10 @@ export function normalize(data) {
   }
   setSkills(s.settings, s.settings.focus, s.settings.maintain);
   if (!['calistenia', 'gym'].includes(s.settings.legs)) s.settings.legs = 'calistenia';
+  // Antes de la v21 la semana se dividía según la pierna: en el gimnasio, torso/pierna.
+  if (!SPLIT_KEYS.includes(s.settings.split)) s.settings.split = s.settings.legs === 'gym' ? 'torso-pierna' : 'completo';
+  cleanMyDays(s.settings);
+  s.settings.supersets = !!s.settings.supersets;
   if (!['auto', 'light', 'dark'].includes(s.settings.theme)) s.settings.theme = 'auto';
   if (!['fixed', 'auto'].includes(s.settings.restMode)) s.settings.restMode = base.settings.restMode;
   s.settings.restSec = clampRest(s.settings.restSec);

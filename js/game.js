@@ -370,6 +370,8 @@ function moreStats(state) {
     customCount: (state.custom || []).length,
     customSessions: s.filter((x) => x.items.some((it) => it.customId)).length,
     backups: state.backup?.count || 0,
+    supersetSessions: s.filter((x) => x.items.some((it) => it.ss != null)).length,
+    ownWeek: state.settings.split === 'propia' && (state.settings.myDays || []).length >= 2 && (state.settings.myWeek || []).filter(Boolean).length >= 2,
     bodyLogs: (state.body || []).length,
     pokes: state.game?.pokes || 0,
     themeFlips: state.game?.themeFlips || 0,
@@ -499,6 +501,8 @@ export const ACHIEVEMENTS = [
   { id: 'creador', cat: 'habitos', rarity: 'bronce', name: 'Creador', desc: 'Crea tu primer ejercicio propio.', check: (st) => [st.customCount, 1] },
   { id: 'propio-10', cat: 'habitos', rarity: 'plata', name: 'Marca de la casa', desc: 'Entrena 10 veces con tus ejercicios propios.', check: (st) => [st.customSessions, 10] },
   { id: 'a-salvo', cat: 'habitos', rarity: 'bronce', name: 'A salvo', desc: 'Exporta una copia de tus datos.', check: (st) => [st.backups, 1] },
+  { id: 'superserie', cat: 'habitos', rarity: 'bronce', name: 'Dos por uno', desc: 'Termina un entreno con superseries.', check: (st) => [st.supersetSessions, 1] },
+  { id: 'arquitecto', cat: 'habitos', rarity: 'plata', name: 'Arquitecto', desc: 'Crea tu semana a tu manera, con al menos 2 días tuyos.', check: (st) => n(st.ownWeek) },
   { id: 'bascula', cat: 'habitos', rarity: 'bronce', name: 'En la báscula', desc: 'Apunta tu peso corporal 4 veces.', check: (st) => [st.bodyLogs, 4] },
 
   // Secretos: no se ve qué piden hasta conseguirlos, solo una pista.

@@ -98,7 +98,7 @@ function dayDetail(byDay) {
         <article class="cal-session">
           <div class="row between">
             <div class="grow">
-              <div class="eyebrow">${esc(dayLabel(s.dayType))} · ${fmtTime(s.startedAt)}</div>
+              <div class="eyebrow">${esc(dayLabel(s.dayType, s))} · ${fmtTime(s.startedAt)}</div>
               <strong>${fmtDuration(s.duration)} · ${s.items.length} ${s.items.length === 1 ? 'ejercicio' : 'ejercicios'}</strong>
             </div>
             <a class="link" href="#/sesion/${s.id}">Detalle ${icon('next', 14)}</a>

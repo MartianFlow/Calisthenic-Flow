@@ -3,7 +3,7 @@
 
 import { getState, update, cleanCustom, CUSTOM_LIMITS } from '../store.js';
 import { GROUPS, customOf, activeCustom, liftState, liftGoal, uid, planDayTypes } from '../logic.js';
-import { DAY_INFO } from '../schedule.js';
+import { dayInfo } from '../schedule.js';
 import { esc, icon, toast, fmtKg, kgInput, parseKg } from '../ui.js';
 import { navigate } from '../router.js';
 import { parseVideo } from '../video.js';
@@ -16,7 +16,7 @@ const SETS = [2, 3, 4, 5];
 const unitOf = (c, v) => (c.kind === 'hold' ? `${v} s` : `${v} ${v === 1 ? 'rep' : 'reps'}`);
 export const rangeText = (c) => (c.kind === 'hold' ? `${c.min}–${c.max} s` : `${c.min}–${c.max} reps`);
 export const groupText = (c) => [GROUPS[c.group]?.label, c.muscle].filter(Boolean).join(' · ');
-const dayLabels = (days) => days.filter((d) => DAY_INFO[d]).map((d) => DAY_INFO[d].label);
+const dayLabels = (days) => days.map((d) => dayInfo(d)).filter((i) => i.ids).map((i) => i.label);
 
 // Objetivo de hoy de un ejercicio propio: «3 × 10» con sus kilos o segundos.
 export function customTarget(state, c) {
@@ -166,7 +166,7 @@ export function renderForm({ id }) {
 
       <div class="field"><span>En qué días va</span>
         <div class="goal-picker" role="group" aria-label="Días del plan">${types.map((t) => `
-          <button type="button" class="goal-chip keep ${d.days.includes(t) ? 'on' : ''}" aria-pressed="${d.days.includes(t)}" data-action="cx-day" data-value="${esc(t)}">${esc(DAY_INFO[t].label)}</button>`).join('')}</div>
+          <button type="button" class="goal-chip keep ${d.days.includes(t) ? 'on' : ''}" aria-pressed="${d.days.includes(t)}" data-action="cx-day" data-value="${esc(t)}">${esc(dayInfo(t).label)}</button>`).join('')}</div>
         <span class="muted small hint">Va al final de esos días de tu plan (antes del core, si lo hay). Si no marcas ninguno, lo añades a un entreno suelto desde Hoy → Editar.</span>
       </div>
 

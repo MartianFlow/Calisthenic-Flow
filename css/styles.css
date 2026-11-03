@@ -1776,3 +1776,37 @@ body[data-route="bienvenida"] .view { gap: 16px; min-height: 100vh; min-height: 
 .body-log ul { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .body-log li { display: flex; align-items: center; gap: 10px; font-weight: 700; }
 .body-log .icon-btn { width: 34px; height: 34px; }
+
+/* ─────────── Cómo divides tu semana y superseries (v21) ─────────── */
+.type-badge.t-T { background: var(--cyan); } .type-badge.t-E { background: var(--pink); }
+.type-badge.t-TC { background: var(--yellow); font-size: 17px; letter-spacing: -0.02em; }
+.type-badge.t-PC { background: var(--lime); }
+.type-badge.t-mine { background: #b48cff; font-size: 17px; letter-spacing: -0.02em; }
+.split-options { display: flex; flex-direction: column; gap: 10px; }
+.split-opt {
+  display: flex; align-items: flex-start; gap: 10px; width: 100%; padding: 12px; text-align: left; min-width: 0;
+  border-radius: 8px; border: 2.5px solid var(--border); background: var(--surface-2); color: var(--text); box-shadow: 3px 3px 0 var(--shadow);
+  transition: transform 0.15s var(--ease-pop), background 0.15s;
+}
+.split-opt strong { font-family: var(--display); font-weight: 400; font-size: 22px; letter-spacing: 0.04em; line-height: 1.05; }
+.split-opt .block { display: block; margin-top: 2px; font-weight: 600; }
+.split-opt .split-ic { flex: none; width: 24px; height: 24px; border-radius: 6px; border: 2.5px solid var(--border); background: var(--surface); display: grid; place-items: center; margin-top: 2px; }
+.split-opt.on { background: var(--yellow); color: #000; transform: rotate(-0.6deg); }
+.split-opt.on .muted { color: #333; }
+.split-opt.on .split-ic { background: #000; color: var(--yellow); border-color: #000; }
+.split-now { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-weight: 700; }
+.freq-warn { display: flex; flex-direction: column; gap: 6px; }
+.ss-label {
+  list-style: none; display: flex; align-items: center; gap: 6px; padding: 6px 10px 2px; font-size: 13px; font-weight: 800;
+  color: var(--accent-text); border-top: 2px dashed var(--border);
+}
+.ex-row.ss-row { border-left: 4px solid var(--lime); padding-left: 10px; }
+.ex-row.ss-first { border-top: none; }
+.ss-note { background: color-mix(in srgb, var(--lime) 22%, var(--surface)); }
+.myday-head { align-items: center; }
+.myday-head .type-badge { flex: none; }
+.myday-list { margin: 0; }
+.myday-del { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; }
+.myweek { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.myweek li { display: grid; grid-template-columns: minmax(84px, auto) minmax(0, 1fr); align-items: center; gap: 10px; }
+.myweek label strong { font-weight: 800; }

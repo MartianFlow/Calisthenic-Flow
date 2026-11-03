@@ -14,7 +14,11 @@
 import { ROADMAP_BY_ID, ROADMAPS, DAY_TEMPLATES } from './data/roadmaps.js';
 import { LEG_DAYS } from './data/gym.js';
 import { getProgress } from './store.js';
-import { currentPlan, startOfWeek, TORSO_TYPES, skillPicks, baseIds, clashes, PRACTICE_ID, isWorkout } from './logic.js';
+import {
+  currentPlan, startOfWeek, skillPicks, baseIds, clashes, PRACTICE_ID, isWorkout, isGymLegs, splitOf, legType, myDays, myDayOf,
+  dayAccepts, dayGroups, GROUPS, groupOf,
+} from './logic.js';
+import { getState } from './store.js';
 
 export const WEEKDAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 export const WD_SHORT = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
@@ -38,7 +42,7 @@ export const LEG_ROUTES = ['piernas', 'bisagra'];
 //   superado) y a «Elevaciones de rodillas colgado» (4/10) → arranca en el 45 %.
 // Cortes [criterio propio]: < 30 % principiante, < 60 % intermedio, resto avanzado.
 export function trainingLevel(state) {
-  const gymLegs = state.settings.legs === 'gym';
+  const gymLegs = isGymLegs(state);
   const parts = [];
   for (const r of ROADMAPS) {
     if (r.category === 'fuerza') {
@@ -68,7 +72,21 @@ export function recommendDays(state) {
   const available = (state.settings.schedule?.days || DEFAULT_DAYS).filter(Boolean).length;
   let days = 3;
   const reasons = [];
-  if (state.settings.legs === 'gym') {
+  const split = splitOf(state);
+  if (split === 'etp') {
+    days = level.key === 'avanzado' ? 6 : 5;
+    reasons.push(days === 6
+      ? 'Empuje, tirón y pierna con nivel avanzado: 6 días, cada grupo 2 veces por semana, que es lo que mejor funciona.'
+      : 'Empuje, tirón y pierna: con 5 días cada grupo se entrena 2 veces (2 de pierna, uno de tirón, otro de empuje y uno de torso completo). Con 3 días, cada grupo solo una vez.');
+  } else if (split === 'propia') {
+    days = Math.max(1, (state.settings.myWeek || []).filter(Boolean).length);
+    reasons.push('A tu manera: entrenas los días a los que asignas uno de tus días. Abajo verás si algún grupo muscular se queda con un solo día.');
+  } else if (split === 'torso-pierna' && !isGymLegs(state)) {
+    days = level.key === 'avanzado' ? 5 : 4;
+    reasons.push(days === 5
+      ? 'Torso y pierna con nivel avanzado: 3 días de torso y 2 de pierna, cada músculo 2–3 veces por semana.'
+      : `Torso y pierna con nivel ${level.label.toLowerCase()}: 2 días de torso y 2 de pierna, cada músculo 2 veces por semana.`);
+  } else if (split === 'torso-pierna') {
     if (level.key === 'avanzado') {
       days = 5;
       reasons.push('Nivel avanzado con la pierna en el gimnasio: 3 días de torso (tirón, empuje y habilidades) y 2 de pierna. Cada músculo se trabaja 2–3 veces por semana, que es lo que mejor funciona.');
@@ -91,7 +109,7 @@ export function recommendDays(state) {
       : 'Nivel avanzado: 4 días alternando A y B permiten más volumen por patrón.');
   }
   if (straight) reasons.push(`Tienes ${straight} habilidad${straight > 1 ? 'es' : ''} de brazos rectos: como mucho 3 días por semana y nunca en días seguidos (los tendones se adaptan despacio).`);
-  if (available < days) {
+  if (available < days && split !== 'propia') {
     reasons.push(`Solo marcaste ${available} día${available === 1 ? '' : 's'} libre${available === 1 ? '' : 's'}: el plan se ajusta a ${available}.`);
     days = Math.max(2, available);
   }
@@ -157,10 +175,27 @@ function gymScore(days, isLeg) {
   return -1000 * legAdj - 100 * torsoAdj + 10 * Math.min(legGap, 4) - adj - days[0] * 0.1;
 }
 
-export function gymDays(available, n, oddWeek) {
+// Días de pierna: torso/pierna, 1 con 2–3 días y 2 con 4 o más; empuje/tirón/pierna, 1 con
+// 2–4 días y 2 con 5 o más.
+function legCount(split, k) {
+  if (k <= 1) return 0;
+  if (split === 'etp') return k >= 5 ? 2 : 1;
+  return k <= 3 ? 1 : 2;
+}
+
+// Los días de torso en orden: TA/TB alternos; o tirón y empuje alternos, con un torso
+// completo cuando queda uno suelto (1, 3 o 5 días de torso). Las semanas impares empieza el otro.
+function upperTypes(split, u, odd) {
+  if (split !== 'etp') return Array.from({ length: u }, (_, i) => ['TA', 'TB'][(i + (odd ? 1 : 0)) % 2]);
+  const pair = odd ? ['E', 'T'] : ['T', 'E'];
+  const seq = Array.from({ length: u - (u % 2) }, (_, i) => pair[i % 2]);
+  return u % 2 ? [...seq, 'TC'] : seq;
+}
+
+export function gymDays(available, n, oddWeek, split = 'torso-pierna', leg = 'P') {
   const avail = available.map((on, i) => (on ? i : -1)).filter((i) => i >= 0);
   const k = Math.max(1, Math.min(n, avail.length));
-  const legs = k <= 1 ? 0 : k <= 3 ? 1 : 2;
+  const legs = legCount(split, k);
   let best = null;
   for (const days of combos(avail, k)) {
     for (const legIdx of combos(days.map((_, i) => i), legs)) {
@@ -169,8 +204,9 @@ export function gymDays(available, n, oddWeek) {
       if (!best || score > best.score) best = { score, days, isLeg };
     }
   }
-  let t = oddWeek ? 1 : 0;
-  return { days: best.days, types: best.isLeg.map((leg) => (leg ? 'P' : ['TA', 'TB'][t++ % 2])) };
+  const upper = upperTypes(split, best.isLeg.filter((x) => !x).length, oddWeek);
+  let t = 0;
+  return { days: best.days, types: best.isLeg.map((isLeg) => (isLeg ? leg : upper[t++])) };
 }
 
 export function weekTemplate(n, hasGoals, oddWeek) {
@@ -195,10 +231,27 @@ export const DAY_INFO = {
   R: { label: 'Descanso', badge: '—', focus: 'Recuperación activa: caminar, movilidad o estiramientos suaves.', ids: [] },
 };
 
-// Nombre de un tipo de día para el historial («Torso A», «Pierna B», «Día A»…).
-export function dayLabel(type) {
+// Insignia de un día propio: las iniciales de sus palabras («Pecho y tríceps» → «PT»).
+function badgeOf(name) {
+  const words = String(name).split(/\s+/).filter((w) => w.length > 2 || /^[A-ZÁÉÍÓÚÑ]/.test(w));
+  const letters = (words.length >= 2 ? words.slice(0, 2).map((w) => w[0]) : [...(words[0] || name || '·').slice(0, 2)]).join('');
+  return letters.toUpperCase();
+}
+
+// Datos de un tipo de día: los fijos (DAY_INFO) o uno de tus días («A tu manera»).
+export function dayInfo(type, state = getState()) {
+  if (DAY_INFO[type]) return DAY_INFO[type];
+  const d = myDayOf(state, type);
+  if (d) return { label: d.name, badge: badgeOf(d.name), focus: `${d.ids.length} ejercicio${d.ids.length === 1 ? '' : 's'}`, ids: d.ids, mine: true };
+  return { label: 'Entreno', badge: '·', focus: '', ids: [] };
+}
+
+// Nombre de un tipo de día para el historial («Torso A», «Pierna B», «Día A»…). Un día tuyo
+// que ya no existe se nombra con lo que se guardó en el entreno.
+export function dayLabel(type, session = null) {
   if (type === 'libre') return 'Entreno libre';
-  return DAY_INFO[type]?.label || `Día ${type}`;
+  if (DAY_INFO[type]) return DAY_INFO[type].label;
+  return myDayOf(getState(), type)?.name || session?.dayName || 'Entreno';
 }
 
 // Reparto de las habilidades en la semana (ver logic.js, «foco y mantenimiento»):
@@ -216,7 +269,10 @@ function placeSkills(state, chosen, types, odd) {
   const on = {};           // id → días (weekday) en que ya está
   const straightDays = new Set();
   const days = chosen.map((wd, k) => ({ wd, type: types[k], skills: [] }));
-  const torso = (d) => d.type === 'S' || TORSO_TYPES.includes(d.type);
+  // Días con torso (la que aprendes va en todos) y días que encajan con una habilidad de
+  // mantener (su grupo: tirón, empuje…; en los de torso completo, todas).
+  const torso = (d) => dayAccepts(state, d.type);
+  const fitsGroup = (id, d) => dayAccepts(state, d.type, id);
   const count = (id) => (on[id] || []).length;
   const near = (id, wd) => (on[id] || []).some((x) => Math.abs(x - wd) === 1);
 
@@ -253,15 +309,18 @@ function placeSkills(state, chosen, types, odd) {
   const load = (d) => d.skills.filter((x) => x !== PRACTICE_ID).length;
   const gap = (id, d) => Math.min(7, ...(on[id] || []).map((x) => Math.abs(x - d.wd)));
   const best = (id, pool) => pool.sort((x, y) => load(x) - load(y) || gap(id, y) - gap(id, x) || x.wd - y.wd)[0];
-  for (let round = 1; round <= 2; round++) {
-    if (maintain.includes(PRACTICE_ID) && count(PRACTICE_ID) < round) {
-      const d = best(PRACTICE_ID, days.filter((x) => torso(x) && !x.skills.includes(PRACTICE_ID) && fits(PRACTICE_ID, x, 'mantener')));
-      if (d) d.skills.unshift(PRACTICE_ID), (on[PRACTICE_ID] ||= []).push(d.wd);
-    }
-    for (const id of order) {
-      if (count(id) >= round) continue;
-      const d = best(id, days.filter((x) => torso(x) && !x.skills.some((y) => others.includes(y)) && fits(id, x, 'mantener')));
-      if (d) put(id, d);
+  // Con días de un solo grupo, primero los de su grupo y, si no hay ninguno, cualquiera con torso.
+  for (const match of [fitsGroup, (id, d) => count(id) === 0 && torso(d)]) {
+    for (let round = 1; round <= 2; round++) {
+      if (maintain.includes(PRACTICE_ID) && count(PRACTICE_ID) < round) {
+        const d = best(PRACTICE_ID, days.filter((x) => torso(x) && match(PRACTICE_ID, x) && !x.skills.includes(PRACTICE_ID) && fits(PRACTICE_ID, x, 'mantener')));
+        if (d) d.skills.unshift(PRACTICE_ID), (on[PRACTICE_ID] ||= []).push(d.wd);
+      }
+      for (const id of order) {
+        if (count(id) >= round) continue;
+        const d = best(id, days.filter((x) => torso(x) && match(id, x) && !x.skills.some((y) => others.includes(y)) && fits(id, x, 'mantener')));
+        if (d) put(id, d);
+      }
     }
   }
 
@@ -284,16 +343,25 @@ function placeSkills(state, chosen, types, odd) {
 // Construye la semana: [{ weekday, type, skills, ids }] para L…D.
 export function buildWeek(state, weekStart = startOfWeek(Date.now())) {
   const sched = state.settings.schedule;
-  if (!sched) return null;
+  const split = splitOf(state);
+  if (!sched && split !== 'propia') return null;
   const { focus, maintain } = skillPicks(state);
   const hasSkills = !!focus || maintain.length > 0;
-  const n = Math.min(state.settings.daysPerWeek, sched.days.filter(Boolean).length);
   const odd = isoWeek(weekStart) % 2 === 1;
   let chosen;
   let types;
-  if (state.settings.legs === 'gym') {
-    ({ days: chosen, types } = gymDays(sched.days, n, odd));
+  if (split === 'propia') {
+    // A tu manera: cada día de la semana lleva el día tuyo que le asignaste.
+    const wk = state.settings.myWeek || [];
+    chosen = [];
+    types = [];
+    wk.forEach((id, i) => { if (id && myDayOf(state, id)) { chosen.push(i); types.push(id); } });
+    if (!chosen.length) return null;
+  } else if (split === 'torso-pierna' || split === 'etp') {
+    const n = Math.min(state.settings.daysPerWeek, sched.days.filter(Boolean).length);
+    ({ days: chosen, types } = gymDays(sched.days, n, odd, split, legType(state)));
   } else {
+    const n = Math.min(state.settings.daysPerWeek, sched.days.filter(Boolean).length);
     chosen = pickDays(sched.days, n);
     types = weekTemplate(chosen.length, hasSkills, odd);
   }
@@ -350,13 +418,14 @@ export function weekChanged(state) {
 
 // Aviso si, tras mover, quedan seguidos dos días de pierna, dos con brazos rectos o dos con
 // la misma flexión de pino o muscle-up.
-export function weekWarning(week) {
+export function weekWarning(week, state = getState()) {
   const name = (id) => ROADMAP_BY_ID[id].name;
+  const legDay = (t) => t === 'P' || t === 'PC' || (myDayOf(state, t) && !dayAccepts(state, t) && dayGroups(state, t).has('pierna'));
   for (let i = 0; i < 6; i++) {
     const a = week[i];
     const b = week[i + 1];
     if (a.type === 'R' || b.type === 'R') continue;
-    if (a.type === 'P' && b.type === 'P') return 'Ojo: quedan dos días de pierna seguidos. Mejor dejar 48–72 h entre ellos.';
+    if (legDay(a.type) && legDay(b.type)) return 'Ojo: quedan dos días de pierna seguidos. Mejor dejar 48–72 h entre ellos.';
     const sa = a.skills.filter((id) => ROADMAP_BY_ID[id]?.straightArm);
     const sb = b.skills.filter((id) => ROADMAP_BY_ID[id]?.straightArm);
     if (sa.length && sb.length) {
@@ -369,6 +438,36 @@ export function weekWarning(week) {
     if (hard) return `Ojo: ${name(hard)} queda en dos días seguidos. Mejor dejar un día de descanso entre medias.`;
   }
   return '';
+}
+
+// Cuántos días por semana se trabaja cada grupo (empuje, tirón, pierna), con lo que lleva cada
+// día y sus habilidades. Avisa de los que se quedan en 1 día (con 2 se progresa más) o en ninguno.
+export const FREQ_GROUPS = ['empuje', 'tiron', 'pierna'];
+export function groupDays(state, week) {
+  const out = Object.fromEntries(FREQ_GROUPS.map((g) => [g, 0]));
+  for (const d of week || []) {
+    if (d.type === 'R') continue;
+    // (el pino es una práctica corta: no cuenta como día de empuje)
+    const g = new Set([...d.ids, ...(d.skills || [])].filter((id) => id !== PRACTICE_ID).map((id) => groupOf(id, state)));
+    for (const k of FREQ_GROUPS) if (g.has(k)) out[k]++;
+  }
+  return out;
+}
+
+export function frequencyWarnings(state, week) {
+  if (!week) return [];
+  const counts = groupDays(state, week);
+  const name = (g) => (g === 'pierna' ? 'la pierna' : `el ${GROUPS[g].label.toLowerCase()}`);
+  const list = (gs) => (gs.length === 1 ? gs[0] : `${gs.slice(0, -1).join(', ')} y ${gs[gs.length - 1]}`);
+  const one = FREQ_GROUPS.filter((g) => counts[g] === 1).map(name);
+  const none = FREQ_GROUPS.filter((g) => counts[g] === 0).map(name);
+  const out = [];
+  if (one.length) {
+    const text = list(one);
+    out.push(`${text[0].toUpperCase()}${text.slice(1)} solo se ${one.length === 1 ? 'entrena' : 'entrenan'} 1 día por semana: con 2 se progresa más. Añade un día o algún ejercicio de ${one.length === 1 ? 'ese grupo' : 'esos grupos'} en otro día.`);
+  }
+  if (none.length) out.push(`Ningún día trabaja ${list(none)}.`);
+  return out;
 }
 
 // Qué toca hoy según el plan semanal (o la alternancia A/B si no hay plan).

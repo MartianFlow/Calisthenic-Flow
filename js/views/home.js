@@ -8,9 +8,9 @@ import {
   defaultIds, estimateMinutes, stepOf, createSession, startOfWeek, dayOrder, isGymLegs,
   sessionsInWeek, roadmapPercent, lastPerformance, lastLift, liftState, liftGoal, workFor, deloadActive, deloadSuggestion, startDeload,
   skillRole, plannedSets, skillPicks, PRACTICE_ID, PRACTICE_DAY, noSkillsYet, recommendedSkills,
-  sessionLayout, accInfo, lastAccessory, trimmedRoutes, customOf, activeCustom, GROUPS, backupDue,
+  sessionLayout, accInfo, lastAccessory, trimmedRoutes, customOf, activeCustom, GROUPS, backupDue, supersetPairs, ssPause,
 } from '../logic.js';
-import { todayInfo, buildWeek, DAY_INFO, WEEKDAYS, WD_SHORT, weekdayIndex } from '../schedule.js';
+import { todayInfo, buildWeek, DAY_INFO, WEEKDAYS, WD_SHORT, weekdayIndex, dayInfo } from '../schedule.js';
 import { esc, icon, fmtClock, progressBar, fmtDate, fmtKg, fmtSeries, fmtLiftSeries, toast } from '../ui.js';
 import { navigate } from '../router.js';
 import { audio, wakeLock } from '../device.js';
@@ -32,7 +32,7 @@ function weekStrip(state) {
     const planned = type && type !== 'R';
     return `
     <div class="day ${trainedDays.has(i) ? 'on' : ''} ${i === today ? 'today' : ''} ${planned ? 'planned' : ''}">
-      <span class="dot">${trainedDays.has(i) ? icon('check', 14) : planned ? `<b>${esc(DAY_INFO[type]?.badge || type)}</b>` : ''}</span>
+      <span class="dot">${trainedDays.has(i) ? icon('check', 14) : planned ? `<b>${esc(dayInfo(type, state).badge)}</b>` : ''}</span>
       <span class="lbl">${l}</span>
     </div>`;
   }).join('');
@@ -147,7 +147,7 @@ function exerciseRow(state, id, idx, dayType, trim = new Set(), pos = idx) {
 
 function nextLabel(info) {
   if (!info.next) return '';
-  return `${info.nextWeek ? 'La semana que viene, ' : ''}${WEEKDAYS[info.next.weekday].toLowerCase()}: ${DAY_INFO[info.next.type].label}`;
+  return `${info.nextWeek ? 'La semana que viene, ' : ''}${WEEKDAYS[info.next.weekday].toLowerCase()}: ${dayInfo(info.next.type).label}`;
 }
 
 // Ejercicios de una rutina del plan: los de ese día de esta semana (con sus habilidades)
@@ -163,7 +163,7 @@ function routineChoices(state, currentType) {
   const types = [...dayOrder(state)];
   for (const d of buildWeek(state) || []) if (d.type !== 'R' && !types.includes(d.type)) types.push(d.type);
   return `<div class="pick-chips" role="group" aria-label="Rutinas del plan">${types.map((t) => `
-    <button class="goal-chip ${t === currentType ? 'on' : ''}" data-action="plan-pick" data-type="${t}" aria-pressed="${t === currentType}">${esc(DAY_INFO[t].label)}</button>`).join('')}</div>`;
+    <button class="goal-chip ${t === currentType ? 'on' : ''}" data-action="plan-pick" data-type="${t}" aria-pressed="${t === currentType}">${esc(dayInfo(t, state).label)}</button>`).join('')}</div>`;
 }
 
 // ¿Ha practicado pino este día? (en cualquier entreno, también en «Solo pino»)
@@ -235,12 +235,21 @@ function restCard(state, info) {
 
 function exerciseRows(state, plan) {
   const trim = trimmedRoutes(plan.ids);
-  return sessionLayout(state, plan.ids).map((e, i) => (e.acc ? accRow(state, e, i) : exerciseRow(state, e.id, i, plan.dayType, trim, plan.ids.indexOf(e.id)))).join('');
+  const layout = sessionLayout(state, plan.ids);
+  const pairs = supersetPairs(state, layout);
+  return layout.map((e, i) => {
+    const row = e.acc ? accRow(state, e, i) : exerciseRow(state, e.id, i, plan.dayType, trim, plan.ids.indexOf(e.id));
+    if (!pairs.has(i)) return row;
+    const first = pairs.get(i) > i;
+    // Las dos de una superserie van marcadas, con una etiqueta antes de la primera.
+    const marked = row.replace('<li class="ex-row', `<li class="ex-row ss-row ${first ? 'ss-first' : 'ss-second'}`);
+    return first ? `<li class="ss-label">${icon('swap', 13)} Superserie: una serie de cada, con ${esc(ssPause(state))} entre medias</li>${marked}` : marked;
+  }).join('');
 }
 
 function planCard(state, info) {
   const plan = info.plan;
-  const tpl = DAY_INFO[plan.dayType];
+  const tpl = plan.dayType ? dayInfo(plan.dayType, state) : null;
   const minutes = estimateMinutes(state, plan.ids);
   const available = ROADMAPS.filter((r) => !plan.ids.includes(r.id));
   const availableLifts = isGymLegs(state) ? LIFTS.filter((l) => !plan.ids.includes(l.id)) : [];
@@ -462,9 +471,9 @@ export const actions = {
   // Elige una rutina del plan para hoy (Día A, Día B, Torso, Pierna…).
   'plan-pick'(el) {
     const type = el.dataset.type;
-    if (!DAY_INFO[type]) return;
+    if (!DAY_INFO[type] && !dayInfo(type).mine) return;
     update((s) => { s.plan = { dayType: type, ids: idsForType(s, type), custom: false, picked: true }; });
-    toast(`Hoy: ${DAY_INFO[type].label}`);
+    toast(`Hoy: ${dayInfo(type).label}`);
   },
   'plan-reset'() {
     update((s) => { s.plan = null; });
