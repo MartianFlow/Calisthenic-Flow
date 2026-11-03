@@ -3,11 +3,15 @@
 import { ROADMAP_BY_ID } from '../data/roadmaps.js';
 import { LIFTS, LIFT_BY_ID } from '../data/gym.js';
 import { getState, update } from '../store.js';
-import { stepOf, liftState, isGymLegs } from '../logic.js';
+import { stepOf, liftState, isGymLegs, sessionsInWeek, startOfWeek } from '../logic.js';
 import {
   WEEKDAYS, WD_SHORT, DEFAULT_DAYS, DAY_INFO, recommendDays, buildWeek, weekdayIndex,
+  swapWeekDays, weekChanged, weekWarning,
 } from '../schedule.js';
 import { esc, icon, fmtKg, kgInput, parseKg, toast } from '../ui.js';
+import { navigate } from '../router.js';
+
+let moving = null; // día (0–6) cuyo entreno se está moviendo
 
 export function dayChips(days) {
   return `<div class="wd-picker">${WD_SHORT.map((d, i) => `
@@ -69,18 +73,74 @@ function chipFor(d, id) {
   return `<a class="mini-chip ${skill ? 'skill' : ''}" href="#/ruta/${id}">${esc(r.name)}<small> · ${esc(stepOf(id).step.name)}</small></a>`;
 }
 
-function dayRow(d, isToday) {
-  const info = DAY_INFO[d.type];
-  const names = d.ids.map((id) => chipFor(d, id)).join('');
+// Botones de cada día: entrenar esa rutina hoy y moverla a otro día (solo esta semana).
+// Mientras se mueve un entreno, los días de hoy en adelante ofrecen «Aquí».
+function dayActions(d, ctx) {
+  const done = ctx.trained.has(d.weekday);
+  if (ctx.moving !== null) {
+    if (d.weekday === ctx.moving) return '<div class="week-actions"><span class="pill tiny accent">Moviendo…</span></div>';
+    if (d.weekday < ctx.today || done) return '';
+    return `<div class="week-actions"><button class="btn primary small" data-action="week-move-to" data-day="${d.weekday}">${icon('check', 16)} ${d.type === 'R' ? 'Aquí' : 'Cambiar aquí'}</button></div>`;
+  }
+  if (d.type === 'R') return '';
+  if (done) return `<div class="week-actions"><span class="pill tiny ok">${icon('check', 13)} Hecho</span></div>`;
   return `
-    <li class="week-row type-${d.type} ${isToday ? 'today' : ''}">
+    <div class="week-actions">
+      ${d.weekday !== ctx.today ? `<button class="btn ghost small" data-action="week-train-today" data-day="${d.weekday}">${icon('play', 15)} Entrenar hoy</button>` : ''}
+      <button class="btn ghost small" data-action="week-move" data-day="${d.weekday}">${icon('swap', 16)} Mover</button>
+    </div>`;
+}
+
+function dayRow(d, ctx) {
+  const info = DAY_INFO[d.type];
+  const isToday = d.weekday === ctx.today;
+  const names = d.ids.map((id) => chipFor(d, id)).join('');
+  const cls = [
+    isToday ? 'today' : '',
+    ctx.moving === d.weekday ? 'moving' : '',
+    ctx.moving !== null && ctx.moving !== d.weekday && d.weekday >= ctx.today && !ctx.trained.has(d.weekday) ? 'target' : '',
+    d.weekday < ctx.today ? 'past' : '',
+  ].join(' ');
+  return `
+    <li class="week-row type-${d.type} ${cls}">
       <div class="week-day"><strong>${WD_SHORT[d.weekday]}</strong><span class="muted tiny">${WEEKDAYS[d.weekday].slice(0, 3)}</span></div>
       <span class="type-badge t-${d.type}">${esc(info.badge || d.type)}</span>
       <div class="grow">
-        <div class="week-title">${esc(info.label)}${isToday ? ' <span class="pill tiny accent">Hoy</span>' : ''}</div>
+        <div class="week-title">${esc(info.label)}${isToday ? ' <span class="pill tiny accent">Hoy</span>' : ''}${d.movedFrom !== undefined ? ` <span class="pill tiny">${icon('swap', 12)} del ${esc(WEEKDAYS[d.movedFrom].toLowerCase())}</span>` : ''}</div>
         ${d.type === 'R' ? `<div class="muted small">${esc(info.focus)}</div>` : `<div class="mini-chips">${names}</div>`}
       </div>
+      ${ctx.enabled ? dayActions(d, ctx) : ''}
     </li>`;
+}
+
+// Esta semana: entrenar cualquier rutina hoy o mover entrenos de día.
+function weekCard(state, week) {
+  const ctx = {
+    enabled: !!state.settings.schedule,
+    today: weekdayIndex(),
+    moving,
+    trained: new Set(sessionsInWeek(state, startOfWeek(Date.now())).map((s) => weekdayIndex(s.startedAt))),
+  };
+  const src = moving !== null ? week[moving] : null;
+  const warning = weekWarning(week);
+  return `
+    <section class="card week-card ${moving !== null ? 'is-moving' : ''}">
+      <h3>Esta semana</h3>
+      ${src
+        ? `<div class="move-banner">
+            <p><strong>¿A qué día pasas el ${esc(DAY_INFO[src.type].label)} del ${esc(WEEKDAYS[moving].toLowerCase())}?</strong> Si ese día ya tiene entreno, se intercambian.</p>
+            <button class="btn ghost small" data-action="week-move-cancel">${icon('close', 16)} Cancelar</button>
+          </div>`
+        : '<p class="muted small">¿Un día no puedes? Toca «Mover» y elige otro. ¿Te apetece otra rutina? «Entrenar hoy». Los cambios valen solo para esta semana.</p>'}
+      ${weekChanged(state) && moving === null ? `
+        <div class="week-changed">
+          <span>${icon('swap', 16)} Has movido entrenos esta semana. La que viene vuelve a tu plan.</span>
+          <button class="link" data-action="week-reset">Deshacer cambios</button>
+        </div>` : ''}
+      ${warning ? `<p class="wiz-note">${icon('info', 14)}<span>${esc(warning)}</span></p>` : ''}
+      <ol class="week-list">${week.map((d) => dayRow(d, ctx)).join('')}</ol>
+      <p class="muted tiny">Toca un ejercicio para ver su vídeo y su técnica.</p>
+    </section>`;
 }
 
 function legend(state) {
@@ -115,7 +175,6 @@ export function render() {
   const sched = state.settings.schedule || { days: DEFAULT_DAYS };
   const rec = recommendDays(state);
   const week = buildWeek({ ...state, settings: { ...state.settings, schedule: sched } });
-  const todayIdx = weekdayIndex();
   const trainDays = week.filter((d) => d.type !== 'R').length;
   return `
     <header class="page-head">
@@ -123,6 +182,8 @@ export function render() {
       <span class="eyebrow">Tu semana</span>
       <h1>Plan semanal</h1>
     </header>
+
+    ${weekCard(state, week)}
 
     <section class="card rec-card">
       <span class="eyebrow">Recomendado para ti</span>
@@ -144,11 +205,6 @@ export function render() {
 
     ${legsCard(state)}
 
-    <section class="card">
-      <h3>Tu semana</h3>
-      <p class="muted small">Toca un ejercicio para ver su vídeo y su técnica.</p>
-      <ol class="week-list">${week.map((d) => dayRow(d, d.weekday === todayIdx)).join('')}</ol>
-    </section>
 
     <section class="card">
       <h3>Cómo se reparte</h3>
@@ -158,6 +214,38 @@ export function render() {
 }
 
 export const actions = {
+  'week-move'(el, ctx) {
+    moving = Number(el.dataset.day);
+    ctx.rerender();
+    document.querySelector('.week-card')?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
+  },
+  'week-move-cancel'(_, ctx) {
+    moving = null;
+    ctx.rerender();
+  },
+  'week-move-to'(el) {
+    const from = moving;
+    const to = Number(el.dataset.day);
+    moving = null;
+    if (from === null || from === to) { update(() => {}); return; }
+    const type = buildWeek(getState())?.[from]?.type;
+    update((s) => { swapWeekDays(s, from, to); });
+    if (type && type !== 'R') toast(`${DAY_INFO[type].label} pasa al ${WEEKDAYS[to].toLowerCase()}`);
+  },
+  'week-reset'() {
+    moving = null;
+    update((s) => { s.weekMoves = null; });
+    toast('Semana como en tu plan');
+  },
+  // Hace hoy la rutina de otro día de la semana (sin moverla de su día).
+  'week-train-today'(el) {
+    const day = buildWeek(getState())?.[Number(el.dataset.day)];
+    if (!day || day.type === 'R') return;
+    moving = null;
+    update((s) => { s.plan = { dayType: day.type, ids: [...day.ids], custom: false, picked: true }; });
+    toast(`Hoy: ${DAY_INFO[day.type].label}`);
+    navigate('#/');
+  },
   'plan-day'(el) {
     const i = Number(el.dataset.i);
     update((s) => {

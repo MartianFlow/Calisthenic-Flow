@@ -237,7 +237,56 @@ export function buildWeek(state, weekStart = startOfWeek(Date.now())) {
     const base = DAY_INFO[type].ids;
     week[wd] = { weekday: wd, type, skills, ids: [...skills, ...base.filter((id) => !skills.includes(id))] };
   });
-  return week;
+  return applyWeekMoves(state, week, weekStart);
+}
+
+// ─────────── Cambios solo para esta semana (mover entrenos de día) ───────────
+// state.weekMoves = { start, sig, from[7] }: en cada día va el entreno que el plan ponía en
+// el día from[i] (-1 = descanso). Vale solo para la semana que empieza en `start` y solo si
+// el plan no ha cambiado desde entonces (`sig`); si no, se ignora y queda el plan normal.
+const weekSig = (week) => week.map((d) => d.type).join(',');
+
+function applyWeekMoves(state, week, weekStart) {
+  const m = state.weekMoves;
+  if (!m || m.start !== weekStart || m.sig !== weekSig(week) || !Array.isArray(m.from)) return week;
+  return week.map((_, i) => {
+    const src = m.from[i];
+    if (src == null || src < 0 || !week[src]) return { weekday: i, type: 'R', skills: [], ids: [] };
+    return { ...week[src], weekday: i, movedFrom: src !== i ? src : undefined };
+  });
+}
+
+// Intercambia lo que hay en los días a y b de esta semana (entreno o descanso).
+export function swapWeekDays(state, a, b, weekStart = startOfWeek(Date.now())) {
+  const base = buildWeek({ ...state, weekMoves: null }, weekStart);
+  if (!base) return;
+  const sig = weekSig(base);
+  const m = state.weekMoves;
+  const from = m && m.start === weekStart && m.sig === sig ? [...m.from] : base.map((d) => (d.type === 'R' ? -1 : d.weekday));
+  [from[a], from[b]] = [from[b], from[a]];
+  const untouched = from.every((v, i) => v === (base[i].type === 'R' ? -1 : i));
+  state.weekMoves = untouched ? null : { start: weekStart, sig, from };
+}
+
+// ¿Esta semana tiene entrenos movidos de día (y siguen valiendo)?
+export function weekChanged(state) {
+  const m = state.weekMoves;
+  if (!m || m.start !== startOfWeek(Date.now())) return false;
+  const base = buildWeek({ ...state, weekMoves: null });
+  return !!base && m.sig === weekSig(base);
+}
+
+// Aviso si, tras mover, quedan seguidos dos días de pierna o dos con la misma habilidad de brazos rectos.
+export function weekWarning(week) {
+  for (let i = 0; i < 6; i++) {
+    const a = week[i];
+    const b = week[i + 1];
+    if (a.type === 'R' || b.type === 'R') continue;
+    if (a.type === 'P' && b.type === 'P') return 'Ojo: quedan dos días de pierna seguidos. Mejor dejar 48–72 h entre ellos.';
+    const straight = a.skills.filter((id) => ROADMAP_BY_ID[id]?.straightArm && b.skills.includes(id));
+    if (straight.length) return `Ojo: ${ROADMAP_BY_ID[straight[0]].name} queda en dos días seguidos. Los tendones necesitan descanso entre sesiones.`;
+  }
+  return '';
 }
 
 // Qué toca hoy según el plan semanal (o la alternancia A/B si no hay plan).

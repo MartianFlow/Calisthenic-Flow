@@ -34,6 +34,7 @@ export function defaultState() {
     lastDayType: null,
     deload: null,           // { start, until } semana de descarga
     deloadSnoozeUntil: null,
+    weekMoves: null,        // { start, sig, from[7] } entrenos movidos de día solo esta semana
     game: {                 // héroe: logros desbloqueados, equipo y apariencia
       name: 'Tu héroe',
       unlocked: {},
@@ -120,6 +121,8 @@ export function normalize(data) {
   s.settings.restSec = clampRest(s.settings.restSec);
   s.settings.holdPrep = clampPrep(s.settings.holdPrep);
   s.lifts = s.lifts && typeof s.lifts === 'object' ? s.lifts : {};
+  const wm = s.weekMoves;
+  if (!wm || typeof wm !== 'object' || !Array.isArray(wm.from) || wm.from.length !== 7 || typeof wm.start !== 'number') s.weekMoves = null;
   for (const [id, l] of Object.entries(s.lifts)) {
     if (!l || typeof l !== 'object') { delete s.lifts[id]; continue; }
     l.kg = l.kg == null || Number.isNaN(Number(l.kg)) ? null : Number(l.kg);

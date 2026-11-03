@@ -25,7 +25,8 @@ Es una **web app instalable (PWA)**: se añade a la pantalla de inicio del iPhon
   - **Pierna:** tu rutina completa, siempre en el mismo orden: sentadilla hack, peso muerto piernas rígidas, goblet en hack, extensión, curl femoral, aductor, abductor, gemelo de pie y gemelo sentado.
   - Apuntas el peso de cada ejercicio y la app usa **progresión doble con carga**: cuando haces el tope del rango en todas las series, te sube el peso (+5 kg o +2,5 kg) y vuelves al mínimo del rango. Si no llegas al mínimo con Difícil, te baja ~10 %.
   - Calentamiento propio de pierna, XP por cada subida de peso y logros de pierna.
-  - La pantalla Hoy te dice qué toca, si es día de descanso y cuál es el próximo entreno. Puedes editar el entreno antes de empezar.
+  - La pantalla Hoy te dice qué toca, si es día de descanso y cuál es el próximo entreno. Puedes editar el entreno antes de empezar o elegir con un toque cualquier rutina de tu plan (Día A, Día B…).
+  - **¿Un día no puedes?** En el Plan semanal, «Mover» pasa ese entreno a otro día (o lo intercambia), solo esta semana, y «Entrenar hoy» hace hoy la rutina de otro día. «Deshacer cambios» lo deja como estaba.
 - **Gamificación (pixel art, estilo RPG retro de 16 bits):**
   - **Héroe en pixel art** cuyo físico crece con tu progreso real (bíceps, hombros, piernas y abdominales).
   - **Atributos** con rango de E a S: Tirón, Empuje, Piernas, Core, Equilibrio y Aguante.
@@ -46,7 +47,7 @@ Es una **web app instalable (PWA)**: se añade a la pantalla de inicio del iPhon
 - **Durante el entreno:** calentamiento guiado, contador +/− por serie, cronómetro para isometrías con 5 s para colocarte (ajustable, y con «+5 s» mientras cuenta), temporizador de descanso con aviso sonoro y pantalla siempre encendida.
 - **Progreso:** tiempo total, racha de semanas cumpliendo tu objetivo, minutos por semana, historial de subidas de nivel, gráfica de tu mejor serie en cada paso e historial completo de entrenos con notas.
 - **Copia de seguridad:** exporta e importa tus datos en JSON desde Ajustes.
-- **Bienvenida paso a paso:** la primera vez, unas preguntas de una en una con una barra de progreso: tu experiencia, dónde entrenas pierna, tu nivel en cada ruta (tocando el primer ejercicio que aún no te sale, con su vídeo a mano), tus habilidades objetivo, tus días, tu descanso y tu héroe. Al final, un resumen con «Cambiar» en cada punto. También puedes importar una copia desde la portada.
+- **Bienvenida paso a paso:** la primera vez, unas preguntas de una en una con una barra de progreso: tu experiencia, dónde entrenas pierna, tu nivel en cada ruta (tocando el primer ejercicio que aún no te sale, con su vídeo a mano), tus habilidades objetivo, tus días, tu descanso y tu héroe. Al final, un resumen con «Cambiar» en cada punto, que abre solo esa pregunta y vuelve al resumen; el nivel de cada ruta se cambia tocando su pastilla. También puedes importar una copia desde la portada.
 
 ## Instalarla en el iPhone
 
@@ -111,7 +112,7 @@ La carpeta [`tests/e2e`](tests/e2e) tiene una batería de pruebas con [Playwrigh
 | `navigation.spec.js` | Rutas, visor de vídeo, búsqueda en YouTube, cambio manual de nivel, calendario, progreso, pestañas, tema claro u oscuro y su botón en las cabeceras |
 | `deload.spec.js` | Sugerencia y efecto de la semana de descarga |
 | `data.spec.js` | Migración desde la v1, exportar e importar la copia, borrar datos y funcionamiento sin conexión |
-| `layout.spec.js` | Diseño en móvil: 97 pantallas y estados a 320, 375, 390 y 430 px. Comprueba que nada se sale de la pantalla, que ningún texto se pisa, se corta o se sale de su botón, que nada queda tapado por las barras y que el contraste es suficiente |
+| `layout.spec.js` | Diseño en móvil: 101 pantallas y estados a 320, 375, 390 y 430 px. Comprueba que nada se sale de la pantalla, que ningún texto se pisa, se corta o se sale de su botón, que nada queda tapado por las barras y que el contraste es suficiente |
 
 Las pruebas usan un reloj fijo (lunes 2/11/2026) y bloquean internet, así que siempre dan el mismo resultado. Además fallan si la app lanza cualquier error de JavaScript.
 

@@ -77,6 +77,16 @@ Cómo decide la app objetivos, subidas, descansos y el plan semanal. Las fuentes
 - **Plantilla de 3 días:** A-B-A en las semanas ISO pares y B-A-B en las impares. Por eso el 2/11/2026 (lunes, semana 45) toca B.
 - **Elección de días:** `pickDays` busca la máxima separación entre los días disponibles.
 
+## Cambios en la semana y otra rutina
+
+- **Mover un entreno de día** (Plan semanal → «Mover» → «Aquí» o «Cambiar aquí»): intercambia lo que hay en los dos días, solo esta semana.
+  - Se guarda en `state.weekMoves = { start, sig, from[7] }`: en cada día va el entreno que el plan ponía en el día `from[i]` (-1 = descanso).
+  - Lo aplica `buildWeek`, así que Hoy, la semana de Hoy y el Plan lo ven igual.
+  - Caduca solo: vale para la semana de `start` y mientras el plan no cambie (`sig`, los tipos de la semana sin mover). Si cambian los días, la pierna o los objetivos, se ignora.
+  - Destinos: de hoy en adelante y sin entreno hecho. Origen: cualquier día con entreno sin hacer (también uno pasado que se saltó).
+  - `weekWarning` avisa si quedan seguidos dos días de pierna o la misma habilidad de brazos rectos.
+- **Otra rutina hoy:** «Entrenar hoy» en un día del Plan, o las rutinas de Hoy (en un día de descanso y al editar). Guarda `state.plan = { dayType, ids, picked: true }`; Hoy lo muestra como «Elegido para hoy». No mueve nada de la semana.
+
 ## Pierna en el gimnasio (`settings.legs = 'gym'`)
 
 - **Días y tipos** (`gymDays`): prueba todas las combinaciones de días y tipos.

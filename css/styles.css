@@ -1169,6 +1169,24 @@ a.px-panel:active { transform: translate(4px, 4px); box-shadow: 0 0 0 4px #000, 
 .day.planned .dot b { white-space: nowrap; letter-spacing: -0.03em; }
 .plan.rest { box-shadow: var(--pop) var(--pop) 0 var(--cyan), calc(var(--pop) + 3px) calc(var(--pop) + 3px) 0 var(--border); }
 .plan.rest .small { font-weight: 600; }
+.week-row { flex-wrap: wrap; }
+.week-actions { flex: 1 0 100%; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.week-row.moving { box-shadow: 0 0 0 3px var(--yellow), 0 0 0 6px var(--border); }
+.week-row.target { border-style: dashed; animation: target-glow 1.3s ease-in-out infinite; }
+.is-moving .week-row.past { opacity: 0.5; }
+.move-banner {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 10px 12px; border-radius: 8px; font-size: 14px;
+  background: color-mix(in srgb, var(--yellow) 20%, var(--surface)); border: 2.5px solid var(--border); animation: drop-in 0.3s var(--ease-out);
+}
+.week-changed {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px;
+  padding: 8px 12px; border-radius: 8px; border: 2.5px dashed var(--border); font-size: 14px; font-weight: 700;
+}
+.week-changed > span { display: inline-flex; align-items: center; gap: 6px; }
+.week-changed .link { font-size: 17px; padding: 2px 0; }
+.pick { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 2.5px dashed color-mix(in srgb, var(--text) 25%, transparent); }
+.pick .muted { font-weight: 700; }
+.pick-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .next-up { display: flex; align-items: center; gap: 6px; font-weight: 700; padding: 10px; border-radius: 8px; background: var(--surface-2); border: 2.5px dashed var(--border); }
 
 /* ─────────── Bienvenida paso a paso ─────────── */
@@ -1326,6 +1344,15 @@ body[data-route="bienvenida"] .view { gap: 16px; min-height: 100vh; min-height: 
 .wiz-summary li:nth-child(3) .sum-ic { background: var(--pink); }
 .wiz-summary li:nth-child(4) .sum-ic { background: var(--lime); }
 .sum-days { display: flex; gap: 3px; margin-top: 2px; }
+.sum-hint { margin-top: 6px; font-weight: 700; }
+.sum-routes { display: flex; flex-wrap: wrap; gap: 6px; }
+.sum-route {
+  padding: 4px 8px; border-radius: 6px; border: 2px solid var(--border); background: var(--surface-2); color: var(--text);
+  font-size: 12.5px; font-weight: 800; line-height: 1.2; box-shadow: 2px 2px 0 var(--shadow);
+  transition: transform 0.12s var(--ease-pop), box-shadow 0.12s;
+}
+.sum-route b { color: var(--accent-text); }
+.sum-route:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--shadow); }
 .sum-days i {
   width: 22px; height: 22px; display: grid; place-items: center; font-style: normal; font-family: var(--display); font-size: 14px;
   border-radius: 4px; border: 2px solid var(--border); color: var(--muted);
@@ -1444,7 +1471,7 @@ body[data-route="bienvenida"] .view { gap: 16px; min-height: 100vh; min-height: 
 }
 
 /* Rebote al tocar (también en la copia del elemento tras repintar) */
-.tapped:is(.chip, .goal-chip, .wd-chip, .mini-btn, .segmented button, .px-swatch, .px-item, .px-tabs button, .cal-cell, .skill-card,
+.tapped:is(.sum-route, .chip, .goal-chip, .wd-chip, .mini-btn, .segmented button, .px-swatch, .px-item, .px-tabs button, .cal-cell, .skill-card,
   .wiz-option, .wiz-step-main, .check-item, .rest-adj, .step-btn, .icon-btn, .check-btn, .toggle-row, .px-btn, .link, .video-card) {
   animation: tap-pop 0.38s var(--ease-pop);
 }
@@ -1554,6 +1581,7 @@ body[data-route="bienvenida"] .view { gap: 16px; min-height: 100vh; min-height: 
 @keyframes page-in-r { from { opacity: 0; transform: translateX(46px) rotate(0.8deg); } to { opacity: 1; transform: none; } }
 @keyframes page-in-l { from { opacity: 0; transform: translateX(-46px) rotate(-0.8deg); } to { opacity: 1; transform: none; } }
 @keyframes theme-spin { from { rotate: -120deg; scale: 0.4; } to { rotate: 0deg; scale: 1; } }
+@keyframes target-glow { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--yellow) 0%, transparent); } 50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--yellow) 70%, transparent); } }
 @keyframes seg-on { from { opacity: 0; } to { opacity: 1; } }
 @keyframes shine { 0%, 55% { background-position: 130% 0; } 100% { background-position: -30% 0; } }
 @keyframes tap-pop { 0% { scale: 1; } 35% { scale: 0.9; } 70% { scale: 1.07; } 100% { scale: 1; } }

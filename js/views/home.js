@@ -9,7 +9,7 @@ import {
   sessionsInWeek, roadmapPercent, lastPerformance, lastLift, liftState, liftGoal, workFor, deloadActive, deloadSuggestion, startDeload,
 } from '../logic.js';
 import { todayInfo, buildWeek, DAY_INFO, WEEKDAYS, WD_SHORT, weekdayIndex } from '../schedule.js';
-import { esc, icon, fmtClock, progressBar, fmtDate, fmtKg, fmtSeries, fmtLiftSeries } from '../ui.js';
+import { esc, icon, fmtClock, progressBar, fmtDate, fmtKg, fmtSeries, fmtLiftSeries, toast } from '../ui.js';
 import { navigate } from '../router.js';
 import { audio, wakeLock } from '../device.js';
 import { heroMini } from './hero.js';
@@ -107,7 +107,24 @@ function nextLabel(info) {
   return `${info.nextWeek ? 'La semana que viene, ' : ''}${WEEKDAYS[info.next.weekday].toLowerCase()}: ${DAY_INFO[info.next.type].label}`;
 }
 
-function restCard(info) {
+// Ejercicios de una rutina del plan: los de ese día de esta semana (con sus habilidades)
+// o, si esta semana no toca, los de su plantilla.
+export function idsForType(state, type) {
+  const day = buildWeek(state)?.find((d) => d.type === type);
+  if (day) return [...day.ids];
+  if (type === 'S') return [...state.settings.goals.filter((id) => ROADMAP_BY_ID[id]).slice(0, 3), 'core'];
+  return defaultIds(state, type);
+}
+
+// Rutinas del plan (Día A, Día B, Torso, Pierna…) para elegir con un toque.
+function routineChoices(state, currentType) {
+  const types = [...dayOrder(state)];
+  for (const d of buildWeek(state) || []) if (d.type !== 'R' && !types.includes(d.type)) types.push(d.type);
+  return `<div class="pick-chips" role="group" aria-label="Rutinas del plan">${types.map((t) => `
+    <button class="goal-chip ${t === currentType ? 'on' : ''}" data-action="plan-pick" data-type="${t}" aria-pressed="${t === currentType}">${esc(DAY_INFO[t].label)}</button>`).join('')}</div>`;
+}
+
+function restCard(state, info) {
   const done = info.mode === 'done';
   return `
     <section class="card plan rest">
@@ -119,6 +136,10 @@ function restCard(info) {
         <button class="btn ghost" data-action="train-anyway">${icon('play', 18)} ${done ? 'Entrenar otra vez' : 'Entrenar igualmente'}</button>
         <a class="btn ghost" href="#/plan">${icon('route', 18)} Ver plan</a>
       </div>
+      <div class="pick">
+        <span class="muted small">O elige una rutina de tu plan:</span>
+        ${routineChoices(state, null)}
+      </div>
     </section>`;
 }
 
@@ -128,7 +149,7 @@ function planCard(state, info) {
   const minutes = estimateMinutes(state, plan.ids);
   const available = ROADMAPS.filter((r) => !plan.ids.includes(r.id));
   const availableLifts = isGymLegs(state) ? LIFTS.filter((l) => !plan.ids.includes(l.id)) : [];
-  const eyebrow = info.mode === 'scheduled' ? `Hoy toca · ${WEEKDAYS[weekdayIndex()]}` : plan.custom ? 'Entreno editado' : 'Próximo entreno';
+  const eyebrow = info.mode === 'scheduled' ? `Hoy toca · ${WEEKDAYS[weekdayIndex()]}` : plan.custom ? 'Entreno editado' : plan.picked ? 'Elegido para hoy' : 'Próximo entreno';
   return `
     <section class="card plan">
       <div class="row between">
@@ -155,10 +176,8 @@ function planCard(state, info) {
               </optgroup>` : ''}
             </select>
           </label>
-          <div class="row gap">
-            <button class="btn ghost" data-action="plan-switch">${icon('swap', 18)} Cambiar de día</button>
-            <button class="btn ghost" data-action="plan-reset">Restablecer</button>
-          </div>
+          <div class="field"><span>Entrenar otra rutina del plan</span>${routineChoices(state, plan.dayType)}</div>
+          <button class="btn ghost" data-action="plan-reset">Restablecer</button>
         </div>` : ''}
       <div class="row gap">
         <button class="btn primary grow cta" data-action="start-session" ${plan.ids.length ? '' : 'disabled'}>${icon('play', 18)} Empezar entreno</button>
@@ -242,7 +261,7 @@ export function render() {
         </div>
       </section>`;
   } else if (info.mode === 'rest' || info.mode === 'done') {
-    main = restCard(info);
+    main = restCard(state, info);
   } else {
     main = planCard(state, info);
   }
@@ -303,16 +322,12 @@ export const actions = {
       if (i > 0) [plan.ids[i - 1], plan.ids[i]] = [plan.ids[i], plan.ids[i - 1]];
     });
   },
-  'plan-switch'() {
-    update((s) => {
-      const base = todayInfo(s).plan;
-      const order = dayOrder(s);
-      const dayType = order[(order.indexOf(base.dayType) + 1) % order.length] || order[0];
-      const ids = dayType === 'S'
-        ? [...s.settings.goals.filter((id) => ROADMAP_BY_ID[id]).slice(0, 3), 'core']
-        : defaultIds(s, dayType);
-      s.plan = { dayType, ids, custom: false };
-    });
+  // Elige una rutina del plan para hoy (Día A, Día B, Torso, Pierna…).
+  'plan-pick'(el) {
+    const type = el.dataset.type;
+    if (!DAY_INFO[type]) return;
+    update((s) => { s.plan = { dayType: type, ids: idsForType(s, type), custom: false, picked: true }; });
+    toast(`Hoy: ${DAY_INFO[type].label}`);
   },
   'plan-reset'() {
     update((s) => { s.plan = null; });

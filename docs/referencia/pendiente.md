@@ -2,7 +2,7 @@
 
 ## Pendiente de confirmar con el usuario
 
-Ver el final de `historial-usuario.md`: la versión 14 en su iPhone, el cronómetro de isometrías, el descanso, el botón de tema y las animaciones.
+Ver el final de `historial-usuario.md`: la versión 15 en su iPhone, el cronómetro de isometrías, el descanso, el botón de tema y las animaciones.
 
 ## Contenido
 

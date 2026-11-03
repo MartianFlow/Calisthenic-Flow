@@ -29,7 +29,7 @@ export function itemName(item) {
 export const TORSO_TYPES = ['A', 'B', 'TA', 'TB'];
 export const isGymLegs = (state) => state.settings.legs === 'gym';
 
-// Tipos de día para «Cambiar de día» en la pantalla Hoy.
+// Rutinas del plan para elegir en la pantalla Hoy (Día A, Día B, Día S / Torso A, Torso B, Pierna).
 export function dayOrder(state) {
   if (isGymLegs(state)) return ['TA', 'TB', 'P'];
   return state.settings.goals.length ? ['A', 'B', 'S'] : ['A', 'B'];

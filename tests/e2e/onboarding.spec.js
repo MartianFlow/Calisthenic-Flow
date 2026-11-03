@@ -143,6 +143,55 @@ test.describe('Configuración inicial', () => {
     // iOS puede recargar la app: sigue en el mismo paso
     await page.reload();
     await expect(step(page)).toHaveAttribute('data-step', 'entreno');
+    // Y al guardar vuelve directamente al resumen
+    await expect(page.locator('.wiz-foot .btn')).toContainText('volver al resumen');
+    await next(page);
+    await expect(step(page)).toHaveAttribute('data-step', 'listo');
+  });
+
+  test('desde el resumen, «Cambiar» abre solo esa pregunta y vuelve al resumen', async ({ page }) => {
+    await page.goto('/');
+    await next(page);
+    await choose(page, 'wiz-exp', 'base');
+    await choose(page, 'wiz-legs', 'calistenia');
+    // Afina dominadas a mano y llega al resumen
+    await page.locator('[data-action="wiz-level"][data-id="dominadas"][data-step="6"]').click();
+    for (let i = 0; i < 20 && (await step(page).getAttribute('data-step')) !== 'listo'; i++) await next(page);
+    await expect(step(page)).toHaveAttribute('data-step', 'listo');
+
+    // Días: se cambia y «Guardar» vuelve al resumen, sin pasar por descanso ni héroe
+    await page.locator('[data-action="wiz-goto"][data-key="dias"]').click();
+    await expect(step(page)).toHaveAttribute('data-step', 'dias');
+    await expect(page.locator('.wiz-section')).toContainText('cambiando');
+    await page.locator('[data-action="plan-day"][data-i="6"]').click();
+    await next(page);
+    await expect(step(page)).toHaveAttribute('data-step', 'listo');
+    expect((await readState(page)).settings.schedule.days[6]).toBe(true);
+
+    // Atrás también vuelve al resumen
+    await page.locator('[data-action="wiz-goto"][data-key="entreno"]').click();
+    await page.locator('[data-action="wiz-back"]').click();
+    await expect(step(page)).toHaveAttribute('data-step', 'listo');
+
+    // Pierna: al elegir vuelve solo al resumen
+    await page.locator('[data-action="wiz-goto"][data-key="pierna"]').click();
+    await choose(page, 'wiz-legs', 'gym');
+    await expect(step(page)).toHaveAttribute('data-step', 'listo');
+    await expect(page.locator('.wiz-summary')).toContainText('En el gimnasio');
+
+    // Experiencia: elegir la misma no borra el nivel afinado de dominadas
+    await page.locator('[data-action="wiz-goto"][data-key="experiencia"]').click();
+    await choose(page, 'wiz-exp', 'base');
+    await expect(step(page)).toHaveAttribute('data-step', 'listo');
+    expect((await readState(page)).progress.dominadas.step).toBe(6);
+
+    // Una ruta concreta: solo su nivel
+    await expect(page.locator('.sum-route', { hasText: 'Dominadas' })).toContainText('7/10');
+    await page.locator('[data-action="wiz-goto"][data-key="nivel-dominadas"]').click();
+    await page.locator('[data-action="wiz-level"][data-id="dominadas"][data-step="4"]').click();
+    await next(page);
+    await expect(step(page)).toHaveAttribute('data-step', 'listo');
+    await expect(page.locator('.sum-route', { hasText: 'Dominadas' })).toContainText('5/10');
   });
 
   test('no permite más de 3 habilidades objetivo', async ({ page }) => {

@@ -69,6 +69,7 @@ tests/tools/             simular-actualizacion.js y la auditoría de diseño (ve
   lifts: { [liftId]: { kg, reps, stall } },                              // gimnasio: peso y reps objetivo
   levelLog[], sessions[] (de la más antigua a la más reciente), active, plan, lastDayType,
   deload: { start, until }, deloadSnoozeUntil,
+  weekMoves: { start, sig, from[7] } | null,   // entrenos movidos de día solo esta semana (ver reglas-entrenamiento.md)
   game: { name, unlocked: { achId: isoDate }, equipped: { slot: itemId }, look: { skin, hair, hairStyle }, videosWatched } }
 ```
 
@@ -121,6 +122,7 @@ tests/tools/             simular-actualizacion.js y la auditoría de diseño (ve
 
 - **Pasos** (`steps(state)`, se recalculan en cada pintura): portada · experiencia · pierna · nivel de cada básico (sin `piernas` ni `bisagra` con la pierna en el gimnasio) · objetivos · nivel de cada objetivo · días · entreno (descanso, calentamiento y sonido) · héroe · resumen.
 - **Cada respuesta se guarda al momento** en el estado. El módulo solo recuerda el paso en curso y la experiencia elegida, en `sessionStorage` (`calisthenic-flow:bienvenida`), para que iOS pueda recargar la app a mitad sin volver a empezar. `resetWizard()` lo borra al terminar y al «Borrar todos los datos».
-- **Experiencia:** `EXPERIENCE` fija un paso de partida para cada básico; luego se afina ruta por ruta.
+- **Experiencia:** `EXPERIENCE` fija un paso de partida para cada básico; luego se afina ruta por ruta. Elegir otra vez la misma experiencia no toca los niveles.
+- **Cambiar desde el resumen** (`wiz.editing`): «Cambiar» y las pastillas de cada ruta abren solo esa pregunta. Al guardar, con atrás o al elegir una opción única, `move()` vuelve directo al resumen. Lo pidió el usuario: antes tenía que repasar todas las preguntas.
 - **Días:** al llegar por primera vez, propone los días recomendados (`recommendDays`).
 - **Reutiliza** acciones de otras vistas: `toggle-goal-setting`, `set-setting`, `toggle-setting`, `rest-*` (settings.js), `plan-day` (plan.js), `look` (hero.js), `video-open` e `import-data`.

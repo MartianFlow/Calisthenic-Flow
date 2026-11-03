@@ -56,16 +56,16 @@ let fills = [];       // relleno de cada tramo de la barra en la última pintura
 
 function loadWiz() {
   try {
-    return { key: 'intro', exp: null, daysSet: false, ...JSON.parse(sessionStorage.getItem(WIZ_STORE) || '{}') };
+    return { key: 'intro', exp: null, daysSet: false, editing: false, ...JSON.parse(sessionStorage.getItem(WIZ_STORE) || '{}') };
   } catch {
-    return { key: 'intro', exp: null, daysSet: false };
+    return { key: 'intro', exp: null, daysSet: false, editing: false };
   }
 }
 function saveWiz() {
   try { sessionStorage.setItem(WIZ_STORE, JSON.stringify(wiz)); } catch { /* modo privado */ }
 }
 export function resetWizard() {
-  wiz = { key: 'intro', exp: null, daysSet: false };
+  wiz = { key: 'intro', exp: null, daysSet: false, editing: false };
   shownKey = null;
   fills = [];
   try { sessionStorage.removeItem(WIZ_STORE); } catch { /* modo privado */ }
@@ -102,6 +102,14 @@ function go(key, direction) {
 }
 
 function move(delta) {
+  // Cambiando una respuesta desde el resumen: al terminar (o con atrás) se vuelve a él,
+  // sin repetir el resto de preguntas.
+  if (wiz.editing) {
+    wiz.editing = false;
+    go('listo', delta);
+    update(() => {});
+    return;
+  }
   const list = steps(getState());
   const i = currentIndex(list);
   const next = list[Math.min(list.length - 1, Math.max(0, i + delta))];
@@ -127,12 +135,12 @@ function progressHead(list, i) {
   fills = now;
   return `
     <header class="wiz-head">
-      <button class="icon-btn" data-action="wiz-back" aria-label="Paso anterior">${icon('back', 20)}</button>
+      <button class="icon-btn" data-action="wiz-back" aria-label="${wiz.editing ? 'Volver al resumen' : 'Paso anterior'}">${icon('back', 20)}</button>
       <div class="wiz-track">
         <div class="wiz-bars" role="progressbar" aria-label="Progreso de la configuración" aria-valuenow="${i}" aria-valuemin="1" aria-valuemax="${list.length - 1}">
           ${now.map((v, k) => `<span class="${k === step.section ? 'on' : ''}"><i style="--from:${before[k]}%;--to:${v}%"></i></span>`).join('')}
         </div>
-        <div class="wiz-section">${esc(SECTIONS[step.section])} <span class="muted">· paso ${i} de ${list.length - 1}</span></div>
+        <div class="wiz-section">${esc(SECTIONS[step.section])} <span class="muted">· ${wiz.editing ? 'cambiando' : `paso ${i} de ${list.length - 1}`}</span></div>
       </div>
     </header>`;
 }
@@ -300,6 +308,15 @@ function summaryRow(ic, label, value, key, extra = '') {
     </li>`;
 }
 
+// Una pastilla por ruta con su paso actual: al tocarla se cambia solo el nivel de esa ruta.
+function routeChips(state) {
+  const chips = steps(state).filter((s) => s.kind === 'nivel').map(({ key, roadmap: r }) => {
+    const p = getProgress(r.id);
+    return `<button class="sum-route" data-action="wiz-goto" data-key="${key}" aria-label="Cambiar el nivel de ${esc(r.name)}: paso ${p.step + 1} de ${r.steps.length}">${esc(r.name)} <b>${p.step + 1}/${r.steps.length}</b></button>`;
+  });
+  return `<span class="muted tiny sum-hint">Toca una ruta para cambiar solo su nivel:</span><div class="sum-routes">${chips.join('')}</div>`;
+}
+
 function doneBody(state) {
   const st = state.settings;
   const level = trainingLevel(state);
@@ -310,7 +327,7 @@ function doneBody(state) {
     <div class="burst-title">¡LISTO!</div>
     <h2 class="wiz-title center">Tu plan está preparado</h2>
     <ul class="wiz-summary">
-      ${summaryRow('chart', 'Tu nivel', esc(level.label), 'experiencia', progressBar(Math.round(level.frac * 100)))}
+      ${summaryRow('chart', 'Tu nivel', esc(level.label), 'experiencia', progressBar(Math.round(level.frac * 100)) + routeChips(state))}
       ${summaryRow('calendar', 'Tu semana', `${st.daysPerWeek} días por semana`, 'dias',
         `<span class="sum-days">${WD_SHORT.map((d, i) => `<i class="${days[i] ? 'on' : ''}">${d}</i>`).join('')}</span>`)}
       ${summaryRow('star', 'Habilidades', goals.length ? esc(goals.join(', ')) : 'Ninguna por ahora', 'objetivos')}
@@ -339,6 +356,9 @@ function footer(state, step) {
   }
   if (step.key === 'listo') {
     return `<button class="btn primary block cta" data-action="finish-onboarding">${icon('play', 20)} ¡A entrenar!</button>`;
+  }
+  if (wiz.editing) {
+    return `<button class="btn primary block" data-action="wiz-next">${icon('check', 20)} Guardar y volver al resumen</button>`;
   }
   if (step.key === 'experiencia' && !wiz.exp) {
     return '<button class="btn primary block" data-action="wiz-next" disabled>Elige una opción</button>';
@@ -376,15 +396,20 @@ export const actions = {
   'wiz-goto'(el) {
     const key = el.dataset.key;
     if (!steps(getState()).some((s) => s.key === key)) return;
-    go(key, -1);
+    clearTimeout(autoTimer);
+    wiz.editing = true;
+    go(key, 1);
     update(() => {});
   },
   'wiz-exp'(el) {
     const exp = EXPERIENCE.find((e) => e.key === el.dataset.value);
     if (!exp) return;
+    // Elegir otra vez la misma no toca los niveles que se hayan afinado ruta por ruta.
+    const changed = wiz.exp !== exp.key;
     wiz.exp = exp.key;
     saveWiz();
     update((s) => {
+      if (!changed) return;
       for (const [id, step] of Object.entries(exp.steps)) s.progress[id] = { step, passes: 0, done: false };
       s.plan = null;
     });

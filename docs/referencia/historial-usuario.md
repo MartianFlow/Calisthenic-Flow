@@ -66,10 +66,21 @@ El contexto de la persona y de sus peticiones. Las decisiones técnicas que sale
 20. **Captura del cronómetro de isometrías: «los números se ven cortados»**, y que la cuenta atrás sea de **5 s en vez de 3**, con opción de alargarla (versión 14).
     - Lo cortaba Safari al animar el número: ver `diseno.md`, «Números grandes que laten».
     - La cuenta atrás es de 5 s por defecto, se elige en Ajustes (3, 5, 10 o 15 s) y lleva el botón «+5 s».
+21. **En el resumen de la bienvenida, «Cambiar» obligaba a repasar todas las preguntas** (versión 15).
+    - Ahora abre solo esa pregunta y vuelve al resumen.
+    - El nivel tiene una pastilla por ruta para cambiar solo esa.
+    - Volver a elegir la misma experiencia ya no borra los niveles afinados.
+22. **Entrenar otra rutina del plan y mover los entrenos de la semana**, «de forma fácil y sencilla» (versión 15).
+    - En el Plan semanal, la semana va arriba. Cada día tiene:
+      - **«Entrenar hoy»**: hace hoy esa rutina;
+      - **«Mover»**: la pasa a otro día y, si ese día tiene entreno, se intercambian.
+    - Los cambios valen solo esta semana y se deshacen con un toque.
+    - En Hoy se elige cualquier rutina del plan con un toque, en los días de descanso y al editar. Sustituye a «Cambiar de día», que iba rotando.
 
 ## Pendiente de confirmar con el usuario
 
-- Que en Ajustes ve **«versión 14»**. Si no, que cierre la app del todo y la abra otra vez.
+- Que en Ajustes ve **«versión 15»**. Si no, que cierre la app del todo y la abra otra vez.
+- Si mover entrenos y elegir rutina le resulta fácil, o si quiere también saltar un día o añadir uno extra.
 - Que el número del cronómetro de isometrías ya no sale cortado, y que la cuenta atrás de 5 s con «+5 s» le sirve.
 - Que el descanso de 80 s, los botones −15/+15 y el botón de tema funcionan como esperaba.
 - Qué le parecen las animaciones en su iPhone (solo se han visto en emulación) y si alguna le sobra o le va lenta. Si tiene activado «Reducir movimiento», no las verá.

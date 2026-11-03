@@ -7,7 +7,7 @@ description: Escribir, ejecutar y depurar las pruebas Playwright de Calisthenic 
 
 ## Ejecutar
 
-- `npm install` y luego `npx playwright test --project=iphone-chromium`. Tarda ~2 min con unas 160 pruebas.
+- `npm install` y luego `npx playwright test --project=iphone-chromium`. Tarda ~2 min con unas 170 pruebas.
 - Para una sola: `npx playwright test tests/e2e/gym.spec.js -g "texto" --project=iphone-chromium --reporter=line`.
 - **En este entorno** solo hay Chromium: `@playwright/test` 1.63.0 usa `/opt/pw-browsers`. **No** ejecutes `playwright install`.
 - **WebKit** (el motor de Safari) solo corre en CI: `.github/workflows/e2e.yml`, que instala también `fonts-inter`. Para esperar a CI y leer los fallos, sigue la skill `publicar`.
@@ -17,18 +17,18 @@ description: Escribir, ejecutar y depurar las pruebas Playwright de Calisthenic 
 
 | Archivo | Pruebas |
 |---|---|
-| `onboarding.spec.js` (6) | Bienvenida paso a paso: portada; recorrido completo con experiencia, pierna, niveles, objetivos, días, descanso y héroe; sin pasos de pierna en modo gimnasio; atrás, «Cambiar» y recargar a mitad; máximo 3 objetivos; importar una copia desde la portada |
+| `onboarding.spec.js` (7) | Bienvenida paso a paso: portada; recorrido completo con experiencia, pierna, niveles, objetivos, días, descanso y héroe; sin pasos de pierna en modo gimnasio; atrás, «Cambiar» y recargar a mitad; cambiar desde el resumen y volver a él; máximo 3 objetivos; importar una copia desde la portada |
 | `rest.spec.js` (4) | Descanso fijo de 80 s por defecto con −15/+15; cambiarlo en Ajustes; «Según ejercicio»; valores raros corregidos al cargar |
 | `motion.spec.js` (3) | **Con animaciones** (`reducedMotion: 'no-preference'`): pantallas visibles al terminar y sin scroll horizontal, pastilla de la pestaña, cabeceras fijas en el entreno y en la bienvenida |
 | `workout.spec.js` (6) | Flujo completo con isometría, descanso, valoración y resumen; recargar a mitad; +/− y descartar; cuenta atrás de las isometrías (5 s, «+5 s», 10 s desde Ajustes) |
 | `progression.spec.js` (8) | Fácil +2, Normal +1, Fácil en la meta sube de paso, 2 pases en habilidades, recalibrado, reinicio al 80 %, descanso por paso («Según ejercicio») y fijo |
-| `plan.spec.js` (6) | Recomendación a principiantes; nivel con habilidades; cambiar días; front lever sin días seguidos; día de descanso; «Misión cumplida» |
+| `plan.spec.js` (12) | Recomendación a principiantes; nivel con habilidades; cambiar días; front lever sin días seguidos; día de descanso; «Misión cumplida»; mover un entreno de día y deshacerlo; mover el de hoy; cambios de otra semana ignorados; «Entrenar hoy»; elegir rutina en Hoy (al editar y en descanso) |
 | `gym.spec.js` (9) | Semana L–V; 72 h entre piernas con el sábado; 5 días y 9 pesos; coma decimal; subida y bajada de peso; cambio de peso a mitad; ficha desde Hoy; ruta desde el Plan |
 | `navigation.spec.js` (10) | 14 rutas; visor de vídeo; búsqueda sin vídeo; nivel a mano; calendario; progreso; pestañas; tema forzado oscuro y claro; botón de tema de las cabeceras |
 | `gamification.spec.js` (5) | Héroe; logros al abrir; artículos bloqueados; apariencia y nombre; mini héroe |
 | `deload.spec.js` (2) | Sugerencia por estancamiento y su efecto; «Ahora no» |
 | `data.spec.js` (5) | Migración v1; exportar e importar; borrar datos; sin conexión (solo Chromium); misma versión en sw.js y version.js |
-| `layout.spec.js` (97) | Diseño: todos los escenarios de `tests/tools/escenarios-diseno.js` a 320, 375, 390 y 430 px (ver la skill `revisar-diseno`) |
+| `layout.spec.js` (101) | Diseño: todos los escenarios de `tests/tools/escenarios-diseno.js` a 320, 375, 390 y 430 px (ver la skill `revisar-diseno`) |
 
 Lo que falta por cubrir está en `docs/referencia/pendiente.md`, en «Huecos de pruebas funcionales».
 

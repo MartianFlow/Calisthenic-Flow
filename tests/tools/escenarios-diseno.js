@@ -176,6 +176,7 @@ const scenarios = [
   { name: 'bienvenida-entreno', route: '/bienvenida', state: fresh(), setup: wizTo('entreno') },
   { name: 'bienvenida-entreno-auto', route: '/bienvenida', state: fresh({ settings: { restMode: 'auto' } }), setup: wizTo('entreno') },
   { name: 'bienvenida-heroe', route: '/bienvenida', state: fresh({ game: { name: 'Rayo Callejero' } }), setup: wizTo('heroe') },
+  { name: 'bienvenida-cambiando-dias', route: '/bienvenida', state: fresh({ goals: ['pino'] }), setup: wizTo('listo', click('[data-action="wiz-goto"][data-key="dias"]')) },
   { name: 'bienvenida-listo', route: '/bienvenida', state: fresh({ goals: ['frontlever', 'planche', 'muscleup'], settings: { legs: 'gym' } }), setup: wizTo('listo') },
 
   // Usuario nuevo (sin datos)
@@ -208,6 +209,8 @@ const scenarios = [
   { name: 'resumen-subida', route: `/resumen/${levelSessionId}`, state: rich },
   { name: 'ajustes', route: '/ajustes', state: rich },
   { name: 'plan', route: '/plan', state: rich },
+  { name: 'plan-moviendo', route: '/plan', state: rich, setup: click('.week-row:nth-child(3) [data-action="week-move"]') },
+  { name: 'plan-semana-cambiada', route: '/plan', state: rich, setup: clickAll('.week-row:nth-child(3) [data-action="week-move"]', '.week-row:nth-child(4) [data-action="week-move-to"]') },
   { name: 'plan-4-dias', route: '/plan', state: richState({ settings: { ...rich.settings, daysPerWeek: 4, schedule: { days: [true, true, false, true, true, false, false] } } }) },
   { name: 'plan-6-dias', route: '/plan', state: richState({ settings: { ...rich.settings, daysPerWeek: 6, schedule: { days: [true, true, true, true, true, true, false] } } }) },
 
@@ -241,6 +244,7 @@ const scenarios = [
   { name: 'gym-hoy-pierna', route: '/', state: gym, now: TUE },
   { name: 'gym-hoy-descarga-sugerida', route: '/', state: gymState({ lifts: { ...gym.lifts, hack: { kg: 120, reps: 8, stall: 2 } } }), now: TUE },
   { name: 'gym-plan', route: '/plan', state: gym },
+  { name: 'gym-plan-moviendo', route: '/plan', state: gym, setup: click('.week-row:nth-child(2) [data-action="week-move"]') },
   { name: 'gym-plan-sin-pesos', route: '/plan', state: gymState({ lifts: {}, sessions: [] }) },
   ...LIFT_IDS.map((id) => ({ name: `gym-ficha-${id}`, route: `/ejercicio/${id}`, state: gym })),
   { name: 'gym-ficha-sin-historial', route: '/ejercicio/hack', state: gymState({ lifts: {}, sessions: [] }) },
