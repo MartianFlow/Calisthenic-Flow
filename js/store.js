@@ -14,7 +14,9 @@ export function defaultState() {
     version: DATA_VERSION,
     onboarded: false,
     settings: {
-      goals: [],            // ids de habilidades en foco (máx. 3)
+      focus: null,          // habilidad que se aprende (foco): se entrena más días y con todo el volumen
+      maintain: [],         // hasta 2 habilidades que ya se dominan: 1–2 días por semana, dosis corta
+      goals: [],            // lista derivada [focus, ...maintain] (la usan el plan, el nivel y las vistas)
       daysPerWeek: 3,
       passesToLevelUp: 2,   // sesiones cumpliendo el objetivo para subir de paso
       sound: true,
@@ -35,6 +37,7 @@ export function defaultState() {
     deload: null,           // { start, until } semana de descarga
     deloadSnoozeUntil: null,
     weekMoves: null,        // { start, sig, from[7] } entrenos movidos de día solo esta semana
+    notices: {},            // avisos ya vistos o pendientes (p. ej. skills: explicar foco y mantener)
     game: {                 // héroe: logros desbloqueados, equipo y apariencia
       name: 'Tu héroe',
       unlocked: {},
@@ -51,6 +54,18 @@ export function clampRest(sec) {
   const n = Math.round(Number(sec) / REST_RANGE.step) * REST_RANGE.step;
   if (!Number.isFinite(n) || n <= 0) return 80;
   return Math.min(REST_RANGE.max, Math.max(REST_RANGE.min, n));
+}
+
+// Habilidades: una de foco (la que se aprende) y hasta 2 de mantenimiento.
+export const MAX_MAINTAIN = 2;
+const isSkill = (id) => ROADMAP_BY_ID[id]?.category === 'habilidad';
+
+// Fija el foco y las de mantener (sin repetidas ni la del foco) y recalcula `goals`.
+export function setSkills(settings, focus, maintain) {
+  settings.focus = isSkill(focus) ? focus : null;
+  const list = Array.isArray(maintain) ? maintain : [];
+  settings.maintain = [...new Set(list.filter((id) => isSkill(id) && id !== settings.focus))].slice(0, MAX_MAINTAIN);
+  settings.goals = [settings.focus, ...settings.maintain].filter(Boolean);
 }
 
 // Cuenta atrás de las isometrías: de 3 a 30 s.
@@ -114,7 +129,16 @@ export function normalize(data) {
   s.progress = s.progress && typeof s.progress === 'object' ? s.progress : {};
   s.levelLog = Array.isArray(s.levelLog) ? s.levelLog : [];
   s.sessions = Array.isArray(s.sessions) ? s.sessions : [];
-  s.settings.goals = (s.settings.goals || []).filter((id) => ROADMAP_BY_ID[id]);
+  s.notices = data.notices && typeof data.notices === 'object' ? { ...data.notices } : {};
+  // Antes de la v16 había hasta 3 «objetivos» sin distinguir: el primero pasa a ser el foco y
+  // los otros dos, de mantenimiento. Hoy avisa una vez para que lo revise en Ajustes.
+  if (!data.settings || !('focus' in data.settings)) {
+    const old = (Array.isArray(s.settings.goals) ? s.settings.goals : []).filter(isSkill);
+    s.settings.focus = old[0] || null;
+    s.settings.maintain = old.slice(1, 1 + MAX_MAINTAIN);
+    if (old.length) s.notices.skills = true;
+  }
+  setSkills(s.settings, s.settings.focus, s.settings.maintain);
   if (!['calistenia', 'gym'].includes(s.settings.legs)) s.settings.legs = 'calistenia';
   if (!['auto', 'light', 'dark'].includes(s.settings.theme)) s.settings.theme = 'auto';
   if (!['fixed', 'auto'].includes(s.settings.restMode)) s.settings.restMode = base.settings.restMode;

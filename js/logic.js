@@ -46,21 +46,106 @@ export function nextDayType(state) {
   return state.lastDayType === 'A' ? 'B' : 'A';
 }
 
-// Habilidades por sesión: máximo 2 (carga de tendones en brazos rectos). Con 3
-// objetivos se van rotando entre sesiones.
+// ─────────────────────────── Habilidades: foco y mantenimiento ───────────────────────────
+// · Foco: la habilidad que se aprende. Va en todos los días que permite su tipo (brazos
+//   rectos, flexión de pino y muscle-up: 3 días como mucho y nunca seguidos) y con el
+//   volumen completo del paso.
+// · Mantener (hasta 2): las que ya se dominan. 1–2 días por semana, una por sesión y como
+//   mucho 3 series de calidad del paso actual (dosis de mantenimiento: Spiering 2021,
+//   Bickel 2011). Siguen progresando con la misma lógica.
+// · El pino es una práctica corta (5–10 min) al principio y no cuenta en el límite de 2
+//   habilidades por sesión. Si es el foco, va en todos los días de entreno.
+// · Back lever y planche no van en la misma sesión (las dos cargan el bíceps con el brazo recto).
 export const MAX_SKILLS_PER_SESSION = 2;
+export const PRACTICE_ID = 'pino';
+export const MAINTAIN_SETS = 3;
+const CLASH = { backlever: 'planche', planche: 'backlever' };
+export const clashes = (id, list) => list.some((x) => CLASH[x] === id);
 
-export function sessionGoals(state) {
-  const goals = state.settings.goals.filter((id) => ROADMAP_BY_ID[id]);
-  if (goals.length <= MAX_SKILLS_PER_SESSION) return goals;
-  const n = state.sessions.filter((s) => TORSO_TYPES.includes(s.dayType)).length;
-  return Array.from({ length: MAX_SKILLS_PER_SESSION }, (_, i) => goals[(n + i) % goals.length]);
+export function skillPicks(state) {
+  const st = state.settings;
+  const ok = (id) => ROADMAP_BY_ID[id]?.category === 'habilidad';
+  const focus = ok(st.focus) ? st.focus : null;
+  const maintain = (st.maintain || []).filter((id) => ok(id) && id !== focus).slice(0, 2);
+  return { focus, maintain };
+}
+
+// 'foco' | 'mantener' | null
+export function skillRole(state, id) {
+  const { focus, maintain } = skillPicks(state);
+  if (id === focus) return 'foco';
+  return maintain.includes(id) ? 'mantener' : null;
+}
+
+// Series previstas de un paso: las de mantenimiento, como mucho 3; en descarga, una menos.
+export function plannedSets(state, id, step, deload = false) {
+  const sets = skillRole(state, id) === 'mantener' ? Math.min(MAINTAIN_SETS, step.sets) : step.sets;
+  return deload ? Math.max(2, sets - 1) : sets;
+}
+
+// Prerrequisitos que le faltan a la habilidad de foco (los básicos que le acercan).
+export function focusMissing(state) {
+  const { focus } = skillPicks(state);
+  if (!focus) return [];
+  return prereqStatus(ROADMAP_BY_ID[focus]).filter((p) => !p.ok);
+}
+
+// Orden de los básicos del día: los que le faltan al foco van primero (salvo el core, que
+// sigue al final), para que lleguen antes a lo que pide la habilidad.
+export function prioritizeBase(state, ids) {
+  const need = new Set(focusMissing(state).map((p) => p.roadmap.id).filter((id) => id !== 'core'));
+  if (!need.size) return ids;
+  return [...ids.filter((id) => need.has(id)), ...ids.filter((id) => !need.has(id))];
+}
+
+// De más fácil de empezar a más difícil (criterio propio: el pino y el L-sit piden poca base).
+const SKILL_EASE = ['pino', 'lsit', 'frontlever', 'backlever', 'muscleup', 'hspu', 'planche'];
+
+// Habilidades recomendadas para empezar (para quien aún no domina ninguna): las que ya puede
+// entrenar por sus prerrequisitos, de más fácil a más difícil, o si no, las más cercanas.
+export function recommendedSkills(state, max = 3) {
+  const skills = ROADMAPS.filter((r) => r.category === 'habilidad' && !getProgress(r.id).done);
+  const gap = (r) => (r.prereq || []).reduce((a, q) => a + Math.max(0, q.step - getProgress(q.id).step), 0);
+  const ease = (r) => { const i = SKILL_EASE.indexOf(r.id); return i < 0 ? 99 : i; };
+  const ready = skills.filter((r) => gap(r) === 0).sort((a, b) => ease(a) - ease(b));
+  const near = skills.filter((r) => gap(r) > 0).sort((a, b) => gap(a) - gap(b) || ease(a) - ease(b));
+  return [...ready, ...near].slice(0, ready.length >= 2 ? Math.min(max, ready.length) : 2).map((r) => r.id);
+}
+
+// ¿Aún no domina ninguna habilidad? (sin ninguna de mantener ni rutas de habilidad completadas)
+export function noSkillsYet(state) {
+  if (skillPicks(state).maintain.length) return false;
+  return !ROADMAPS.some((r) => r.category === 'habilidad' && getProgress(r.id).done);
+}
+
+// Habilidades de una sesión sin plan semanal: pino (si es el foco, en todas), el foco y, por
+// turnos entre sesiones, una de mantener (cada una sale más o menos una sesión de cada dos).
+export function sessionGoals(state, dayType = 'A') {
+  const { focus, maintain } = skillPicks(state);
+  const torso = dayType === 'S' || TORSO_TYPES.includes(dayType);
+  const out = [];
+  if (focus === PRACTICE_ID) out.push(PRACTICE_ID);
+  if (!torso) return out;
+  const n = state.sessions.filter((s) => s.dayType === 'S' || TORSO_TYPES.includes(s.dayType)).length;
+  if (maintain.includes(PRACTICE_ID) && n % 2 === 1) out.push(PRACTICE_ID);
+  const others = maintain.filter((id) => id !== PRACTICE_ID);
+  const slots = others.length >= 2 ? others : others.length ? [others[0], null] : [];
+  const m = slots.length ? slots[n % slots.length] : null;
+  const main = focus && focus !== PRACTICE_ID ? focus : null;
+  if (main && m && CLASH[m] === main) {
+    // Back lever y planche no se juntan: una de cada tres veces la de mantener ocupa el sitio del foco.
+    out.push(n % 3 === 2 ? m : main);
+    return out;
+  }
+  if (main) out.push(main);
+  if (m) out.push(m);
+  return out;
 }
 
 export function defaultIds(state, dayType) {
-  if (LEG_DAYS[dayType]) return [...LEG_DAYS[dayType].ids];
-  const ids = sessionGoals(state);
-  for (const id of DAY_TEMPLATES[dayType]?.ids || []) if (!ids.includes(id)) ids.push(id);
+  const ids = sessionGoals(state, dayType);
+  const base = LEG_DAYS[dayType] ? LEG_DAYS[dayType].ids : dayType === 'S' ? ['core'] : DAY_TEMPLATES[dayType]?.ids || [];
+  for (const id of prioritizeBase(state, base)) if (!ids.includes(id)) ids.push(id);
   return ids;
 }
 
@@ -100,7 +185,8 @@ export function estimateMinutes(state, ids, withWarmup = state.settings.warmup) 
     const { roadmap, step } = stepOf(id);
     const work = step.type === 'hold' ? step.target : step.target * 3;
     const sides = step.side ? 2 : 1;
-    sec += step.sets * (work * sides + 20) + (step.sets - 1) * restSeconds(state, restFor(roadmap, step)) + 90;
+    const sets = plannedSets(state, id, step);
+    sec += sets * (work * sides + 20) + (sets - 1) * restSeconds(state, restFor(roadmap, step)) + 90;
   }
   return Math.max(5, Math.round(sec / 60 / 5) * 5);
 }
@@ -311,10 +397,12 @@ export function createSession(state, plan) {
     const work = workFor(id);
     // Semana de descarga: una serie menos y objetivo al ~65 %.
     const goal = deload ? Math.max(1, Math.round(work * 0.65)) : work;
-    const sets = deload ? Math.max(2, step.sets - 1) : step.sets;
+    const sets = plannedSets(state, id, step, deload);
+    const role = skillRole(state, id);
     return {
       roadmapId: id,
       stepIndex: index,
+      ...(role ? { role } : {}),
       type: step.type,
       target: step.target,
       goal,
@@ -333,7 +421,8 @@ export function createSession(state, plan) {
     dayType: plan.dayType,
     deload,
     // Días solo de gimnasio: calentamiento de pierna en vez del de calistenia.
-    warmupKind: items.length && items.every((it) => it.liftId) ? 'pierna' : 'base',
+    // (la práctica de pino al principio de un día de pierna no cambia el calentamiento)
+    warmupKind: items.some((it) => it.liftId) && items.every((it) => it.liftId || it.roadmapId === PRACTICE_ID) ? 'pierna' : 'base',
     warmupDone: !(state.settings.warmup && plan.warmup !== false),
     warmupChecks: [],
     items,
@@ -604,9 +693,13 @@ function addWeeks(ts, n) {
   return d.getTime();
 }
 
-export function sessionsInWeek(state, weekStart) {
+// Las prácticas cortas sueltas («Solo pino» en un día de descanso) no cuentan como entreno de la semana.
+export const PRACTICE_DAY = 'pino';
+export const isWorkout = (s) => s.dayType !== PRACTICE_DAY;
+
+export function sessionsInWeek(state, weekStart, { all = false } = {}) {
   const end = addWeeks(weekStart, 1);
-  return state.sessions.filter((s) => s.startedAt >= weekStart && s.startedAt < end);
+  return state.sessions.filter((s) => s.startedAt >= weekStart && s.startedAt < end && (all || isWorkout(s)));
 }
 
 export function weeklySeries(state, weeks = 8) {

@@ -78,12 +78,16 @@ El contexto de la persona y de sus peticiones. Las decisiones técnicas que sale
     - En Hoy se elige cualquier rutina del plan con un toque, en los días de descanso y al editar. Sustituye a «Cambiar de día», que iba rotando.
 23. **¿Las rutinas actuales son la mejor forma de mejorar en las habilidades?** Investigación con fuentes en `docs/investigacion-habilidades.md`: el calendario acierta, pero faltan complementarios por habilidad, volumen en los aguantes difíciles, descanso propio de las habilidades y práctica frecuente del pino. Propone 14 cambios.
     - **Decisión del usuario:** hacer todos menos el n.º 2. El descanso sigue fijo en 80 s para todo. Pidió documentarlo para hacerlo después de compactar la sesión: plan en `plan-habilidades.md`.
-24. **«Quiero centrarme en aprender una sola habilidad y mantener o fortalecer las que ya sé»**: en su caso, aprender el pino libre y mantener o mejorar el muscle-up y el front lever. Diseño en `plan-habilidades.md` («Petición 24»), por hacer junto al resto del plan después de compactar.
-    - Pidió también cubrir a quien **no tiene ninguna habilidad** y quiere aprender la primera: mantener opcional, primera habilidad recomendada según nivel y prerrequisitos, aviso de qué básicos le faltan y, al conseguirla, proponer pasarla a mantener y elegir otra.
+24. **«Quiero centrarme en aprender una sola habilidad y mantener o fortalecer las que ya sé»**: en su caso, aprender el pino libre y mantener o mejorar el muscle-up y el front lever. **Hecho en la versión 16** (diseño en `plan-habilidades.md`, «Petición 24»).
+    - Pidió también cubrir a quien **no tiene ninguna habilidad** y quiere aprender la primera: mantener opcional, primera habilidad recomendada según nivel y prerrequisitos, aviso de qué básicos le faltan y, al conseguirla, proponer pasarla a mantener y elegir otra. Hecho también en la 16.
+    - Sus objetivos de antes se convierten solos: el primero pasa a foco y los otros a mantener. Hoy le avisa una vez para que elija él en Ajustes (foco = pino; mantener = muscle-up y front lever).
+    - En la 16 van también el pino como práctica corta aparte («Solo pino» en los días de descanso) y dos reglas del plan: flexión de pino y muscle-up nunca en días seguidos, y back lever y planche nunca el mismo día. El resto del plan (complementarios, alternancia, más series, etc.) va en la siguiente versión.
+25. **«Agreguemos más logros, más ítems desbloqueables, logros secretos, etc., quiero que sea mucho más gamificable»** (3/11/2026, mientras se hacía la 24). Por hacer después del plan de habilidades, para que los logros nuevos cubran también el foco, el pino y los complementarios.
 
 ## Pendiente de confirmar con el usuario
 
-- Que en Ajustes ve **«versión 15»**. Si no, que cierre la app del todo y la abra otra vez.
+- Que en Ajustes ve **«versión 16»**. Si no, que cierre la app del todo y la abra otra vez.
+- Que eligió en Ajustes → Habilidades su foco (pino) y las de mantener (muscle-up y front lever), y que el reparto de la semana le cuadra.
 - Si mover entrenos y elegir rutina le resulta fácil, o si quiere también saltar un día o añadir uno extra.
 - Que el número del cronómetro de isometrías ya no sale cortado, y que la cuenta atrás de 5 s con «+5 s» le sirve.
 - Que el descanso de 80 s, los botones −15/+15 y el botón de tema funcionan como esperaba.

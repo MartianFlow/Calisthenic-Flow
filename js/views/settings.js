@@ -1,8 +1,7 @@
 // Ajustes y copia de seguridad. La bienvenida (configuración inicial) está en onboarding.js.
 
-import { ROADMAPS } from '../data/roadmaps.js';
 import { getState, update, replaceState, resetState, clampRest, REST_RANGE } from '../store.js';
-import { prereqStatus, deloadActive } from '../logic.js';
+import { deloadActive } from '../logic.js';
 import { esc, icon, toast, fmtClock } from '../ui.js';
 import { navigate } from '../router.js';
 import { audio } from '../device.js';
@@ -11,9 +10,7 @@ import { THEMES, fadeToTheme, effectiveTheme } from '../theme.js';
 import { versionLabel } from '../version.js';
 import { bump } from '../fx.js';
 import { resetWizard } from './onboarding.js';
-
-export const MAX_GOALS = 3;
-const skills = () => ROADMAPS.filter((r) => r.category === 'habilidad');
+import { skillsSettings } from './skills.js';
 
 function segmented(key, options, current) {
   return `<div class="segmented" role="radiogroup">${options.map(([value, label]) => `
@@ -66,16 +63,6 @@ export function prepPicker(state) {
     </div>`;
 }
 
-function goalPicker(state) {
-  return `<div class="goal-picker">${skills().map((r) => {
-    const on = state.settings.goals.includes(r.id);
-    const missing = prereqStatus(r).filter((p) => !p.ok).length;
-    return `<button class="goal-chip ${on ? 'on' : ''}" data-action="toggle-goal-setting" data-id="${r.id}" aria-pressed="${on}">
-      ${on ? icon('star', 15) : ''}${esc(r.name)}${missing && !on ? ` <span class="muted">${icon('lock', 12)}</span>` : ''}
-    </button>`;
-  }).join('')}</div>`;
-}
-
 export function render() {
   const state = getState();
   const st = state.settings;
@@ -85,10 +72,10 @@ export function render() {
       <h1>Ajustes</h1>
     </header>
 
-    <section class="card">
-      <h3>Habilidades objetivo</h3>
-      <p class="muted small">Hasta ${MAX_GOALS}. Se practican al inicio del entreno, cuando estás fresco, con un máximo de 2 por sesión (si eliges 3, se van rotando). ${icon('lock', 12)} = se recomienda más base antes.</p>
-      ${goalPicker(state)}
+    <section class="card skills-card" id="habilidades">
+      <h3>Habilidades</h3>
+      <p class="muted small">Céntrate en aprender una y mantén las que ya dominas. Se practican al principio del entreno, cuando estás fresco. ${icon('lock', 12)} = se recomienda más base antes · ${icon('trophy', 12)} = ruta completada.</p>
+      ${skillsSettings(state)}
     </section>
 
     <section class="card">
@@ -203,19 +190,6 @@ export const actions = {
   'toggle-setting'(el) {
     const key = el.dataset.key;
     update((s) => { s.settings[key] = !s.settings[key]; });
-  },
-  'toggle-goal-setting'(el) {
-    const id = el.dataset.id;
-    const goals = getState().settings.goals;
-    if (!goals.includes(id) && goals.length >= MAX_GOALS) {
-      toast(`Máximo ${MAX_GOALS} objetivos. Quita uno primero.`);
-      return;
-    }
-    update((s) => {
-      const g = s.settings.goals;
-      s.settings.goals = g.includes(id) ? g.filter((x) => x !== id) : [...g, id];
-      s.plan = null;
-    });
   },
   'test-sound'() {
     audio.unlock();

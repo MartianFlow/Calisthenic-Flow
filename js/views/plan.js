@@ -3,7 +3,7 @@
 import { ROADMAP_BY_ID } from '../data/roadmaps.js';
 import { LIFTS, LIFT_BY_ID } from '../data/gym.js';
 import { getState, update } from '../store.js';
-import { stepOf, liftState, isGymLegs, sessionsInWeek, startOfWeek } from '../logic.js';
+import { stepOf, liftState, isGymLegs, sessionsInWeek, startOfWeek, skillRole, skillPicks } from '../logic.js';
 import {
   WEEKDAYS, WD_SHORT, DEFAULT_DAYS, DAY_INFO, recommendDays, buildWeek, weekdayIndex,
   swapWeekDays, weekChanged, weekWarning,
@@ -69,8 +69,9 @@ function chipFor(d, id) {
   }
   const r = ROADMAP_BY_ID[id];
   if (!r) return '';
-  const skill = d.skills.includes(id);
-  return `<a class="mini-chip ${skill ? 'skill' : ''}" href="#/ruta/${id}">${esc(r.name)}<small> · ${esc(stepOf(id).step.name)}</small></a>`;
+  const role = d.skills.includes(id) ? skillRole(getState(), id) : null;
+  const cls = role === 'mantener' ? 'skill keep' : d.skills.includes(id) ? 'skill' : '';
+  return `<a class="mini-chip ${cls}" href="#/ruta/${id}">${esc(r.name)}<small> · ${esc(stepOf(id).step.name)}</small></a>`;
 }
 
 // Botones de cada día: entrenar esa rutina hoy y moverla a otro día (solo esta semana).
@@ -143,6 +144,15 @@ function weekCard(state, week) {
     </section>`;
 }
 
+// Cómo se reparten tus habilidades (en rosa la que aprendes, en cian las que mantienes).
+function skillReasons(state) {
+  const { focus, maintain } = skillPicks(state);
+  return `
+        <li>La habilidad que aprendes (<span class="role-tag focus">foco</span>) va al principio en todos los días de torso; las de brazos rectos, la flexión de pino y el muscle-up, 3 días como mucho y nunca seguidos.${focus === 'pino' ? ' El pino, como práctica corta, en todos tus días de entreno.' : ''}</li>
+        <li>Las que mantienes (<span class="role-tag keep">mantener</span>), 1–2 días por semana cada una y una por entreno, con 3 series de calidad.${maintain.length ? '' : ' Ahora no tienes ninguna.'}</li>
+        <li>Brazos rectos (front lever, planche, back lever): como mucho 2 por sesión, 3 días por semana y nunca en días seguidos. Back lever y planche, nunca el mismo día.</li>`;
+}
+
 function legend(state) {
   if (isGymLegs(state)) {
     const row = (t) => `<li><span class="type-badge t-${t}">${esc(DAY_INFO[t].badge)}</span><div><strong>${esc(DAY_INFO[t].label)}</strong><span class="muted small">${esc(DAY_INFO[t].focus)}</span></div></li>`;
@@ -152,7 +162,7 @@ function legend(state) {
         <li>Torso y pierna alternos: con 5 días, torso lunes-miércoles-viernes y pierna martes-jueves (o los días que elijas).</li>
         <li>Cada día de torso trabaja los 4 patrones (tirón vertical y horizontal, fondos y flexiones), como la Recommended Routine. A y B cambian el orden: lo que va primero es lo que más fuerza gana.</li>
         <li>Los días de pierna son tu rutina completa, siempre en el mismo orden para poder comparar los pesos. Si puedes, sepáralos 72 h (por ejemplo martes y viernes): marca también el sábado como disponible.</li>
-        <li>Habilidades solo en los días de torso: máximo 2 por sesión y, las de brazos rectos, nunca en días seguidos.</li>
+        ${skillReasons(state)}
         <li>Cada 5–6 semanas, una semana de descarga.</li>
       </ul>`;
   }
@@ -160,12 +170,11 @@ function legend(state) {
       <ul class="split-legend">
         <li><span class="type-badge t-A">A</span><div><strong>Día A</strong><span class="muted small">${esc(DAY_INFO.A.focus)}</span></div></li>
         <li><span class="type-badge t-B">B</span><div><strong>Día B</strong><span class="muted small">${esc(DAY_INFO.B.focus)}</span></div></li>
-        <li><span class="type-badge t-S">S</span><div><strong>Día S</strong><span class="muted small">Habilidades objetivo y core; un día más ligero que solo aparece con 5 o más días y objetivos.</span></div></li>
+        <li><span class="type-badge t-S">S</span><div><strong>Día S</strong><span class="muted small">Tus habilidades y core; un día más ligero que solo aparece con 5 o más días y habilidades elegidas.</span></div></li>
       </ul>
       <ul class="reasons">
         <li>Cada patrón (tirón, empuje, pierna, core) se trabaja 2–3 veces por semana.</li>
-        <li>Habilidades de brazos rectos (front lever, planche, back lever): máximo 3 días por semana, nunca seguidos y máximo 2 por sesión.</li>
-        <li>Las habilidades van al principio, cuando estás fresco.</li>
+        ${skillReasons(state)}
         <li>Cada 5–6 semanas, una semana de descarga.</li>
       </ul>`;
 }

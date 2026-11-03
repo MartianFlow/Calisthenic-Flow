@@ -4,23 +4,22 @@ import { headActions } from '../theme.js';
 import { ROADMAPS, ROADMAP_BY_ID, CATEGORIES } from '../data/roadmaps.js';
 import { getState, update, setStep } from '../store.js';
 import {
-  stepOf, roadmapPercent, globalProgress, prereqStatus, roadmapHistory, createSession, workFor, passesRequired, restFor, restSeconds,
+  stepOf, roadmapPercent, globalProgress, prereqStatus, roadmapHistory, createSession, workFor, passesRequired, restFor, restSeconds, skillRole,
 } from '../logic.js';
 import { esc, icon, targetLabel, progressBar, toast, unitLabel, fmtRest } from '../ui.js';
 import { progressLine } from '../charts.js';
 import { navigate } from '../router.js';
 import { audio, wakeLock } from '../device.js';
 import { videoCard } from '../video.js';
-
-const MAX_GOALS = 3;
+import { toMaintainButtons, prereqNote } from './skills.js';
 
 function roadmapCard(state, r) {
   const { step, index, progress } = stepOf(r.id);
-  const isGoal = state.settings.goals.includes(r.id);
+  const role = skillRole(state, r.id);
   const prereqs = prereqStatus(r);
   const missing = prereqs.filter((p) => !p.ok);
   return `
-    <a class="card route-card ${isGoal ? 'goal-on' : ''}" href="#/ruta/${r.id}">
+    <a class="card route-card ${role === 'foco' ? 'goal-on' : role ? 'keep-on' : ''}" href="#/ruta/${r.id}">
       <div class="row between">
         <div>
           <div class="eyebrow">${esc(r.group)}</div>
@@ -30,7 +29,7 @@ function roadmapCard(state, r) {
       </div>
       <div class="muted small">${progress.done ? 'Ruta completada' : esc(step.name) + ' · ' + esc(targetLabel(step))}</div>
       ${progressBar(roadmapPercent(r.id))}
-      ${isGoal ? `<span class="pill accent tiny">${icon('star', 13)} Objetivo</span>` : ''}
+      ${role === 'foco' ? `<span class="pill tiny focus">${icon('star', 13)} Aprendiendo · foco</span>` : role ? `<span class="pill tiny keep">${icon('shield', 13)} Mantener</span>` : ''}
       ${r.category === 'habilidad' && missing.length && index === 0
         ? `<div class="muted tiny">${icon('lock', 13)} Recomendado antes: ${missing.map((m) => `${esc(m.roadmap.name)} paso ${m.step + 1}`).join(', ')}</div>`
         : ''}
@@ -61,7 +60,7 @@ export function renderList() {
           <div class="eyebrow">Mapa completado</div>
           <div class="hero-num">${pct}<small>%</small></div>
         </div>
-        <p class="muted small narrow">Toca una ruta para ver todos sus pasos, ajustar tu nivel o marcarla como objetivo.</p>
+        <p class="muted small narrow">Toca una ruta para ver todos sus pasos, ajustar tu nivel o elegir qué habilidad aprendes y cuáles mantienes.</p>
       </div>
       ${progressBar(pct)}
     </section>
@@ -89,12 +88,34 @@ function stepItem(r, s, i, progress) {
     </li>`;
 }
 
+// ¿Aprender esta habilidad (foco), mantenerla o quitarla?
+function roleCard(state, r, role) {
+  const text = role === 'foco'
+    ? 'Es la habilidad que estás aprendiendo: va en todos los días que tocan y con todo el volumen.'
+    : role === 'mantener'
+      ? 'La mantienes: 1–2 días por semana con 3 series de calidad. Si te sale fácil, sigue subiendo.'
+      : 'Elige si quieres aprenderla (una a la vez) o mantenerla porque ya la dominas (hasta 2).';
+  return `
+    <section class="card role-card ${role === 'foco' ? 'is-focus' : role ? 'is-keep' : ''}">
+      <h3>${role === 'foco' ? `${icon('star', 20)} Aprendiendo` : role ? `${icon('shield', 20)} Manteniendo` : 'Tu habilidad'}</h3>
+      <p class="muted small">${text}</p>
+      ${role === 'foco' ? prereqNote(state) : ''}
+      <div class="row gap wrap">
+        ${role === 'foco'
+          ? `<span class="muted small block grow">¿Ya la dominas?</span>${toMaintainButtons(state, false)}`
+          : `<button class="btn ${role ? 'ghost' : 'primary'} small" data-action="set-focus" data-id="${r.id}">${icon('star', 16)} ${role ? 'Hacer foco' : 'Aprender (foco)'}</button>
+             ${role ? '' : `<button class="btn ghost small" data-action="toggle-maintain" data-id="${r.id}">${icon('shield', 16)} Mantener</button>`}`}
+        ${role ? `<button class="btn ghost small" data-action="skill-remove" data-id="${r.id}">${icon('close', 16)} Quitar</button>` : ''}
+      </div>
+    </section>`;
+}
+
 export function renderDetail({ id }) {
   const r = ROADMAP_BY_ID[id];
   if (!r) return '<div class="empty"><p>Ruta no encontrada.</p><a class="btn ghost" href="#/rutas">Volver</a></div>';
   const state = getState();
   const { step, index, progress } = stepOf(id);
-  const isGoal = state.settings.goals.includes(id);
+  const role = skillRole(state, id);
   const prereqs = prereqStatus(r);
   const required = passesRequired(state, r);
   const history = roadmapHistory(state, id).filter((h) => h.stepIndex === index);
@@ -139,11 +160,10 @@ export function renderDetail({ id }) {
         </div>` : ''}
       <div class="row gap wrap">
         <button class="btn primary" data-action="train-only" data-id="${id}">${icon('play', 18)} Entrenar solo esta ruta</button>
-        ${r.category === 'habilidad'
-          ? `<button class="btn ${isGoal ? 'accent-outline' : 'ghost'}" data-action="toggle-goal" data-id="${id}">${icon('star', 18)} ${isGoal ? 'Es tu objetivo' : 'Marcar como objetivo'}</button>`
-          : ''}
       </div>
     </section>
+
+    ${r.category === 'habilidad' ? roleCard(state, r, role) : ''}
 
     ${prereqs.length ? `
       <section class="card">
@@ -183,19 +203,6 @@ export const actions = {
     if (!confirm(`¿Poner tu nivel de ${r.name} en el paso ${step + 1} (${r.steps[step].name})?`)) return;
     setStep(id, step);
     toast('Nivel actualizado');
-  },
-  'toggle-goal'(el) {
-    const id = el.dataset.id;
-    const goals = getState().settings.goals;
-    if (!goals.includes(id) && goals.length >= MAX_GOALS) {
-      toast(`Máximo ${MAX_GOALS} objetivos a la vez. Quita uno en Ajustes.`);
-      return;
-    }
-    update((s) => {
-      const g = s.settings.goals;
-      s.settings.goals = g.includes(id) ? g.filter((x) => x !== id) : [...g, id];
-      s.plan = null;
-    });
   },
   'train-only'(el) {
     const id = el.dataset.id;

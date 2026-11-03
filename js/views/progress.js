@@ -15,6 +15,7 @@ import { burst, flash, confetti } from '../fx.js';
 import { ACH_BY_ID, ITEM_BY_ID, RARITY, titleFor, totalXP, levelInfo } from '../game.js';
 import { heroAvatar, levelBar, itemIcon } from './hero.js';
 import { pixelIcon } from '../pixel.js';
+import { achievedCard } from './skills.js';
 
 function tile(label, value, sub = '') {
   return `<div class="tile"><div class="eyebrow">${esc(label)}</div><div class="tile-num">${value}</div>${sub ? `<div class="muted tiny">${sub}</div>` : ''}</div>`;
@@ -237,6 +238,7 @@ export function renderSummary({ id }) {
       <h1>¡Entreno completado!</h1>
       <p class="muted">${esc(fmtLongDate(s.startedAt))}</p>
     </header>
+    ${s.levelUps.some((l) => l.completed && l.roadmapId === state.settings.focus) ? achievedCard(state) : ''}
     ${rewardCard(s, state)}
     ${sessionBody(s, state)}
     <a class="btn primary block" href="#/">Volver a Hoy</a>

@@ -8,7 +8,7 @@
 // Guarda una captura de cada pantalla para revisarla a mano.
 //
 // Uso: node tests/tools/auditar-diseno.js [carpeta-de-salida] [--anchos=320,375,390,430] [--temas=dark,light]
-//        [--capturas=375,390] [--solo=texto] [--notch]
+//        [--capturas=375,390] [--solo=texto,otro] [--notch]
 // Por defecto escribe en test-results/diseno/ (ignorado por git). No forma parte de `npm run test:e2e`:
 // la versión rápida de estas comprobaciones está en tests/e2e/layout.spec.js.
 //
@@ -51,7 +51,7 @@ const FONT_ALIAS = `
   for (const width of WIDTHS) {
     for (const theme of THEMES) {
       if (theme === 'light' && !SHOT_WIDTHS.includes(width)) continue; // la geometría es la misma en los dos temas
-      for (const sc of scenarios) if (!ONLY || sc.name.includes(ONLY)) jobs.push({ width, theme, sc });
+      for (const sc of scenarios) if (!ONLY || ONLY.split(',').some((o) => sc.name.includes(o))) jobs.push({ width, theme, sc });
     }
   }
   async function run({ width, theme, sc }) {

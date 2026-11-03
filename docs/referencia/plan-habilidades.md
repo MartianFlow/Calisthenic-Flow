@@ -1,4 +1,6 @@
-# Plan: cambios en el entrenamiento de habilidades (pendiente de hacer)
+# Plan: cambios en el entrenamiento de habilidades
+
+**Estado:** hecho en la versión 16 la petición 24 (foco y mantenimiento), D (pino aparte), H (flexión de pino y muscle-up no seguidos) e I (back lever y planche no juntos). Pendientes: A, B, C, E, F, G y J.
 
 La investigación con fuentes está en `docs/investigacion-habilidades.md`, en «Catorce cambios para la app». Este documento es el plan para hacerlos.
 
@@ -37,7 +39,17 @@ La investigación con fuentes está en `docs/investigacion-habilidades.md`, en �
   - `home.js` (`exerciseRow`) y `plan.js` (`chipFor`), si se muestran.
 - **Calentamiento:** `WARMUP` en `roadmaps.js`. Lo devuelve `warmupList(active)`, y `active.warmupChecks` guarda **índices**. Si la lista cambia según las habilidades, guarda los extras en el entreno al crearlo (`active.warmupExtra`), para que una recarga no la desordene.
 
-## Petición 24: una habilidad de foco y otras de mantenimiento (hacer primero)
+## Petición 24: una habilidad de foco y otras de mantenimiento (hecho, v16)
+
+> **Cómo quedó** (difiere del diseño en algunos detalles):
+> - `settings.focus` y `settings.maintain`, con `setSkills()` en `store.js`, que recalcula `goals`. Migración en `normalize` y aviso único en Hoy (`notices.skills`).
+> - Reparto: `placeSkills` en `schedule.js`; sin plan semanal, `sessionGoals(state, dayType)` en `logic.js`. Brazos rectos, entre todas: como mucho 3 días, nunca seguidos y 2 por sesión.
+> - Dosis de mantenimiento: `plannedSets` (como mucho 3 series). El ítem lleva `role: 'foco' | 'mantener'`.
+> - Básicos que le faltan al foco: van primero en el día (`prioritizeBase`), salvo el core. No se añade serie extra, porque complicaría superar el paso.
+> - Recomendadas: `recommendedSkills` y `noSkillsYet`.
+> - Al completar la ruta del foco: `achievedCard` en Hoy y en el resumen; «¿Ya la dominas?» en la ficha de la ruta.
+> - Bienvenida: primero «¿Ya dominas alguna?» (mantener) y luego «¿Qué quieres aprender?» (foco), para recomendar solo si no domina ninguna.
+> - Piezas comunes en `js/views/skills.js`. Pruebas: `tests/e2e/skills.spec.js`.
 
 El usuario quiere **centrarse en aprender una sola habilidad y mantener o mejorar las que ya sabe**. Su caso: aprender el **pino libre** (aún no lo tiene) y mantener o mejorar el **muscle-up** y el **front lever**. Esto reorganiza cómo se reparten las habilidades, así que va antes que el resto del plan.
 
@@ -144,7 +156,9 @@ El usuario quiere **centrarse en aprender una sola habilidad y mantener o mejora
 
 - Comprobar después: `estimateMinutes`, que la sesión no pase de unos 75 min con 2 habilidades y la alternancia, y la auditoría de diseño del entreno.
 
-### D. El pino, práctica corta aparte (cambio 3)
+### D. El pino, práctica corta aparte (cambio 3) — hecho, v16
+
+> Hecho: el pino no cuenta en el límite; si es el foco va el primero en todos los días de entreno, también los de pierna, sin cambiar su calentamiento. «Solo pino (10 min)» en Hoy los días de descanso (`dayType: 'pino'`, sin calentamiento), y no cuenta como entreno de la semana (`isWorkout`). Sus complementarios, con A.
 
 - Si el pino es objetivo:
   - no cuenta en el límite de 2 habilidades (`sessionGoals` y `buildWeek`);
@@ -175,11 +189,13 @@ El usuario quiere **centrarse en aprender una sola habilidad y mantener o mejora
   - **front lever** hoy en el paso `straddle` (3) o más → quitar el `remo` de ese día si su complementario ya es el remo en tuck front lever.
 - Las demás rutas siguen apareciendo los otros días. Comprobar que en un plan de 3 días ninguna ruta básica se queda sin días.
 
-### H. Frecuencia de la flexión de pino y el muscle-up (cambio 11)
+### H. Frecuencia de la flexión de pino y el muscle-up (cambio 11) — hecho, v16
 
 - En `buildWeek`, nunca en días seguidos, como los brazos rectos, pero sin el tope de 3 días: ampliar la condición de `lastDay` a `['hspu', 'muscleup']`.
 
-### I. No juntar back lever y planche (cambio 12)
+### I. No juntar back lever y planche (cambio 12) — hecho, v16
+
+> Hecho: si la de mantener choca con el foco y no cabe, ocupa el sitio del foco el último día en que aparece, si así le quedan al menos 2.
 
 - En `buildWeek` y en `sessionGoals`: si el día ya tiene la planche, saltar el back lever, y al revés. Preferir front lever + planche o front lever + back lever.
 

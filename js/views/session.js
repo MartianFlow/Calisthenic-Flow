@@ -3,13 +3,14 @@
 import { ROADMAP_BY_ID } from '../data/roadmaps.js';
 import { LIFT_BY_ID } from '../data/gym.js';
 import { getState, update } from '../store.js';
-import { itemComplete, finishActiveSession, lastPerformance, lastLift, nextUnrated, itemName, warmupList, restSeconds, RATINGS } from '../logic.js';
+import { itemComplete, finishActiveSession, lastPerformance, lastLift, nextUnrated, itemName, warmupList, restSeconds, RATINGS, PRACTICE_ID } from '../logic.js';
 import { esc, icon, fmtClock, unitLabel, toast, fmtKg, kgInput, parseKg, fmtSeries, fmtLiftSeries } from '../ui.js';
 import { navigate } from '../router.js';
 import { audio, vibrate, wakeLock } from '../device.js';
 import { videoCard } from '../video.js';
 import { burst, bump, beat, replay, confetti } from '../fx.js';
 import { totalXP, levelInfo, syncAchievements, itemsUnlockedBy } from '../game.js';
+import { roleTag } from './skills.js';
 
 const PREP_STEP = 5;   // segundos que suma el botón «+5 s» de la cuenta atrás de las isometrías
 const REST_STEP = 15; // segundos que suman o quitan los botones del descanso
@@ -144,14 +145,17 @@ function exerciseCard(state, a) {
   const step = roadmap.steps[item.stepIndex];
   const last = lastPerformance(state, item.roadmapId, item.stepIndex);
   const goal = item.goal ?? item.target;
+  const practice = item.role && item.roadmapId === PRACTICE_ID;
   return `
-    <section class="card exercise">
-      <div class="eyebrow">${esc(roadmap.name)} · paso ${item.stepIndex + 1}/${roadmap.steps.length}</div>
+    <section class="card exercise ${item.role === 'foco' ? 'is-focus' : item.role ? 'is-keep' : ''}">
+      <div class="eyebrow">${practice ? 'Práctica de pino · 5–10 min' : esc(roadmap.name)} · paso ${item.stepIndex + 1}/${roadmap.steps.length} ${roleTag(item.role)}</div>
       <h2>${esc(step.name)}</h2>
       <div class="target-line">
         <span class="pill accent">${icon('target', 16)} Hoy: ${item.plannedSets} × ${esc(unitLabel(item.type, goal))}${item.side ? ' por lado' : ''}</span>
         <span class="muted small">Descanso ${fmtClock(restSeconds(state, item.rest))}</span>
       </div>
+      ${item.role === 'mantener' ? '<div class="muted small">Para mantener: series limpias, sin llegar al fallo. Si te sale fácil, sigue subiendo.</div>' : ''}
+      ${practice && item.role === 'foco' ? '<div class="muted small">Intentos cortos y de calidad: el equilibrio mejora con práctica frecuente. Si te cansas, para.</div>' : ''}
       ${goal < item.target ? `<div class="muted small">Meta del paso: ${item.plannedSets} × ${esc(unitLabel(item.type, item.target))}. Tu valoración decide cuánto sube el objetivo.</div>` : ''}
       ${last ? `<div class="muted small">Última vez: ${esc(fmtSeries(item.type, last))}</div>` : ''}
       ${videoCard(step, roadmap.name)}

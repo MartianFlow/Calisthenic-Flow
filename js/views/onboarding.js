@@ -1,21 +1,24 @@
 // Bienvenida: configuración inicial paso a paso.
-// Tú (experiencia y pierna) → nivel en cada básico → habilidades objetivo y su nivel →
+// Tú (experiencia y pierna) → nivel en cada básico → habilidades (las que ya dominas, la que
+// quieres aprender y su nivel) →
 // semana (días) → entreno (descanso, calentamiento y sonido) → héroe → resumen.
 // Cada respuesta se guarda al momento en el estado; aquí solo se recuerda en qué paso se va.
 
 import { ROADMAPS, ROADMAP_BY_ID } from '../data/roadmaps.js';
 import { getState, update, getProgress } from '../store.js';
-import { prereqStatus } from '../logic.js';
+import { prereqStatus, skillPicks, recommendedSkills, noSkillsYet } from '../logic.js';
 import { esc, icon, targetLabel, progressBar, fmtClock } from '../ui.js';
 import { navigate } from '../router.js';
 import { recommendDays, trainingLevel, DEFAULT_DAYS, LEG_ROUTES, WD_SHORT } from '../schedule.js';
 import { dayChips, daysSegmented } from './plan.js';
-import { restPicker, prepPicker, toggle, MAX_GOALS } from './settings.js';
+import { restPicker, prepPicker, toggle } from './settings.js';
+import { setFocus, toggleMaintain, clearMaintain, skillRoutes, listText } from './skills.js';
+import { MAX_MAINTAIN } from '../store.js';
 import { heroAvatar } from './hero.js';
 import { SKINS, HAIRS, HAIR_STYLES } from '../avatar.js';
 import { burst, flash, confetti } from '../fx.js';
 
-const SECTIONS = ['Tú', 'Nivel', 'Objetivos', 'Semana', 'Héroe'];
+const SECTIONS = ['Tú', 'Nivel', 'Habilidades', 'Semana', 'Héroe'];
 
 // Punto de partida según la experiencia (paso de cada básico: el primero que aún no sale).
 export const EXPERIENCE = [
@@ -80,7 +83,8 @@ function steps(state) {
     { key: 'experiencia', section: 0 },
     { key: 'pierna', section: 0 },
     ...basics.map((r, i) => ({ key: `nivel-${r.id}`, kind: 'nivel', roadmap: r, section: 1, n: i + 1, of: basics.length })),
-    { key: 'objetivos', section: 2 },
+    { key: 'mantener', section: 2 },
+    { key: 'foco', section: 2 },
     ...goals.map((r, i) => ({ key: `nivel-${r.id}`, kind: 'nivel', roadmap: r, section: 2, goal: true, n: i + 1, of: goals.length })),
     { key: 'dias', section: 3 },
     { key: 'entreno', section: 3 },
@@ -204,8 +208,9 @@ function levelBody(state, step) {
   const r = step.roadmap;
   const p = getProgress(r.id);
   const missing = step.goal ? prereqStatus(r).filter((q) => !q.ok) : [];
+  const learn = step.goal && state.settings.focus === r.id;
   return `
-    <span class="eyebrow">${step.goal ? `Habilidad ${step.n} de ${step.of}` : `Básico ${step.n} de ${step.of}`}</span>
+    <span class="eyebrow">${step.goal ? `${learn ? 'La que aprendes' : 'La que mantienes'} · habilidad ${step.n} de ${step.of}` : `Básico ${step.n} de ${step.of}`}</span>
     <h2 class="wiz-title">${esc(r.name)}</h2>
     <p class="muted small wiz-sub">${esc(r.group)} · ${esc(r.equipment)}</p>
     <p class="wiz-hint">Toca el <strong>primer ejercicio que todavía no te sale</strong> con el objetivo indicado. Si dudas, elige el anterior: subirás rápido.</p>
@@ -228,26 +233,54 @@ function levelBody(state, step) {
     </ol>`;
 }
 
-function goalsBody(state) {
-  const goals = state.settings.goals;
+function skillCard(r, { on, action, cls = '', note = '', mark = 'star', disabled = false, base = true }) {
+  const missing = base && prereqStatus(r).some((q) => !q.ok);
   return `
-    <span class="eyebrow">Habilidades</span>
-    <h2 class="wiz-title">¿Qué habilidades quieres conseguir?</h2>
-    <p class="wiz-hint">Elige hasta ${MAX_GOALS}. Se practican al principio del entreno, cuando estás fresco. Puedes cambiarlas cuando quieras.</p>
-    <div class="skill-grid">
-      ${ROADMAPS.filter((r) => r.category === 'habilidad').map((r) => {
-        const on = goals.includes(r.id);
-        const missing = prereqStatus(r).some((q) => !q.ok);
-        return `
-        <button class="skill-card ${on ? 'on' : ''}" data-action="toggle-goal-setting" data-id="${r.id}" aria-pressed="${on}">
-          <span class="skill-check">${on ? icon('star', 16) : ''}</span>
+        <button class="skill-card ${cls} ${on ? 'on' : ''}" data-action="${action}" data-id="${r.id}" aria-pressed="${on}" ${disabled ? 'disabled' : ''}>
+          <span class="skill-check">${on ? icon(mark, 16) : ''}</span>
           <strong>${esc(r.name)}</strong>
           <small>${esc(r.group)}</small>
-          ${missing ? `<span class="skill-lock">${icon('lock', 12)} Pide más base</span>` : ''}
+          ${note || (missing ? `<span class="skill-lock">${icon('lock', 12)} Pide más base</span>` : '')}
         </button>`;
-      }).join('')}
+}
+
+// ¿Cuáles ya dominas? (para mantener; hasta 2, o ninguna)
+function keepBody(state) {
+  const { focus, maintain } = skillPicks(state);
+  return `
+    <span class="eyebrow">Habilidades</span>
+    <h2 class="wiz-title">¿Ya dominas alguna habilidad?</h2>
+    <p class="wiz-hint">Elige hasta ${MAX_MAINTAIN} que ya te salgan para <strong>mantenerlas</strong>: 1–2 días por semana con pocas series de calidad. Después eliges la que quieres aprender.</p>
+    <button class="wiz-option none-option ${maintain.length ? '' : 'on'}" data-action="wiz-keep-none" role="radio" aria-checked="${!maintain.length}">
+      <span class="opt-ic">${icon('route', 24)}</span>
+      <span class="grow"><strong>Aún no domino ninguna</strong><span>Vamos a por la primera. Te recomendamos por cuál empezar.</span></span>
+      <span class="wiz-radio">${maintain.length ? '' : icon('check', 18)}</span>
+    </button>
+    <div class="skill-grid">
+      ${skillRoutes().map((r) => skillCard(r, {
+        on: maintain.includes(r.id), action: 'wiz-keep', cls: 'keep', mark: 'shield', base: false,
+        note: focus === r.id ? `<span class="skill-lock">${icon('star', 12)} La quieres aprender</span>` : '',
+      })).join('')}
     </div>
-    <p class="wiz-count"><b>${goals.length}</b> de ${MAX_GOALS} elegidas</p>`;
+    <p class="wiz-count"><b>${maintain.length}</b> de ${MAX_MAINTAIN} para mantener</p>`;
+}
+
+// ¿Cuál quieres aprender? (una: el foco)
+function focusBody(state) {
+  const { focus, maintain } = skillPicks(state);
+  const rec = noSkillsYet(state) ? recommendedSkills(state) : [];
+  const recNames = rec.map((id) => ROADMAP_BY_ID[id].name);
+  return `
+    <span class="eyebrow">Habilidades</span>
+    <h2 class="wiz-title">¿Qué habilidad quieres aprender?</h2>
+    <p class="wiz-hint">Elige <strong>una</strong> para centrarte en ella: irá al principio de tus entrenos, en todos los días que tocan y con más volumen. Cuando la consigas, pasa a mantener y eliges otra.</p>
+    ${rec.length ? `<p class="wiz-rec"><span class="wiz-rec-star">${icon('star', 18)}</span><span><strong>Para empezar:</strong> ${esc(listText(recNames))}. Ya tienes la base o estás cerca.</span></p>` : ''}
+    <div class="skill-grid">
+      ${skillRoutes().filter((r) => !maintain.includes(r.id)).map((r) => skillCard(r, {
+        on: focus === r.id, action: 'wiz-focus',
+        note: rec.includes(r.id) ? `<span class="skill-rec">${icon('star', 12)} Recomendada para empezar</span>` : '',
+      })).join('')}
+    </div>`;
 }
 
 function daysBody(state) {
@@ -321,7 +354,8 @@ function doneBody(state) {
   const st = state.settings;
   const level = trainingLevel(state);
   const days = st.schedule?.days || DEFAULT_DAYS;
-  const goals = st.goals.map((id) => ROADMAP_BY_ID[id]?.name).filter(Boolean);
+  const { focus, maintain } = skillPicks(state);
+  const keep = maintain.map((id) => ROADMAP_BY_ID[id].name);
   const rest = st.restMode === 'auto' ? 'Según el ejercicio' : `${fmtClock(st.restSec)} entre series`;
   return `
     <div class="burst-title">¡LISTO!</div>
@@ -330,7 +364,8 @@ function doneBody(state) {
       ${summaryRow('chart', 'Tu nivel', esc(level.label), 'experiencia', progressBar(Math.round(level.frac * 100)) + routeChips(state))}
       ${summaryRow('calendar', 'Tu semana', `${st.daysPerWeek} días por semana`, 'dias',
         `<span class="sum-days">${WD_SHORT.map((d, i) => `<i class="${days[i] ? 'on' : ''}">${d}</i>`).join('')}</span>`)}
-      ${summaryRow('star', 'Habilidades', goals.length ? esc(goals.join(', ')) : 'Ninguna por ahora', 'objetivos')}
+      ${summaryRow('star', 'Quieres aprender', focus ? esc(ROADMAP_BY_ID[focus].name) : 'Ninguna por ahora', 'foco')}
+      ${summaryRow('shield', 'Mantienes', keep.length ? esc(listText(keep)) : 'Ninguna todavía', 'mantener')}
       ${summaryRow('route', 'Pierna', st.legs === 'gym' ? 'En el gimnasio' : 'Con calistenia', 'pierna')}
       ${summaryRow('timer', 'Descanso', esc(rest), 'entreno')}
     </ul>
@@ -341,7 +376,8 @@ const BODIES = {
   experiencia: experienceBody,
   pierna: legsBody,
   nivel: levelBody,
-  objetivos: goalsBody,
+  mantener: keepBody,
+  foco: focusBody,
   dias: daysBody,
   entreno: trainingBody,
   heroe: heroBody,
@@ -363,7 +399,7 @@ function footer(state, step) {
   if (step.key === 'experiencia' && !wiz.exp) {
     return '<button class="btn primary block" data-action="wiz-next" disabled>Elige una opción</button>';
   }
-  const skip = step.key === 'objetivos' && !state.settings.goals.length;
+  const skip = step.key === 'foco' && !state.settings.focus;
   return `<button class="btn ${skip ? 'ghost' : 'primary'} block" data-action="wiz-next">${skip ? 'Ahora no, seguir' : 'Siguiente'} ${icon('next', 20)}</button>`;
 }
 
@@ -423,6 +459,18 @@ export const actions = {
       s.lastDayType = null;
     });
     autoAdvance('pierna');
+  },
+  // Elegir la habilidad que aprende: avanza sola (tocar la elegida la quita y no avanza).
+  'wiz-focus'(el) {
+    const id = el.dataset.id;
+    const was = getState().settings.focus === id;
+    setFocus(id, { toggle: true });
+    if (!was) autoAdvance('foco');
+  },
+  'wiz-keep'(el) { toggleMaintain(el.dataset.id); },
+  'wiz-keep-none'() {
+    clearMaintain();
+    autoAdvance('mantener');
   },
   'wiz-level'(el) {
     const id = el.dataset.id;

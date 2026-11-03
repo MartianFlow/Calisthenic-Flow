@@ -13,7 +13,7 @@ function baseState(extra = {}) {
     version: 2,
     onboarded: true,
     settings: {
-      goals: [], daysPerWeek: 3, passesToLevelUp: 2, sound: false, warmup: true, legs: 'calistenia', theme: 'auto',
+      focus: null, maintain: [], daysPerWeek: 3, passesToLevelUp: 2, sound: false, warmup: true, legs: 'calistenia', theme: 'auto',
       schedule: { days: [true, false, true, false, true, false, false] },
     },
     progress: {}, lifts: {}, levelLog: [], sessions: [], active: null, plan: null, lastDayType: null,
@@ -50,7 +50,8 @@ const lift = (liftId, kg, sets, extra = {}) => ({
   loads: sets.map(() => kg), met: false, goalMet: true, rating: 'normal', outcome: { kind: 'up', from: sets[0], next: sets[0] + 1, kg }, ...extra,
 });
 
-// Usuario con dos meses de historial, tres objetivos y logros.
+// Usuario con dos meses de historial y logros. Como el usuario real: aprende el pino y
+// mantiene el muscle-up y el front lever.
 function richState(extra = {}) {
   const sessions = [];
   for (let w = 8; w >= 0; w--) {
@@ -78,7 +79,7 @@ function richState(extra = {}) {
     { date: new Date(NOW - 10 * DAY).toISOString(), roadmapId: 'core', from: 5, to: 6, reason: 'facil' },
   ];
   return baseState({
-    settings: { goals: ['frontlever', 'muscleup', 'pino'], daysPerWeek: 3 },
+    settings: { focus: 'pino', maintain: ['muscleup', 'frontlever'], daysPerWeek: 3 },
     progress: {
       dominadas: { step: 5, passes: 0, done: false, work: 6 }, remo: { step: 4, passes: 0, done: false },
       flexiones: { step: 6, passes: 0, done: false }, fondos: { step: 4, passes: 0, done: false, stall: 1 },
@@ -108,7 +109,7 @@ function gymState(extra = {}) {
   }
   const lifts = Object.fromEntries(LIFT_IDS.map((id) => [id, { kg: kg[id], reps: 8, stall: id === 'aductor' ? 2 : 0 }]));
   return baseState({
-    settings: { legs: 'gym', daysPerWeek: 5, schedule: { days: L_V }, goals: ['frontlever', 'pino'] },
+    settings: { legs: 'gym', daysPerWeek: 5, schedule: { days: L_V }, focus: 'frontlever', maintain: ['pino'] },
     progress: { dominadas: { step: 7, passes: 0, done: false }, remo: { step: 5, passes: 0, done: false }, flexiones: { step: 7, passes: 0, done: false }, fondos: { step: 6, passes: 0, done: false }, core: { step: 7, passes: 0, done: false }, frontlever: { step: 3, passes: 0, done: false } },
     lifts, sessions,
     ...extra,
@@ -119,8 +120,8 @@ const click = (sel, opts) => async (page) => { await page.locator(sel).first().c
 const clickAll = (...sels) => async (page) => { for (const s of sels) await page.locator(s).first().click(); };
 
 // Usuario que aún no ha hecho la configuración inicial.
-function fresh({ goals = [], settings = {}, game = {} } = {}) {
-  return baseState({ onboarded: false, game, settings: { schedule: null, goals, ...settings } });
+function fresh({ focus = null, maintain = [], settings = {}, game = {} } = {}) {
+  return baseState({ onboarded: false, game, settings: { schedule: null, focus, maintain, ...settings } });
 }
 
 // Avanza por la bienvenida hasta el paso indicado. En «experiencia» elige «Tengo algo de base»
@@ -170,14 +171,17 @@ const scenarios = [
   { name: 'bienvenida-pierna', route: '/bienvenida', state: fresh(), setup: wizTo('pierna') },
   { name: 'bienvenida-nivel', route: '/bienvenida', state: fresh(), setup: wizTo('nivel-dominadas', click('[data-action="wiz-level"][data-step="6"]')) },
   { name: 'bienvenida-nivel-bisagra', route: '/bienvenida', state: fresh(), setup: wizTo('nivel-bisagra') },
-  { name: 'bienvenida-objetivos', route: '/bienvenida', state: fresh({ goals: ['frontlever', 'planche', 'muscleup'] }), setup: wizTo('objetivos') },
-  { name: 'bienvenida-nivel-habilidad', route: '/bienvenida', state: fresh({ goals: ['frontlever', 'planche', 'muscleup'] }), setup: wizTo('nivel-planche') },
-  { name: 'bienvenida-dias', route: '/bienvenida', state: fresh({ goals: ['frontlever', 'planche'] }), setup: wizTo('dias') },
+  { name: 'bienvenida-mantener', route: '/bienvenida', state: fresh(), setup: wizTo('mantener') },
+  { name: 'bienvenida-mantener-elegidas', route: '/bienvenida', state: fresh({ maintain: ['muscleup', 'frontlever'] }), setup: wizTo('mantener') },
+  { name: 'bienvenida-foco-sin-ninguna', route: '/bienvenida', state: fresh(), setup: wizTo('foco') },
+  { name: 'bienvenida-foco', route: '/bienvenida', state: fresh({ focus: 'pino', maintain: ['muscleup', 'frontlever'] }), setup: wizTo('foco') },
+  { name: 'bienvenida-nivel-habilidad', route: '/bienvenida', state: fresh({ focus: 'planche', maintain: ['frontlever', 'muscleup'] }), setup: wizTo('nivel-planche') },
+  { name: 'bienvenida-dias', route: '/bienvenida', state: fresh({ focus: 'frontlever', maintain: ['planche'] }), setup: wizTo('dias') },
   { name: 'bienvenida-entreno', route: '/bienvenida', state: fresh(), setup: wizTo('entreno') },
   { name: 'bienvenida-entreno-auto', route: '/bienvenida', state: fresh({ settings: { restMode: 'auto' } }), setup: wizTo('entreno') },
   { name: 'bienvenida-heroe', route: '/bienvenida', state: fresh({ game: { name: 'Rayo Callejero' } }), setup: wizTo('heroe') },
-  { name: 'bienvenida-cambiando-dias', route: '/bienvenida', state: fresh({ goals: ['pino'] }), setup: wizTo('listo', click('[data-action="wiz-goto"][data-key="dias"]')) },
-  { name: 'bienvenida-listo', route: '/bienvenida', state: fresh({ goals: ['frontlever', 'planche', 'muscleup'], settings: { legs: 'gym' } }), setup: wizTo('listo') },
+  { name: 'bienvenida-cambiando-dias', route: '/bienvenida', state: fresh({ focus: 'pino' }), setup: wizTo('listo', click('[data-action="wiz-goto"][data-key="dias"]')) },
+  { name: 'bienvenida-listo', route: '/bienvenida', state: fresh({ focus: 'planche', maintain: ['frontlever', 'muscleup'], settings: { legs: 'gym' } }), setup: wizTo('listo') },
 
   // Usuario nuevo (sin datos)
   { name: 'nuevo-hoy', route: '/', state: baseState() },
@@ -186,6 +190,9 @@ const scenarios = [
   { name: 'nuevo-heroe', route: '/heroe', state: baseState() },
   { name: 'nuevo-plan-sin-dias', route: '/plan', state: baseState({ settings: { schedule: null } }) },
   { name: 'nuevo-hoy-sin-plan', route: '/', state: baseState({ settings: { schedule: null } }) },
+  { name: 'nuevo-ajustes', route: '/ajustes', state: baseState() },
+  { name: 'nuevo-hoy-foco-sin-base', route: '/', state: baseState({ settings: { focus: 'frontlever' } }) },
+  { name: 'nuevo-ruta-foco-sin-base', route: '/ruta/frontlever', state: baseState({ settings: { focus: 'frontlever' } }) },
 
   // Usuario con historial (calistenia)
   { name: 'hoy', route: '/', state: rich },
@@ -193,6 +200,10 @@ const scenarios = [
   { name: 'hoy-descanso', route: '/', state: rich, now: TUE },
   { name: 'hoy-hecho', route: '/', state: richState({ sessions: [...rich.sessions, session({ daysAgo: 0, hour: 8, items: [reps('dominadas', 5, [6, 6, 6])] })] }) },
   { name: 'hoy-descarga-sugerida', route: '/', state: richState({ progress: { ...rich.progress, remo: { step: 4, passes: 0, done: false, stall: 2 }, fondos: { step: 4, passes: 0, done: false, stall: 2 } } }) },
+  { name: 'hoy-aviso-habilidades', route: '/', state: richState({ settings: { goals: ['frontlever', 'muscleup', 'pino'], daysPerWeek: 3, focus: undefined, maintain: undefined } }) },
+  { name: 'hoy-habilidad-conseguida', route: '/', state: richState({ progress: { ...rich.progress, pino: { step: 8, passes: 0, done: true } } }) },
+  { name: 'hoy-habilidad-conseguida-hueco', route: '/', state: richState({ settings: { focus: 'pino', maintain: ['frontlever'], daysPerWeek: 3 }, progress: { ...rich.progress, pino: { step: 8, passes: 0, done: true } } }) },
+  { name: 'hoy-descanso-pino-hecho', route: '/', state: richState({ sessions: [...rich.sessions, session({ daysAgo: 0, hour: 8, dayType: 'pino', duration: 600, items: [hold('pino', 3, [40, 45, 42])] })] }), now: TUE },
   { name: 'hoy-descarga-activa', route: '/', state: richState({ deload: { start: NOW - DAY, until: NOW + 6 * DAY } }) },
   { name: 'hoy-entreno-a-medias', route: '/', state: rich, setup: async (page) => { await startSession(page); await page.goto(page.url().replace(/#.*/, '#/')); } },
   { name: 'calendario', route: '/calendario', state: rich },
@@ -208,6 +219,8 @@ const scenarios = [
   { name: 'sesion-detalle', route: `/sesion/${richSessionId}`, state: rich },
   { name: 'resumen-subida', route: `/resumen/${levelSessionId}`, state: rich },
   { name: 'ajustes', route: '/ajustes', state: rich },
+  { name: 'ajustes-foco-sin-mantener', route: '/ajustes', state: richState({ settings: { focus: 'frontlever', maintain: [], daysPerWeek: 3 } }) },
+  { name: 'ruta-mantener-sin-hueco', route: '/ruta/planche', state: rich },
   { name: 'plan', route: '/plan', state: rich },
   { name: 'plan-moviendo', route: '/plan', state: rich, setup: click('.week-row:nth-child(3) [data-action="week-move"]') },
   { name: 'plan-semana-cambiada', route: '/plan', state: rich, setup: clickAll('.week-row:nth-child(3) [data-action="week-move"]', '.week-row:nth-child(4) [data-action="week-move-to"]') },
@@ -238,6 +251,8 @@ const scenarios = [
     for (let i = 0; i < 50 && !(await page.evaluate(() => location.hash)).startsWith('#/resumen/'); i++) await page.waitForTimeout(100);
   } },
   { name: 'entreno-vacio', route: '/entreno', state: rich },
+  { name: 'entreno-mantener', route: '/', state: rich, setup: async (page) => { await startSession(page); await skipWarmup(page); await page.locator('.chip').nth(2).click(); } },
+  { name: 'entreno-solo-pino', route: '/', state: rich, now: TUE, setup: async (page) => { await page.locator('[data-action="pino-only"]').click(); await page.waitForSelector('.session-head'); } },
 
   // Pierna en el gimnasio
   { name: 'gym-hoy-torso', route: '/', state: gym },

@@ -14,7 +14,7 @@
 import { ROADMAP_BY_ID, ROADMAPS, DAY_TEMPLATES } from './data/roadmaps.js';
 import { LEG_DAYS } from './data/gym.js';
 import { getProgress } from './store.js';
-import { currentPlan, startOfWeek, TORSO_TYPES } from './logic.js';
+import { currentPlan, startOfWeek, TORSO_TYPES, skillPicks, prioritizeBase, clashes, PRACTICE_ID, isWorkout } from './logic.js';
 
 export const WEEKDAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 export const WD_SHORT = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
@@ -191,6 +191,7 @@ export const DAY_INFO = {
   PA: { ...LEG_DAYS.P, label: 'Pierna A', badge: 'PA' },
   PB: { ...LEG_DAYS.P, label: 'Pierna B', badge: 'PB' },
   S: { label: 'Día S', badge: 'S', focus: 'Habilidades · Core', ids: ['core'] },
+  pino: { label: 'Solo pino', badge: 'PN', focus: 'Práctica corta de pino (unos 10 min)', ids: ['pino'] },
   R: { label: 'Descanso', badge: '—', focus: 'Recuperación activa: caminar, movilidad o estiramientos suaves.', ids: [] },
 };
 
@@ -200,11 +201,76 @@ export function dayLabel(type) {
   return DAY_INFO[type]?.label || `Día ${type}`;
 }
 
+// Reparto de las habilidades en la semana (ver logic.js, «foco y mantenimiento»):
+// · Pino de foco: práctica corta en todos los días de entreno (también los de pierna).
+// · Foco: en todos los días de torso que permita su tipo. Brazos rectos, flexión de pino y
+//   muscle-up: como mucho 3 días y nunca seguidos.
+// · Mantener: cada una 1–2 días, nunca seguidos, y como mucho una por sesión (el pino no cuenta).
+// · Brazos rectos (entre todas): como mucho 2 por sesión, 3 días por semana y nunca en días seguidos.
+// · Back lever y planche, nunca el mismo día.
+const NOT_BACK_TO_BACK = ['hspu', 'muscleup'];
+
+function placeSkills(state, chosen, types, odd) {
+  const { focus, maintain } = skillPicks(state);
+  const straight = (id) => !!ROADMAP_BY_ID[id]?.straightArm;
+  const count = {};
+  const last = {};
+  const straightDays = [];
+  const days = chosen.map((wd, k) => ({ wd, type: types[k], skills: [] }));
+
+  const fits = (id, day, role) => {
+    const n = count[id] || 0;
+    const back = last[id] === day.wd - 1;
+    if (role === 'foco') {
+      if ((straight(id) || NOT_BACK_TO_BACK.includes(id)) && (n >= 3 || back)) return false;
+    } else if (n >= 2 || back) return false;
+    if (clashes(id, day.skills)) return false;
+    if (straight(id)) {
+      if (day.skills.filter(straight).length >= 2) return false;
+      if (straightDays.includes(day.wd - 1)) return false;
+      if (!straightDays.includes(day.wd) && straightDays.length >= 3) return false;
+    }
+    return true;
+  };
+  const put = (id, day) => {
+    day.skills.push(id);
+    count[id] = (count[id] || 0) + 1;
+    last[id] = day.wd;
+    if (straight(id) && !straightDays.includes(day.wd)) straightDays.push(day.wd);
+  };
+
+  const main = focus && focus !== PRACTICE_ID ? focus : null;
+  const others = maintain.filter((id) => id !== PRACTICE_ID);
+  const order = odd ? [...others].reverse() : others; // las semanas impares empieza la otra
+  for (const day of days) {
+    const torso = day.type === 'S' || TORSO_TYPES.includes(day.type);
+    if (focus === PRACTICE_ID) put(PRACTICE_ID, day);
+    if (!torso) continue;
+    if (maintain.includes(PRACTICE_ID) && fits(PRACTICE_ID, day, 'mantener')) put(PRACTICE_ID, day);
+    if (main && fits(main, day, 'foco')) put(main, day);
+    const pick = [...order].sort((a, b) => (count[a] || 0) - (count[b] || 0)).find((id) => fits(id, day, 'mantener'));
+    if (pick) put(pick, day);
+  }
+
+  // Una de mantener que no ha cabido porque choca con el foco (back lever y planche): ocupa
+  // el sitio del foco el último día en que el foco aparece, si así le quedan al menos 2.
+  for (const id of others) {
+    if (count[id] || !main || !clashes(id, [main])) continue;
+    const day = [...days].reverse().find((d) => d.skills.includes(main) && d.skills.filter((x) => x !== PRACTICE_ID).length === 1);
+    if (!day || (count[main] || 0) <= 2) continue;
+    day.skills = day.skills.map((x) => (x === main ? id : x));
+    count[main] -= 1;
+    count[id] = 1;
+  }
+  return days;
+}
+
 // Construye la semana: [{ weekday, type, skills, ids }] para L…D.
 export function buildWeek(state, weekStart = startOfWeek(Date.now())) {
   const sched = state.settings.schedule;
   if (!sched) return null;
-  const goals = state.settings.goals.filter((id) => ROADMAP_BY_ID[id]);
+  const { focus, maintain } = skillPicks(state);
+  const hasSkills = !!focus || maintain.length > 0;
   const n = Math.min(state.settings.daysPerWeek, sched.days.filter(Boolean).length);
   const odd = isoWeek(weekStart) % 2 === 1;
   let chosen;
@@ -213,30 +279,13 @@ export function buildWeek(state, weekStart = startOfWeek(Date.now())) {
     ({ days: chosen, types } = gymDays(sched.days, n, odd));
   } else {
     chosen = pickDays(sched.days, n);
-    types = weekTemplate(chosen.length, goals.length > 0, odd);
+    types = weekTemplate(chosen.length, hasSkills, odd);
   }
   const week = WD_SHORT.map((_, i) => ({ weekday: i, type: 'R', skills: [], ids: [] }));
-  const count = {};
-  const lastDay = {};
-  let rot = 0;
-  chosen.forEach((wd, k) => {
-    const type = types[k];
-    const maxSkills = type === 'S' ? 3 : TORSO_TYPES.includes(type) ? 2 : 0;
-    const skills = [];
-    let straight = 0;
-    for (let j = 0; j < goals.length && skills.length < maxSkills; j++) {
-      const g = goals[(rot + j) % goals.length];
-      const isStraight = ROADMAP_BY_ID[g].straightArm;
-      if (isStraight && (straight >= 2 || (count[g] || 0) >= 3 || lastDay[g] === wd - 1)) continue;
-      skills.push(g);
-      count[g] = (count[g] || 0) + 1;
-      lastDay[g] = wd;
-      if (isStraight) straight++;
-    }
-    if (maxSkills && goals.length > maxSkills) rot = (rot + 1) % goals.length;
-    const base = DAY_INFO[type].ids;
+  for (const { wd, type, skills } of placeSkills(state, chosen, types, odd)) {
+    const base = prioritizeBase(state, DAY_INFO[type].ids);
     week[wd] = { weekday: wd, type, skills, ids: [...skills, ...base.filter((id) => !skills.includes(id))] };
-  });
+  }
   return applyWeekMoves(state, week, weekStart);
 }
 
@@ -276,15 +325,25 @@ export function weekChanged(state) {
   return !!base && m.sig === weekSig(base);
 }
 
-// Aviso si, tras mover, quedan seguidos dos días de pierna o dos con la misma habilidad de brazos rectos.
+// Aviso si, tras mover, quedan seguidos dos días de pierna, dos con brazos rectos o dos con
+// la misma flexión de pino o muscle-up.
 export function weekWarning(week) {
+  const name = (id) => ROADMAP_BY_ID[id].name;
   for (let i = 0; i < 6; i++) {
     const a = week[i];
     const b = week[i + 1];
     if (a.type === 'R' || b.type === 'R') continue;
     if (a.type === 'P' && b.type === 'P') return 'Ojo: quedan dos días de pierna seguidos. Mejor dejar 48–72 h entre ellos.';
-    const straight = a.skills.filter((id) => ROADMAP_BY_ID[id]?.straightArm && b.skills.includes(id));
-    if (straight.length) return `Ojo: ${ROADMAP_BY_ID[straight[0]].name} queda en dos días seguidos. Los tendones necesitan descanso entre sesiones.`;
+    const sa = a.skills.filter((id) => ROADMAP_BY_ID[id]?.straightArm);
+    const sb = b.skills.filter((id) => ROADMAP_BY_ID[id]?.straightArm);
+    if (sa.length && sb.length) {
+      const same = sa.find((id) => sb.includes(id));
+      return same
+        ? `Ojo: ${name(same)} queda en dos días seguidos. Los tendones necesitan descanso entre sesiones.`
+        : `Ojo: quedan dos días seguidos con brazos rectos (${name(sa[0])} y ${name(sb[0])}). Los tendones necesitan descanso entre sesiones.`;
+    }
+    const hard = NOT_BACK_TO_BACK.find((id) => a.skills.includes(id) && b.skills.includes(id));
+    if (hard) return `Ojo: ${name(hard)} queda en dos días seguidos. Mejor dejar un día de descanso entre medias.`;
   }
   return '';
 }
@@ -296,7 +355,7 @@ export function todayInfo(state, now = Date.now()) {
   if (!week) return { mode: 'free', plan: currentPlan(state) };
   const wd = weekdayIndex(now);
   const today = week[wd];
-  const trainedToday = state.sessions.some((s) => new Date(s.startedAt).toDateString() === new Date(now).toDateString());
+  const trainedToday = state.sessions.some((s) => isWorkout(s) && new Date(s.startedAt).toDateString() === new Date(now).toDateString());
   if (today.type !== 'R' && !trainedToday) {
     return { mode: 'scheduled', today, week, plan: { dayType: today.type, ids: today.ids } };
   }

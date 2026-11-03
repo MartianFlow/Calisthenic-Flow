@@ -7,12 +7,14 @@ import { getState, update } from '../store.js';
 import {
   defaultIds, estimateMinutes, stepOf, createSession, startOfWeek, dayOrder, isGymLegs,
   sessionsInWeek, roadmapPercent, lastPerformance, lastLift, liftState, liftGoal, workFor, deloadActive, deloadSuggestion, startDeload,
+  skillRole, plannedSets, skillPicks, PRACTICE_ID, PRACTICE_DAY, noSkillsYet, recommendedSkills,
 } from '../logic.js';
 import { todayInfo, buildWeek, DAY_INFO, WEEKDAYS, WD_SHORT, weekdayIndex } from '../schedule.js';
 import { esc, icon, fmtClock, progressBar, fmtDate, fmtKg, fmtSeries, fmtLiftSeries, toast } from '../ui.js';
 import { navigate } from '../router.js';
 import { audio, wakeLock } from '../device.js';
 import { heroMini } from './hero.js';
+import { roleTag, prereqNote, achievedCard, skillsNotice, listText } from './skills.js';
 
 let editing = false;
 
@@ -86,17 +88,19 @@ function exerciseRow(state, id, idx, dayType) {
   if (!ROADMAP_BY_ID[id]) return '';
   const { roadmap, step, index } = stepOf(id);
   const last = lastPerformance(state, id, index);
-  const isGoal = state.settings.goals.includes(id);
+  const role = skillRole(state, id);
   const goal = workFor(id);
+  const sets = plannedSets(state, id, step, deloadActive(state));
+  const what = role && id === PRACTICE_ID ? 'Práctica de pino · 5–10 min' : `${esc(roadmap.name)} · paso ${index + 1}/${roadmap.steps.length}`;
   return `
-    <li class="ex-row">
+    <li class="ex-row ${role ? `role-${role === 'foco' ? 'focus' : 'keep'}` : ''}">
       <span class="num">${idx + 1}</span>
       <a class="grow ex-link" href="#/ruta/${id}" aria-label="Ver ${esc(step.name)}: vídeo y técnica">
         <div class="ex-title">${titleWithPlay(step.name, !!step.video)}</div>
-        <div class="muted small">${esc(roadmap.name)} · paso ${index + 1}/${roadmap.steps.length}${isGoal ? ' · <span class="accent-text">objetivo</span>' : ''}</div>
+        <div class="muted small">${what} ${roleTag(role)}</div>
         ${last ? `<div class="muted small">Última vez: ${esc(fmtSeries(step.type, last))}</div>` : ''}
       </a>
-      <div class="ex-target">${step.sets} × ${goal}<small>${step.type === 'hold' ? 'seg' : goal === 1 ? 'rep' : 'reps'}${step.side ? ' /lado' : ''}</small>
+      <div class="ex-target">${sets} × ${goal}<small>${step.type === 'hold' ? 'seg' : goal === 1 ? 'rep' : 'reps'}${step.side ? ' /lado' : ''}</small>
         ${goal < step.target ? `<small>meta ${step.target}</small>` : ''}</div>
       ${editButtons(id, idx)}
     </li>`;
@@ -112,7 +116,6 @@ function nextLabel(info) {
 export function idsForType(state, type) {
   const day = buildWeek(state)?.find((d) => d.type === type);
   if (day) return [...day.ids];
-  if (type === 'S') return [...state.settings.goals.filter((id) => ROADMAP_BY_ID[id]).slice(0, 3), 'core'];
   return defaultIds(state, type);
 }
 
@@ -124,6 +127,22 @@ function routineChoices(state, currentType) {
     <button class="goal-chip ${t === currentType ? 'on' : ''}" data-action="plan-pick" data-type="${t}" aria-pressed="${t === currentType}">${esc(DAY_INFO[t].label)}</button>`).join('')}</div>`;
 }
 
+// «Solo pino»: en un día de descanso, una práctica corta de pino sin calentamiento general.
+function pinoOnly(state) {
+  const { focus, maintain } = skillPicks(state);
+  if (focus !== PRACTICE_ID && !maintain.includes(PRACTICE_ID)) return '';
+  const today = new Date().toDateString();
+  if (state.sessions.some((s) => s.dayType === PRACTICE_DAY && new Date(s.startedAt).toDateString() === today)) {
+    return `<p class="pino-done small">${icon('check', 16)} Práctica de pino hecha hoy</p>`;
+  }
+  const { step } = stepOf(PRACTICE_ID);
+  return `
+    <div class="pino-only">
+      <button class="btn primary" data-action="pino-only">${icon('play', 18)} Solo pino (10 min)</button>
+      <span class="muted small">El equilibrio mejora con práctica corta y frecuente: ${esc(step.name)}, sin el resto del entreno.</span>
+    </div>`;
+}
+
 function restCard(state, info) {
   const done = info.mode === 'done';
   return `
@@ -132,6 +151,7 @@ function restCard(state, info) {
       <h2>${done ? 'Misión cumplida' : 'Recupera'}</h2>
       <p class="small">${done ? 'Buen trabajo. El músculo crece mientras descansas.' : esc(DAY_INFO.R.focus)}</p>
       ${info.next ? `<div class="next-up">${icon('next', 16)} Próximo: <strong>${esc(nextLabel(info))}</strong></div>` : ''}
+      ${done ? '' : pinoOnly(state)}
       <div class="row gap wrap">
         <button class="btn ghost" data-action="train-anyway">${icon('play', 18)} ${done ? 'Entrenar otra vez' : 'Entrenar igualmente'}</button>
         <a class="btn ghost" href="#/plan">${icon('route', 18)} Ver plan</a>
@@ -188,30 +208,38 @@ function planCard(state, info) {
     </section>`;
 }
 
+// Tus habilidades: la que aprendes (foco) y las que mantienes.
+function skillRow(r, role) {
+  const { step, index } = stepOf(r.id);
+  return `
+    <a class="goal ${role === 'foco' ? 'is-focus' : 'is-keep'}" href="#/ruta/${r.id}">
+      <div class="row between"><strong>${esc(r.name)}</strong><span class="muted small">${index + 1}/${r.steps.length}</span></div>
+      <div class="muted small">${esc(step.name)} ${roleTag(role)}</div>
+      ${progressBar(roadmapPercent(r.id))}
+    </a>`;
+}
+
 function goalsCard(state) {
-  const goals = state.settings.goals.map((id) => ROADMAP_BY_ID[id]).filter(Boolean);
-  if (!goals.length) {
+  const { focus, maintain } = skillPicks(state);
+  if (!focus && !maintain.length) {
+    const rec = noSkillsYet(state) ? recommendedSkills(state).map((id) => ROADMAP_BY_ID[id].name) : [];
     return `
       <section class="card">
-        <h3>Tus objetivos</h3>
-        <p class="muted">Elige hasta 3 habilidades (muscle-up, pino, front lever…) y se añadirán al principio de tus entrenos.</p>
-        <a class="btn ghost" href="#/rutas">${icon('target', 18)} Elegir habilidades</a>
+        <h3>Tus habilidades</h3>
+        <p class="muted">Elige una habilidad para aprender (pino, front lever, muscle-up…) y, si ya dominas alguna, hasta 2 para mantener. Irán al principio de tus entrenos.</p>
+        ${rec.length ? `<p class="small">${icon('star', 14)} Para empezar te recomendamos <strong>${esc(listText(rec))}</strong>: ya tienes la base o estás cerca.</p>` : ''}
+        <button class="btn ghost" data-action="skills-review">${icon('target', 18)} Elegir habilidades</button>
       </section>`;
   }
   return `
     <section class="card">
-      <div class="row between"><h3>Tus objetivos</h3><a class="link" href="#/rutas">Ver rutas</a></div>
+      <div class="row between"><h3>Tus habilidades</h3><a class="link" href="#/rutas">Ver rutas</a></div>
+      ${focus ? '' : `<p class="small">${icon('star', 14)} ¿Quieres aprender una nueva? <button class="link" data-action="skills-review">Elegir</button></p>`}
       <div class="goal-list">
-        ${goals.map((r) => {
-          const { step, index } = stepOf(r.id);
-          return `
-          <a class="goal" href="#/ruta/${r.id}">
-            <div class="row between"><strong>${esc(r.name)}</strong><span class="muted small">${index + 1}/${r.steps.length}</span></div>
-            <div class="muted small">${esc(step.name)}</div>
-            ${progressBar(roadmapPercent(r.id))}
-          </a>`;
-        }).join('')}
+        ${focus ? skillRow(ROADMAP_BY_ID[focus], 'foco') : ''}
+        ${maintain.map((id) => skillRow(ROADMAP_BY_ID[id], 'mantener')).join('')}
       </div>
+      ${prereqNote(state)}
     </section>`;
 }
 
@@ -270,6 +298,8 @@ export function render() {
       <div class="col"><div class="eyebrow">${hello}</div><h1>Hoy</h1></div>
       ${headActions(state.settings.theme)}
     </header>
+    ${skillsNotice(state)}
+    ${achievedCard(state)}
     ${main}
     ${heroMini(state)}
     ${deloadCard(state)}
@@ -295,6 +325,14 @@ export const actions = {
     audio.unlock();
     editing = false;
     update((s) => { s.active = createSession(s, plan); });
+    wakeLock.request();
+    navigate('#/entreno');
+  },
+  'pino-only'() {
+    const state = getState();
+    if (state.active && !confirm('Ya tienes un entreno en curso. ¿Descartarlo y empezar este?')) return;
+    audio.unlock();
+    update((s) => { s.active = createSession(s, { dayType: PRACTICE_DAY, ids: [PRACTICE_ID], warmup: false }); });
     wakeLock.request();
     navigate('#/entreno');
   },

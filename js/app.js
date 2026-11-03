@@ -16,6 +16,7 @@ import * as calendar from './views/calendar.js';
 import * as hero from './views/hero.js';
 import * as planView from './views/plan.js';
 import * as exercise from './views/exercise.js';
+import * as skills from './views/skills.js';
 import { syncAchievements } from './game.js';
 import { applyTheme } from './theme.js';
 import { update } from './store.js';
@@ -48,6 +49,7 @@ const actions = {
   ...hero.actions,
   ...planView.actions,
   ...exercise.actions,
+  ...skills.actions,
   'chart-tip'(el) {
     const fig = el.closest('.chart');
     if (!fig) return;

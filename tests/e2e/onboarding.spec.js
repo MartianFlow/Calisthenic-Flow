@@ -6,7 +6,7 @@ const next = (page) => page.locator('.wiz-foot [data-action="wiz-next"]').click(
 
 // Elige una opción única (experiencia o pierna): avanza sola al cabo de un momento.
 async function choose(page, action, value) {
-  await page.locator(`[data-action="${action}"][data-value="${value}"]`).click();
+  await page.locator(`[data-action="${action}"][data-value="${value}"], [data-action="${action}"][data-id="${value}"]`).click();
   await page.clock.runFor(600);
 }
 
@@ -20,7 +20,7 @@ test.describe('Configuración inicial', () => {
     await expect(page.locator('.wiz-foot [data-action="wiz-next"]')).toContainText('Empezar');
   });
 
-  test('paso a paso: experiencia, pierna, niveles, objetivos, días, descanso y héroe', async ({ page }) => {
+  test('paso a paso: experiencia, pierna, niveles, habilidades, días, descanso y héroe', async ({ page }) => {
     await page.goto('/');
     await next(page);
 
@@ -52,17 +52,29 @@ test.describe('Configuración inicial', () => {
       await next(page);
     }
 
-    // Objetivos: sin elegir se puede saltar; con dos, cada uno tiene su paso de nivel
-    await expect(step(page)).toHaveAttribute('data-step', 'objetivos');
-    await expect(page.locator('.wiz-foot .btn')).toContainText('Ahora no');
-    await page.locator('[data-action="toggle-goal-setting"][data-id="frontlever"]').click();
-    await page.locator('[data-action="toggle-goal-setting"][data-id="pino"]').click();
-    await expect(page.locator('.wiz-count')).toContainText('2 de 3');
+    // Habilidades: primero las que ya domina (para mantener) y luego la que quiere aprender
+    await expect(step(page)).toHaveAttribute('data-step', 'mantener');
+    await expect(page.locator('.none-option')).toHaveClass(/on/);
+    await page.locator('[data-action="wiz-keep"][data-id="muscleup"]').click();
+    await page.locator('[data-action="wiz-keep"][data-id="frontlever"]').click();
+    await expect(page.locator('.wiz-count')).toContainText('2 de 2');
+    await page.locator('[data-action="wiz-keep"][data-id="lsit"]').click();
+    await expect(page.locator('#toast')).toContainText('Como mucho 2');
     await next(page);
-    await expect(step(page)).toHaveAttribute('data-step', 'nivel-frontlever');
+    await expect(step(page)).toHaveAttribute('data-step', 'foco');
+    // Las que mantiene no se ofrecen para aprender; con habilidades dominadas no hay «Recomendada»
+    await expect(page.locator('[data-action="wiz-focus"][data-id="muscleup"]')).toHaveCount(0);
+    await expect(page.locator('.skill-rec')).toHaveCount(0);
+    await expect(page.locator('.wiz-foot .btn')).toContainText('Ahora no');
+    await choose(page, 'wiz-focus', 'pino');
+    await expect(step(page)).toHaveAttribute('data-step', 'nivel-pino');
+    await expect(page.locator('.wiz-body .eyebrow')).toContainText('La que aprendes · habilidad 1 de 3');
+    await next(page);
+    await expect(step(page)).toHaveAttribute('data-step', 'nivel-muscleup');
+    await expect(page.locator('.wiz-body .eyebrow')).toContainText('La que mantienes');
     await expect(page.locator('.wiz-note')).toContainText('Se recomienda llegar antes');
     await next(page);
-    await expect(step(page)).toHaveAttribute('data-step', 'nivel-pino');
+    await expect(step(page)).toHaveAttribute('data-step', 'nivel-frontlever');
     await next(page);
 
     // Días: propone los recomendados para su nivel; se añade el sábado
@@ -87,20 +99,22 @@ test.describe('Configuración inicial', () => {
 
     // Resumen y a entrenar
     await expect(step(page)).toHaveAttribute('data-step', 'listo');
-    await expect(page.locator('.wiz-summary')).toContainText('Front lever, Pino');
+    await expect(page.locator('.wiz-summary')).toContainText('Quieres aprenderPino');
+    await expect(page.locator('.wiz-summary')).toContainText('Muscle-up y Front lever');
     await expect(page.locator('.wiz-summary')).toContainText('1:30 entre series');
     await page.locator('[data-action="finish-onboarding"]').click();
 
     await expect(page).toHaveURL(/#\/$/);
     await expect(page.getByRole('heading', { name: 'Hoy' })).toBeVisible();
-    await expect(page.locator('.ex-row').first()).toContainText(/Tuck front lever|Pica/);
+    await expect(page.locator('.ex-row').first()).toContainText('Práctica de pino');
+    await expect(page.locator('.ex-row').first().locator('.role-tag')).toHaveText('foco');
 
     s = await readState(page);
     expect(s.onboarded).toBe(true);
     expect(s.progress.dominadas.step).toBe(4);
     expect(s.progress.flexiones.step).toBe(1);
     expect(s.progress.core.step).toBe(2); // el de la experiencia «Tengo algo de base»
-    expect(s.settings.goals).toEqual(['frontlever', 'pino']);
+    expect(s.settings).toMatchObject({ focus: 'pino', maintain: ['muscleup', 'frontlever'], goals: ['pino', 'muscleup', 'frontlever'] });
     expect(s.settings.schedule.days).toEqual([true, false, true, false, true, true, false]);
     expect(s.settings).toMatchObject({ restMode: 'fixed', restSec: 90 });
     expect(s.game.name).toBe('Rayo');
@@ -118,7 +132,7 @@ test.describe('Configuración inicial', () => {
       await next(page);
     }
     expect(seen).toEqual(['nivel-dominadas', 'nivel-remo', 'nivel-flexiones', 'nivel-fondos', 'nivel-core']);
-    await expect(step(page)).toHaveAttribute('data-step', 'objetivos');
+    await expect(step(page)).toHaveAttribute('data-step', 'mantener');
   });
 
   test('atrás vuelve al paso anterior, «Cambiar» salta a un paso y recargar no pierde el paso', async ({ page }) => {
@@ -194,19 +208,28 @@ test.describe('Configuración inicial', () => {
     await expect(page.locator('.sum-route', { hasText: 'Dominadas' })).toContainText('5/10');
   });
 
-  test('no permite más de 3 habilidades objetivo', async ({ page }) => {
+  test('sin ninguna habilidad: «Aún no domino ninguna» avanza y recomienda por cuál empezar', async ({ page }) => {
     await page.goto('/');
     await next(page);
     await choose(page, 'wiz-exp', 'cero');
     await choose(page, 'wiz-legs', 'calistenia');
     for (let i = 0; i < 7; i++) await next(page);
-    await expect(step(page)).toHaveAttribute('data-step', 'objetivos');
-    for (const id of ['muscleup', 'pino', 'lsit', 'planche']) {
-      await page.locator(`[data-action="toggle-goal-setting"][data-id="${id}"]`).click();
-    }
-    await expect(page.locator('#toast')).toContainText('Máximo 3');
-    const s = await readState(page);
-    expect(s.settings.goals).toHaveLength(3);
+    await expect(step(page)).toHaveAttribute('data-step', 'mantener');
+    await page.locator('[data-action="wiz-keep"][data-id="lsit"]').click();
+    await page.locator('[data-action="wiz-keep-none"]').click();
+    await page.clock.runFor(600);
+    await expect(step(page)).toHaveAttribute('data-step', 'foco');
+    expect((await readState(page)).settings.maintain).toEqual([]);
+    // Empezando de cero, lo más cercano: pino y L-sit
+    await expect(page.locator('.wiz-rec')).toContainText('Pino y L-sit');
+    await expect(page.locator('[data-action="wiz-focus"][data-id="pino"] .skill-rec')).toContainText('Recomendada para empezar');
+    await expect(page.locator('[data-action="wiz-focus"][data-id="lsit"] .skill-rec')).toHaveCount(1);
+    await expect(page.locator('.skill-rec')).toHaveCount(2);
+    // Elegir otra (con más base pendiente) también vale
+    await choose(page, 'wiz-focus', 'frontlever');
+    await expect(step(page)).toHaveAttribute('data-step', 'nivel-frontlever');
+    await expect(page.locator('.wiz-note')).toContainText('Se recomienda llegar antes');
+    expect((await readState(page)).settings).toMatchObject({ focus: 'frontlever', maintain: [], goals: ['frontlever'] });
   });
 
   test('importar una copia desde la portada se salta la configuración', async ({ page }) => {
@@ -214,6 +237,7 @@ test.describe('Configuración inicial', () => {
     const backup = { app: 'calisthenic-flow', data: { version: 2, onboarded: true, settings: { goals: ['pino'] }, sessions: [], progress: {} } };
     await page.locator('.wiz-import input[type="file"]').setInputFiles({ name: 'copia.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(backup)) });
     await expect(page.getByRole('heading', { name: 'Hoy' })).toBeVisible();
-    expect((await readState(page)).settings.goals).toEqual(['pino']);
+    // Una copia de antes de la v16: su objetivo pasa a ser la habilidad de foco
+    expect((await readState(page)).settings).toMatchObject({ focus: 'pino', maintain: [], goals: ['pino'] });
   });
 });

@@ -412,6 +412,50 @@ a.mini-chip:active { transform: translate(1px, 1px); }
 .deload-card { box-shadow: var(--pop) var(--pop) 0 var(--cyan), calc(var(--pop) + 3px) calc(var(--pop) + 3px) 0 var(--border); }
 .deload-card .small { font-weight: 600; }
 
+/* ─────────── Habilidades: foco (rosa) y mantener (cian) ─────────── */
+.role-tag {
+  display: inline-block; padding: 0 6px; border-radius: 5px; border: 2px solid var(--border);
+  font-size: 11.5px; font-weight: 800; line-height: 1.45; color: #000; vertical-align: 1px; white-space: nowrap;
+}
+.role-tag.focus { background: var(--pink); }
+.role-tag.keep { background: var(--cyan); }
+.pill.focus { background: var(--pink); color: #000; }
+.pill.keep { background: var(--cyan); color: #000; }
+.goal.is-focus { border-left: 8px solid var(--pink); }
+.goal.is-keep { border-left: 8px solid var(--cyan); }
+.route-card.keep-on { box-shadow: var(--pop) var(--pop) 0 var(--cyan), calc(var(--pop) + 3px) calc(var(--pop) + 3px) 0 var(--border); }
+.role-card.is-focus { box-shadow: var(--pop) var(--pop) 0 var(--pink), calc(var(--pop) + 3px) calc(var(--pop) + 3px) 0 var(--border); }
+.role-card.is-keep { box-shadow: var(--pop) var(--pop) 0 var(--cyan), calc(var(--pop) + 3px) calc(var(--pop) + 3px) 0 var(--border); }
+.role-card h3 { display: flex; align-items: center; gap: 6px; }
+.goal-chip.keep.on { background: var(--cyan); color: #000; transform: rotate(2deg); }
+.goal-chip.none.on { background: var(--yellow); color: #000; transform: rotate(-1.5deg); }
+.goal-chip .rec-tag {
+  font-family: system-ui, -apple-system, sans-serif; font-size: 11px; font-weight: 800; letter-spacing: 0;
+  padding: 1px 6px; border-radius: 4px; background: var(--yellow); color: #000; border: 2px solid #000;
+}
+.skills-card .field > span small { font-family: inherit; font-weight: 700; }
+.skills-card .hint { display: block; margin-top: 6px; }
+.mini-chip.skill.keep { background: var(--cyan); }
+.notice-card { box-shadow: var(--pop) var(--pop) 0 var(--yellow), calc(var(--pop) + 3px) calc(var(--pop) + 3px) 0 var(--border); }
+.achieved-card { box-shadow: var(--pop) var(--pop) 0 var(--lime), calc(var(--pop) + 3px) calc(var(--pop) + 3px) 0 var(--border); }
+.achieved-card h3 { font-size: 30px; }
+.notice-card .small, .achieved-card .small { font-weight: 600; }
+.prereq-note { margin-top: 10px; }
+.swap-label { flex-basis: 100%; }
+.pino-only { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: 8px; border: 2.5px dashed var(--border); background: color-mix(in srgb, var(--cyan) 14%, var(--surface)); }
+.pino-only .btn { align-self: flex-start; }
+.pino-done { display: inline-flex; align-items: center; gap: 6px; font-weight: 800; color: var(--ok); }
+.exercise.is-focus .eyebrow .role-tag, .exercise.is-keep .eyebrow .role-tag { margin-left: 2px; }
+.skill-card.keep.on { background: var(--cyan); box-shadow: 4px 4px 0 var(--pink), 6px 6px 0 var(--border); transform: rotate(1.5deg); }
+.skill-card:disabled { opacity: 0.5; }
+.skill-rec {
+  margin-top: auto; padding: 2px 6px; display: inline-flex; align-items: center; gap: 4px; border-radius: 5px;
+  font-size: 11.5px; font-weight: 800; color: #000; background: var(--yellow); border: 2px solid #000;
+}
+.skill-card.on .skill-rec { background: #fff; }
+.none-option { margin-bottom: 14px; }
+.wiz-body .wiz-rec + .skill-grid { margin-top: 2px; }
+
 /* ─────────── Rutas ─────────── */
 .route-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
 .route-card { gap: 10px; }
