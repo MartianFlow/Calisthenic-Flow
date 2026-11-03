@@ -37,6 +37,44 @@ La investigación con fuentes está en `docs/investigacion-habilidades.md`, en �
   - `home.js` (`exerciseRow`) y `plan.js` (`chipFor`), si se muestran.
 - **Calentamiento:** `WARMUP` en `roadmaps.js`. Lo devuelve `warmupList(active)`, y `active.warmupChecks` guarda **índices**. Si la lista cambia según las habilidades, guarda los extras en el entreno al crearlo (`active.warmupExtra`), para que una recarga no la desordene.
 
+## Petición 24: una habilidad de foco y otras de mantenimiento (hacer primero)
+
+El usuario quiere **centrarse en aprender una sola habilidad y mantener o mejorar las que ya sabe**. Su caso: aprender el **pino libre** (aún no lo tiene) y mantener o mejorar el **muscle-up** y el **front lever**. Esto reorganiza cómo se reparten las habilidades, así que va antes que el resto del plan.
+
+- **Modelo:**
+  - `settings.focus`: una ruta de habilidad (la que se aprende) o `null`.
+  - `settings.maintain`: hasta 2 rutas de habilidad que ya se dominan o se consolidan.
+  - `settings.goals` se queda como lista derivada (`[focus, ...maintain]`), para no romper lo que ya la usa: `buildWeek`, `sessionGoals`, Hoy, Rutas, nivel, logros…
+  - **Migración en `normalize`:** si no hay `focus`, `focus = goals[0]` y `maintain = goals.slice(1, 3)`.
+  - Para este usuario: proponer en Ajustes foco = pino y mantener = muscle-up y front lever. No cambiarlo sin que lo confirme: que lo elija él en la pantalla.
+- **Reparto en la semana** (`buildWeek` y `sessionGoals`):
+  - **Foco:** siempre el primero, en todos los días de entreno que permita su tipo, con el volumen completo del plan (más series en aguantes difíciles, complementarios y calentamiento específico).
+    - Si el foco es el **pino**: práctica corta (5–10 min) todos los días de entreno, y «Solo pino» en los días de descanso (punto D).
+    - Si es de **brazos rectos**: 3 días por semana, no seguidos.
+    - **Flexión de pino o muscle-up:** 2–3 días, no seguidos.
+  - **Mantenimiento:**
+    - cada habilidad **1–2 días por semana**;
+    - como mucho **una por sesión**, rotando, además del foco (el pino no cuenta en el límite);
+    - con **dosis de mantenimiento**: 2–3 series de calidad del paso actual, sin complementarios o solo uno, y sin llegar al fallo.
+    - Siguen progresando con la misma lógica si se valoran Fácil o Normal («mantener o mejorar»), pero sin subir el volumen.
+    - El muscle-up de mantenimiento puede ocupar el lugar de las dominadas ese día (punto G).
+  - Seguir respetando las reglas de frecuencia: brazos rectos nunca en días seguidos y como mucho 3 días por semana entre todas; flexión de pino y muscle-up no seguidos; back lever y planche no juntos.
+- **Base de la dosis de mantenimiento** (ciencia general de fuerza, no de habilidades; no se pudo abrir el texto en esta sesión):
+  - Spiering et al. 2021, *J Strength Cond Res*, «Maintaining physical performance: the minimal dose…»: la fuerza se mantiene con 1 sesión por semana y pocas series si se conserva la intensidad.
+  - Bickel et al. 2011, *Med Sci Sports Exerc*: los adultos jóvenes mantuvieron la fuerza con 1/3 del volumen, 1 día por semana, durante 32 semanas.
+  - En habilidades, el equilibrio y la técnica necesitan algo de práctica frecuente, así que 1–2 días por semana es criterio propio prudente.
+- **Pantallas:**
+  - **Ajustes** («Habilidades»): «Quiero aprender», con una sola opción (el foco), y «Quiero mantener», hasta 2.
+  - **Bienvenida**: el paso de objetivos se convierte en esas dos preguntas, y el resumen muestra «Foco» y «Mantener».
+  - **Rutas**: la ficha de cada habilidad ofrece «Hacer foco», «Mantener» o «Quitar» en vez de solo «objetivo».
+  - **Hoy y Plan**: marcar el foco con otra etiqueta, por ejemplo «foco» en rosa y «mantener» en cian.
+- **Pruebas:**
+  - el foco va en todos los días que tocan y el primero;
+  - cada habilidad de mantenimiento sale 1–2 veces por semana y como mucho una por sesión;
+  - la migración desde `goals`;
+  - la bienvenida y Ajustes con foco y mantenimiento;
+  - el pino como foco: práctica en todos los días de entreno.
+
 ## Orden de trabajo propuesto
 
 ### A. Complementarios por habilidad (cambios 1, 6, 13 y parte del 5)
