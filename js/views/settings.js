@@ -11,6 +11,7 @@ import { versionLabel } from '../version.js';
 import { bump } from '../fx.js';
 import { resetWizard } from './onboarding.js';
 import { skillsSettings } from './skills.js';
+import { unlockCheck } from './hero.js';
 
 function segmented(key, options, current) {
   return `<div class="segmented" role="radiogroup">${options.map(([value, label]) => `
@@ -179,13 +180,18 @@ export const actions = {
   'theme-toggle'() {
     const next = effectiveTheme(getState().settings.theme) === 'dark' ? 'light' : 'dark';
     fadeToTheme(next);
-    update((s) => { s.settings.theme = next; });
+    update((s) => { s.settings.theme = next; s.game.themeFlips = (s.game.themeFlips || 0) + 1; });
+    unlockCheck();
   },
   'set-theme'(el) {
     const value = el.dataset.value;
     if (!THEMES.some(([v]) => v === value)) return;
     fadeToTheme(value);
-    update((s) => { s.settings.theme = value; });
+    update((s) => {
+      if (value !== s.settings.theme) s.game.themeFlips = (s.game.themeFlips || 0) + 1;
+      s.settings.theme = value;
+    });
+    unlockCheck();
   },
   'toggle-setting'(el) {
     const key = el.dataset.key;

@@ -8,8 +8,10 @@ App **personal** de calistenia (PWA) que el usuario usa a diario en su **iPhone*
 - **Privacidad:** los datos solo viven en el `localStorage` de su iPhone. Sin servidor, sin cuentas y nada de sus datos en GitHub.
 - **Trabajo directo en `main`** del repositorio `MartianFlow/Calisthenic-Flow`. Sin pull requests salvo que los pida.
 - **Explícale los cambios sin jerga**, con lo que verá en el iPhone y cómo actualizar. Si algo solo se puede comprobar en su móvil, pídele una captura.
-- **Estado actual:** versión 17 (`cf-v17`). El plan de habilidades está hecho: una de foco y hasta 2 de mantenimiento, el pino aparte, complementarios, alternancia y el resto; las reglas, en `reglas-entrenamiento.md`. Lo pendiente de confirmar está en `docs/referencia/historial-usuario.md`.
-- **Siguiente trabajo, ya pedido por el usuario:** más gamificación (petición 25): más logros, logros secretos y más artículos desbloqueables.
+- **Estado actual:** versión 18 (`cf-v18`).
+  - Plan de habilidades hecho: una de foco y hasta 2 de mantenimiento, el pino aparte, complementarios, alternancia y el resto. Las reglas están en `reglas-entrenamiento.md`.
+  - Gamificación ampliada: 108 logros (15 secretos), misiones de la semana, récords, 70 artículos y mascotas. Detalles en `gamificacion.md`.
+  - Lo pendiente de confirmar está en `docs/referencia/historial-usuario.md`.
 - **El descanso sigue fijo en 80 s** para todo: el usuario no quiere que las habilidades descansen más.
 
 ## Cómo está hecha
@@ -60,7 +62,7 @@ App **personal** de calistenia (PWA) que el usuario usa a diario en su **iPhone*
 | `historial-usuario.md` | Quién es el usuario, todo lo que ha pedido y lo pendiente de confirmar |
 | `arquitectura.md` | Mapa de archivos, patrones, modelo de estado, despliegue, actualizaciones y límites del entorno |
 | `reglas-entrenamiento.md` | Progresión doble, descansos, descarga, nivel, plan semanal y pierna en el gimnasio |
-| `gamificacion.md` | XP, niveles, atributos, logros, artículos y héroe |
+| `gamificacion.md` | XP, niveles, atributos, logros (también secretos), misiones de la semana, récords, artículos, mascotas y héroe |
 | `diseno.md` | Temas, estilo cómic y pixel, y reglas de maquetación en móvil |
 | `plan-habilidades.md` | Plan de los cambios de habilidades (hecho en las v16 y v17), con las decisiones del usuario |
 | `pendiente.md` | Vídeos que faltan, ideas no hechas y huecos de pruebas |

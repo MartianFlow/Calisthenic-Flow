@@ -12,7 +12,8 @@ import { weeklyBars } from '../charts.js';
 import { navigate } from '../router.js';
 import { takeCelebration } from './session.js';
 import { burst, flash, confetti } from '../fx.js';
-import { ACH_BY_ID, ITEM_BY_ID, RARITY, titleFor, totalXP, levelInfo } from '../game.js';
+import { ACH_BY_ID, ITEM_BY_ID, RARITY, titleFor, totalXP, levelInfo, personalRecords, MISSION_BY_ID, XP_RULES } from '../game.js';
+import { itemName } from '../logic.js';
 import { heroAvatar, levelBar, itemIcon } from './hero.js';
 import { pixelIcon } from '../pixel.js';
 import { achievedCard } from './skills.js';
@@ -204,6 +205,9 @@ function rewardCard(s, state) {
   const ach = g.achievements.map((id) => ACH_BY_ID[id]).filter(Boolean);
   const items = g.items.map((id) => ITEM_BY_ID[id]).filter(Boolean);
   const lvl = levelInfo(totalXP(state));
+  const records = personalRecords(state).get(s.id) || [];
+  const missions = (g.missions || []).map((id) => MISSION_BY_ID[id]).filter(Boolean);
+  const unit = (it, v) => (it.liftId ? `${String(v).replace('.', ',')} kg` : unitLabel(it.type, v));
   return `
     <section class="px-panel reward-card">
       <div class="reward-top">
@@ -216,12 +220,20 @@ function rewardCard(s, state) {
           ${levelBar(lvl, 14)}
         </div>
       </div>
+      ${records.length ? `
+        <p class="px-sub">¡Récords personales!</p>
+        <ul class="px-records">${records.map((r) => `
+          <li><span class="grow">${esc(itemName(r.item))}</span><b>${esc(unit(r.item, r.value))}</b><small>antes ${esc(unit(r.item, r.prev))}</small><span class="px-xp">+${XP_RULES.record}</span></li>`).join('')}</ul>` : ''}
+      ${missions.length ? `
+        <p class="px-sub">Misiones cumplidas</p>
+        <ul class="px-records">${missions.map((m) => `
+          <li><span class="grow">${esc(m.text(state))}</span><span class="px-xp">+${XP_RULES.mission}</span></li>`).join('')}</ul>` : ''}
       ${ach.length ? `
         <p class="px-sub">Logros desbloqueados</p>
         <ul class="px-ach-list">${ach.map((a) => `
           <li class="px-ach done">
-            <span class="px-badge" style="--rar:${{ bronce: '#d98a4a', plata: '#c9d1e0', oro: '#ffd23f', leyenda: '#ff4f9a' }[a.rarity]}">${pixelIcon({ constancia: 'flame', progreso: 'map', hitos: 'trophy', habitos: 'star' }[a.cat], '#fff', 32)}</span>
-            <div class="grow"><strong>${esc(a.name)}</strong><div class="px-desc">${esc(a.desc)}</div></div>
+            <span class="px-badge" style="--rar:${{ bronce: '#d98a4a', plata: '#c9d1e0', oro: '#ffd23f', leyenda: '#ff4f9a' }[a.rarity]}">${pixelIcon({ constancia: 'flame', progreso: 'map', hitos: 'trophy', habilidades: 'heart', habitos: 'star', secretos: 'question' }[a.cat], '#fff', 32)}</span>
+            <div class="grow"><strong>${a.secret ? '¡Secreto! ' : ''}${esc(a.name)}</strong><div class="px-desc">${esc(a.desc)}</div></div>
             <span class="px-xp">+${RARITY[a.rarity].xp}</span>
           </li>`).join('')}</ul>` : ''}
       ${items.map((it) => `
@@ -238,13 +250,15 @@ export function renderSummary({ id }) {
   const s = state.sessions.find((x) => x.id === id);
   if (!s) return '<div class="empty"><p>Entreno no encontrado.</p><a class="btn ghost" href="#/">Volver</a></div>';
   const loadUps = s.items.filter((it) => it.outcome?.kind === 'load-up').length;
+  const records = (personalRecords(state).get(s.id) || []).length;
   if (takeCelebration()) {
-    setTimeout(() => { flash(); burst(null, { text: s.levelUps.length ? '¡NIVEL!' : '¡MÁS PESO!', big: true }); confetti({ count: 40 }); }, 350);
+    const word = s.levelUps.length ? '¡NIVEL!' : loadUps ? '¡MÁS PESO!' : records ? '¡RÉCORD!' : '¡LOGRO!';
+    setTimeout(() => { flash(); burst(null, { text: word, big: true }); confetti({ count: 40 }); }, 350);
   }
-  const title = s.levelUps.length ? '¡SUBES DE<br>NIVEL!' : loadUps ? '¡MÁS<br>PESO!' : '¡HECHO!';
+  const title = s.levelUps.length ? '¡SUBES DE<br>NIVEL!' : loadUps ? '¡MÁS<br>PESO!' : records ? '¡NUEVO<br>RÉCORD!' : '¡HECHO!';
   return `
     <header class="page-head center">
-      <div class="burst-title ${s.levelUps.length || loadUps ? '' : 'pink'}">${title}</div>
+      <div class="burst-title ${s.levelUps.length || loadUps || records ? '' : 'pink'}">${title}</div>
       <h1>¡Entreno completado!</h1>
       <p class="muted">${esc(fmtLongDate(s.startedAt))}</p>
     </header>

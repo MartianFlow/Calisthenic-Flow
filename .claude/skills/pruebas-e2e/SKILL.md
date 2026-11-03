@@ -28,9 +28,10 @@ description: Escribir, ejecutar y depurar las pruebas Playwright de Calisthenic 
 | `gym.spec.js` (9) | Semana L–V; 72 h entre piernas con el sábado; 5 días y 9 pesos; coma decimal; subida y bajada de peso; cambio de peso a mitad; ficha desde Hoy; ruta desde el Plan |
 | `navigation.spec.js` (10) | 14 rutas; visor de vídeo; búsqueda sin vídeo; nivel a mano; calendario; progreso; pestañas; tema forzado oscuro y claro; botón de tema de las cabeceras |
 | `gamification.spec.js` (5) | Héroe; logros al abrir; artículos bloqueados; apariencia y nombre; mini héroe |
+| `gamification-plus.spec.js` (8) | Secretos ocultos y «¡Cosquillas!» (con su mascota); «El lado oscuro»; secreto no destripado en Equipo; secretos de fecha y hora; misiones (3, en Hoy y Héroe; cumplida con 3 entrenos); récord personal en el resumen; 70 artículos y 108 logros |
 | `deload.spec.js` (2) | Sugerencia por estancamiento y su efecto; «Ahora no» |
 | `data.spec.js` (5) | Migración v1; exportar e importar; borrar datos; sin conexión (solo Chromium); misma versión en sw.js y version.js |
-| `layout.spec.js` (121) | Diseño: todos los escenarios de `tests/tools/escenarios-diseno.js` a 320, 375, 390 y 430 px (ver la skill `revisar-diseno`) |
+| `layout.spec.js` (127) | Diseño: todos los escenarios de `tests/tools/escenarios-diseno.js` a 320, 375, 390 y 430 px (ver la skill `revisar-diseno`) |
 
 Lo que falta por cubrir está en `docs/referencia/pendiente.md`, en «Huecos de pruebas funcionales».
 

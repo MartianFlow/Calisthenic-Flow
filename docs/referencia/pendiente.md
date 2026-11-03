@@ -2,7 +2,7 @@
 
 ## Pendiente de confirmar con el usuario
 
-Ver el final de `historial-usuario.md`: la versión 17 en su iPhone, si eligió su foco y las de mantener, cómo le van los complementarios y la alternancia, y lo que quedaba de versiones anteriores.
+Ver el final de `historial-usuario.md`: la versión 18 en su iPhone, qué le parece la gamificación nueva, si eligió su foco y las de mantener, cómo le van los complementarios y la alternancia, y lo que quedaba de versiones anteriores.
 
 ## Contenido
 
@@ -22,7 +22,7 @@ Ver el final de `historial-usuario.md`: la versión 17 en su iPhone, si eligió 
 
 ## Ideas no hechas
 
-- **Más gamificación** (petición 25): más logros, logros secretos y más artículos. Siguiente trabajo.
+- **Más gamificación:** más mascotas o artículos con forma propia, y logros de las misiones (por ejemplo, 4 semanas seguidas con las 3).
 - **Comparar estancamientos antes y después** de los cambios de habilidades (última idea de J en `plan-habilidades.md`): el historial ya guarda `stall` y los reinicios; se podría mostrar en Progreso.
 - **Plazos con fuente** para las demás habilidades (solo el front lever los tiene en la ficha).
 - **Vídeos** para los complementarios nuevos (jalón con brazos rectos con banda, encogimientos en pino) y para `backlever/german-hang`.

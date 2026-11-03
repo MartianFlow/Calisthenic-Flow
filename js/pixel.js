@@ -234,16 +234,47 @@ export const ICONS = {
   ],
 };
 
+// Mascotas (8×8): C = su color, c = sombra, W = blanco, K = tinta, R = rojo, O = naranja.
+// El héroe las lleva a su lado y el icono es el mismo sprite al doble.
+export const PET_SPRITES = {
+  gato: ['C....C..', 'CC..CC..', 'CCCCCC..', 'CKCCKC..', 'CCRRCC.C', '.CCCC..C', '.CCCCCC.', '.C..C...'],
+  perro: ['cCCCCc..', 'cCCCCc..', 'cKCCKc..', '.CCKC...', '.CRRC..C', '.CCCCCCC', '.CCCCCC.', '.C.C.C.C'],
+  pollito: ['..CC....', '.CCCC...', '.CKCC...', 'OCCCCC..', '.CCCCCC.', '.CCCCCC.', '..CCCC..', '..O..O..'],
+  slime: ['........', '...CC...', '..CCCC..', '.CWCCCC.', '.CKCCKC.', 'CCCCCCCC', 'CCCCCCCC', '.cccccc.'],
+  fantasma: ['..CCCC..', '.CCCCCC.', 'CCKCCKCC', 'CCKCCKCC', 'CCCCCCCC', 'CCCKKCCC', 'CCCCCCCC', 'C.CC.CC.'],
+  dragon: ['C......C', 'CC.CC.CC', '.CCCCCC.', '.CKCCKC.', '..CCCC..', '.cCWWCc.', 'cCCWWCCc', '.C....C.'],
+};
+// Icono = sprite al doble (16×16); se pinta con 1 px de margen para que quepa el contorno.
+const double = (rows) => rows.flatMap((r) => { const d = [...r.padEnd(8, '.')].map((ch) => ch + ch).join(''); return [d, d]; });
+for (const [k, rows] of Object.entries(PET_SPRITES)) ICONS[`pet-${k}`] = double(rows);
+
+Object.assign(ICONS, {
+  'head-beanie': ['', '.......WW', '......WWWW', '.....CCCCCC', '....CCWCCCCC', '...CCWCCCCCCC', '...CCCCCCCCCC', '...cccccccccc'],
+  'head-phones': ['', '.....KKKKKK', '....K......K', '...K........K', '...K........K', '..CCC......CCC', '..CWC......CWC', '..CCC......CCC', '..ccc......ccc'],
+  'head-horns': ['', '.P............P', '.PP..........PP', '..PP.CCCCCC.PP', '...PCCCWCCCCP', '....CCWCCCCC', '...CCCCCCCCCC', '...cccccccccc'],
+  'head-halo': ['', '', '....CCCCCCCC', '...CW.......C', '...C........C', '....cccccccc'],
+  'face-patch': ['', '', '', 'KKKKKKKKKKKKKKKK', '.........KKKK', '........KKKKKK', '........KKKKKK', '.........KKKK'],
+  'face-stache': ['', '', '', '', '....CCCCCCCC', '...CCCCCCCCCC', '..CCC......CCC', '..CC........CC'],
+  'face-visor': ['', '', '', '', '.CCCCCCCCCCCCCC', '.CWWWCCCCCCCCCC', '.CCCCCCCCCCCCCC', '..cccccccccccc'],
+  'neck-towel': ['', '...CCCCCCCCCC', '..CCCCCCCCCCCC', '..CCC......CCC', '..CCC......CCC', '..CCC......CCC', '..CWC......CWC', '..CCC......CCC', '..ccc......ccc'],
+  'neck-chain': ['', '...C........C', '....C......C', '.....C....C', '......C..C', '.......CC', '......CCCC', '......CWCC', '.......cc'],
+  'back-wings': ['', '.CC..........CC', '.CCC........CCC', '.CCCC......CCCC', '..CCCC....CCCC', '..CcCCC..CCCcC', '...CcCC..CCcC', '...CcC....CcC', '....C......C'],
+  // Logros secretos y misiones
+  question: ['', '.....WWWWW', '....WWWWWWW', '...WWW...WWW', '.........WWW', '........WWW', '.......WWW', '......WWW', '......WWW', '', '......WWW', '......WWW'],
+  scroll: ['', '..pppppppppp', '.pPPPPPPPPPPp', '..pPPPPPPPPp', '..pPhhhhhhPp', '..pPPPPPPPPp', '..pPhhhhhPPp', '..pPPPPPPPPp', '..pPhhhhhhPp', '.pPPPPPPPPPPp', '..pppppppppp'],
+});
+
 const ICON_CACHE = new Map();
 
 export function pixelIcon(name, color = '#ffffff', size = 32, { silhouette = false } = {}) {
   const key = `${name}|${color}|${size}|${silhouette}`;
   if (ICON_CACHE.has(key)) return ICON_CACHE.get(key);
   const rows = ICONS[name] || ICONS.star;
-  const g = new Grid(16, 16);
+  const pad = name.startsWith('pet-') ? 1 : 0;
+  const g = new Grid(16 + pad * 2, 16 + pad * 2);
   const pal = { ...FIXED, C: color, c: shade(color) };
   if (silhouette) Object.keys(pal).forEach((k) => { pal[k] = '#5d5885'; });
-  g.sprite(rows, 0, 0, pal);
+  g.sprite(rows, pad, pad, pal);
   g.outline(silhouette ? '#000000' : OUTLINE);
   const svg = g.toSVG({ size, className: 'pixel-icon' });
   ICON_CACHE.set(key, svg);

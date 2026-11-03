@@ -160,6 +160,8 @@ const TUE = '2026-11-03T10:00:00+01:00';
 const rich = richState();
 const gym = gymState();
 const richSessionId = rich.sessions[rich.sessions.length - 1].id;
+// Último entreno con algún récord personal (su mejor serie en un paso supera a la anterior)
+const recordIdx = rich.sessions.map((x, i) => (i > 0 && x.items[0].sets[0] > rich.sessions[i - 1].items[0].sets[0] ? i : -1)).filter((i) => i >= 0).pop();
 const levelSessionId = rich.sessions.find((s) => s.levelUps.length).id;
 const gymSessionId = gym.sessions[gym.sessions.length - 1].id;
 
@@ -215,6 +217,12 @@ const scenarios = [
   { name: 'logros', route: '/logros', state: rich },
   { name: 'logros-pendientes', route: '/logros', state: rich, setup: click('[data-action="ach-filter"][data-value="pendientes"]') },
   { name: 'equipo', route: '/equipo', state: rich },
+  { name: 'heroe-mascota-alas', route: '/heroe', state: richState({ game: { ...rich.game, equipped: { top: 'top-rayas', back: 'alas', head: 'halo', pet: 'gato', aura: 'aura-arcoiris', neck: 'toalla', face: 'bigote' }, unlocked: { cosquillas: new Date(NOW - DAY).toISOString(), 'primer-entreno': new Date(NOW - 30 * DAY).toISOString() } } }) },
+  { name: 'heroe-dragon-vikingo', route: '/heroe', state: richState({ game: { ...rich.game, equipped: { back: 'alas-oscuras', head: 'casco-vikingo', pet: 'dragon', face: 'parche', neck: 'cadena', aura: 'aura-sombra' } } }) },
+  { name: 'heroe-slime-auriculares', route: '/heroe', state: richState({ game: { ...rich.game, equipped: { head: 'auriculares', pet: 'slime', face: 'visor', top: 'top-morada' } } }) },
+  { name: 'heroe-fantasma-gorro', route: '/heroe', state: richState({ game: { ...rich.game, equipped: { head: 'gorro-navidad', pet: 'fantasma', back: 'capa-roja' } } }) },
+  { name: 'logros-secretos', route: '/logros', state: richState({ game: { ...rich.game, unlocked: { cosquillas: new Date(NOW - DAY).toISOString(), 'lado-oscuro': new Date(NOW - 2 * DAY).toISOString() } } }), setup: async (page) => { await page.locator('.px-ach.is-secret').first().scrollIntoViewIfNeeded(); } },
+  { name: 'resumen-records', route: `/resumen/${rich.sessions[recordIdx].id}`, state: richState({ sessions: rich.sessions.map((x, i) => (i === recordIdx ? { ...x, game: { xp: 230, levelBefore: 10, levelAfter: 11, achievements: ['record-1', 'cosquillas'], missions: ['semana', 'series'], records: 2, items: ['slime'] } } : x)) }) },
   { name: 'progreso', route: '/progreso', state: rich },
   { name: 'sesion-detalle', route: `/sesion/${richSessionId}`, state: rich },
   { name: 'resumen-subida', route: `/resumen/${levelSessionId}`, state: rich },

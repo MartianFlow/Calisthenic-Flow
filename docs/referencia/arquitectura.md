@@ -54,7 +54,7 @@ tests/tools/             simular-actualizacion.js y la auditoría de diseño (ve
 - **Acciones:** `data-action="nombre"` en el HTML y su función en el objeto `actions` exportado por la vista. `app.js` las junta todas. Los cambios de formularios van con `data-change`.
 - **Volver:** `data-action="go-back" data-fallback="#/…"` hace `history.back()`, o va a la ruta indicada si no hay historial.
 - **Escapar** con `esc()` todo lo que venga del usuario.
-- **Datos derivados:** la XP, los atributos y las estadísticas se calculan siempre a partir del historial. Solo se guardan las fechas de los logros desbloqueados (`state.game.unlocked`).
+- **Datos derivados:** la XP, los atributos y las estadísticas se calculan siempre a partir del historial. Solo se guardan las fechas de los logros desbloqueados (`state.game.unlocked`), las misiones cumplidas de cada semana (`state.game.missions`) y dos contadores de logros secretos (`state.game.pokes` y `themeFlips`).
 - **El progreso se guarda por índice de paso** (`progress[id].step`). Si se insertan o se quitan pasos, hay que añadir una migración en `store.js`: subir `DATA_VERSION` y usar los nombres antiguos o `was: [...]` en los pasos.
 - **Pesos en kg:** se escriben en campos `type="text" inputmode="decimal"` y se leen con `parseKg` y `kgInput`. Con `type=number`, iOS rompe la coma.
 
@@ -73,13 +73,14 @@ tests/tools/             simular-actualizacion.js y la auditoría de diseño (ve
   deload: { start, until }, deloadSnoozeUntil,
   weekMoves: { start, sig, from[7] } | null,   // entrenos movidos de día solo esta semana (ver reglas-entrenamiento.md)
   notices: { skills?, focusDone? },             // aviso de foco y mantenimiento pendiente; propuesta de «ya la tienes» descartada
-  game: { name, unlocked: { achId: isoDate }, equipped: { slot: itemId }, look: { skin, hair, hairStyle }, videosWatched } }
+  game: { name, unlocked: { achId: isoDate }, equipped: { slot: itemId }, look: { skin, hair, hairStyle }, videosWatched,
+          missions: { [lunesTs]: { ids[] } }, pokes, themeFlips } }
 ```
 
 - **Cada sesión del historial** guarda:
   - `items[]`;
   - `levelUps`, `deload` y `warmupFull`;
-  - `game`, con `xp`, `levelBefore`, `levelAfter`, `achievements` e `items`.
+  - `game`, con `xp`, `levelBefore`, `levelAfter`, `achievements`, `missions`, `records` e `items`.
 - **Ítem de calistenia:** `roadmapId`, `stepIndex`, `type`, `target`, `goal`, `sets[]`, `rating`, `met`, `goalMet` y `outcome`.
   - `role: 'foco' | 'mantener'` si es una de tus habilidades; `trimmed` en el entreno si lleva una serie menos (sustituir en vez de sumar).
 - **Complementario:** `accessoryOf` (la habilidad), `acc` (`'ruta/key'` o un id de `EXTRA_EXERCISES`), `prep`, `type`, `target`, `goal`, `plannedSets` y `sets[]`. Sin `roadmapId`, para que no haga progresar ninguna ruta, y sin valoración.

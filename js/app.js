@@ -17,7 +17,7 @@ import * as hero from './views/hero.js';
 import * as planView from './views/plan.js';
 import * as exercise from './views/exercise.js';
 import * as skills from './views/skills.js';
-import { syncAchievements } from './game.js';
+import { syncAchievements, syncMissions } from './game.js';
 import { applyTheme } from './theme.js';
 import { update } from './store.js';
 
@@ -204,7 +204,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // Logros conseguidos con el historial existente (sin celebración).
-update((s) => { if (s.onboarded) syncAchievements(s); }, { silent: true });
+update((s) => { if (s.onboarded) { syncMissions(s); syncAchievements(s); } }, { silent: true });
 render();
 
 // Actualizaciones. Al volver a la app (iOS la retoma sin recargar) se comprueba si

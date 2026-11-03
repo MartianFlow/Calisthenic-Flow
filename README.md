@@ -40,9 +40,12 @@ Es una **web app instalable (PWA)**: se añade a la pantalla de inicio del iPhon
   - **Héroe en pixel art** cuyo físico crece con tu progreso real (bíceps, hombros, piernas y abdominales).
   - **Atributos** con rango de E a S: Tirón, Empuje, Piernas, Core, Equilibrio y Aguante.
   - **Experiencia (XP) y nivel**, con títulos de Novato a Mito. Ganas XP con cada serie, cada entreno, cada paso superado y cada logro.
-  - **Tabla de 46 logros** de bronce, plata, oro y leyenda, con progreso visible. Premian constancia, progreso, hitos reales (primera dominada, pino libre, front lever…) y buenos hábitos.
-  - **33 artículos** con iconos de 16×16 para equipar (cintas, gafas, muñequeras, capas, medallas, auras, corona…). Se desbloquean por nivel o por logro. También puedes elegir piel, pelo y peinado.
-  - Al terminar cada entreno ves la XP ganada, si subes de nivel y los logros y artículos nuevos.
+  - **Tabla de 108 logros** de bronce, plata, oro y leyenda, con progreso visible. Premian constancia, progreso, hitos reales (primera dominada, pino libre, front lever…), tus habilidades (foco, mantener, «Solo pino») y buenos hábitos.
+  - **15 logros secretos:** no dicen qué piden hasta que los consigues, solo dan una pista.
+  - **Misiones de la semana:** 3 cada lunes (cumplir tu semana y 2 más que cambian), +60 EXP cada una y +60 más si haces las 3.
+  - **Récords personales:** cuando superas tu mejor serie en un ejercicio, el resumen te lo celebra (+15 EXP).
+  - **70 artículos** con iconos de 16×16 para equipar: cintas, gafas, gorros, auriculares, casco vikingo, halo, parche, bigote, toalla, capas, alas, medallas, auras (también una de arcoíris), corona… y **6 mascotas** que se sientan a tu lado (gato, perro, pollito, slime, fantasma y dragón). Se desbloquean por nivel o por logro. También puedes elegir piel, pelo y peinado.
+  - Al terminar cada entreno ves la XP ganada, si subes de nivel, tus récords, las misiones cumplidas y los logros y artículos nuevos.
 - **Descanso entre series a tu medida:** por defecto el mismo para todo (80 s), que cambias en Ajustes con −/+ o con atajos (1 min, 1:20, 1:30, 2 min, 3 min). Durante el descanso, los botones −15 y +15 lo acortan o lo alargan.
   - Si prefieres, «Según ejercicio» usa el recomendado para cada paso: unos 3 min en series de 1–5 reps, 1,5–2 min en las de 6–12, 2,5–3 min en holds de brazos rectos, 45–60 s entre intentos de pino libre y 60 s en core.
 - **Progresión según cómo te sientes:** al terminar cada ejercicio, mientras corre el descanso, la app pregunta si te pareció **Fácil, Normal o Difícil**.
@@ -120,10 +123,11 @@ La carpeta [`tests/e2e`](tests/e2e) tiene una batería de pruebas con [Playwrigh
 | `plan.spec.js` | Recomendación de días, nivel con habilidades, cambio de días disponibles, reglas de brazos rectos, día de descanso y «Misión cumplida» |
 | `gym.spec.js` | Pierna en el gimnasio: semana torso/pierna, separación de los días de pierna, recomendación de 5 días, pesos con coma, subida y bajada de peso, cambio de peso durante el entreno y ficha del ejercicio con vídeo desde Hoy y el Plan |
 | `gamification.spec.js` | Héroe en pixel art, atributos, logros desbloqueados, artículos bloqueados y desbloqueados, apariencia y nombre |
+| `gamification-plus.spec.js` | Logros secretos (ocultos, tocar al héroe, cambiar de tema, fechas), misiones de la semana, récords personales en el resumen, 70 artículos y mascotas |
 | `navigation.spec.js` | Rutas, visor de vídeo, búsqueda en YouTube, cambio manual de nivel, calendario, progreso, pestañas, tema claro u oscuro y su botón en las cabeceras |
 | `deload.spec.js` | Sugerencia y efecto de la semana de descarga |
 | `data.spec.js` | Migración desde la v1, exportar e importar la copia, borrar datos y funcionamiento sin conexión |
-| `layout.spec.js` | Diseño en móvil: 121 pantallas y estados a 320, 375, 390 y 430 px. Comprueba que nada se sale de la pantalla, que ningún texto se pisa, se corta o se sale de su botón, que nada queda tapado por las barras y que el contraste es suficiente |
+| `layout.spec.js` | Diseño en móvil: 127 pantallas y estados a 320, 375, 390 y 430 px. Comprueba que nada se sale de la pantalla, que ningún texto se pisa, se corta o se sale de su botón, que nada queda tapado por las barras y que el contraste es suficiente |
 
 Las pruebas usan un reloj fijo (lunes 2/11/2026) y bloquean internet, así que siempre dan el mismo resultado. Además fallan si la app lanza cualquier error de JavaScript.
 

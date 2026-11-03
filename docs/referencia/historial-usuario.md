@@ -83,11 +83,16 @@ El contexto de la persona y de sus peticiones. Las decisiones técnicas que sale
     - Sus objetivos de antes se convierten solos: el primero pasa a foco y los otros a mantener. Hoy le avisa una vez para que elija él en Ajustes (foco = pino; mantener = muscle-up y front lever).
     - En la 16 van también el pino como práctica corta aparte («Solo pino» en los días de descanso) y dos reglas del plan: flexión de pino y muscle-up nunca en días seguidos, y back lever y planche nunca el mismo día.
     - **Versión 17: el resto del plan de la petición 23**: complementarios de la habilidad de foco, alternancia de las dos habilidades (con los 80 s de siempre), más series cortas en los aguantes difíciles, «Fácil» en brazos rectos = sesión superada, calentamiento según las habilidades, sustituir en vez de sumar y plazos normales en la ficha del front lever.
-25. **«Agreguemos más logros, más ítems desbloqueables, logros secretos, etc., quiero que sea mucho más gamificable»** (3/11/2026, mientras se hacía la 24). Por hacer después del plan de habilidades, para que los logros nuevos cubran también el foco, el pino y los complementarios.
+25. **«Agreguemos más logros, más ítems desbloqueables, logros secretos, etc., quiero que sea mucho más gamificable»** (3/11/2026, mientras se hacía la 24). **Hecho en la versión 18:**
+    - de 46 a 108 logros, 15 de ellos secretos (ocultos hasta conseguirlos, con una pista);
+    - misiones de la semana (3 cada lunes) y récords personales con EXP;
+    - de 33 a 70 artículos, con 6 mascotas;
+    - tocar al héroe lo hace saltar (y tiene un secreto).
 
 ## Pendiente de confirmar con el usuario
 
-- Que en Ajustes ve **«versión 17»**. Si no, que cierre la app del todo y la abra otra vez.
+- Que en Ajustes ve **«versión 18»**. Si no, que cierre la app del todo y la abra otra vez.
+- Qué le parecen los logros nuevos, las misiones de la semana y las mascotas, y si quiere más secretos o más objetos de algún tipo.
 - Si los complementarios y la alternancia le cuadran en tiempo (las sesiones salen de unos 50–60 min) y si echa en falta vídeo en los dos complementarios nuevos.
 - Que eligió en Ajustes → Habilidades su foco (pino) y las de mantener (muscle-up y front lever), y que el reparto de la semana le cuadra.
 - Si mover entrenos y elegir rutina le resulta fácil, o si quiere también saltar un día o añadir uno extra.

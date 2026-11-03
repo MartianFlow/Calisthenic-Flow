@@ -4,21 +4,30 @@ import { headActions } from '../theme.js';
 import { getState, update } from '../store.js';
 import {
   totalXP, levelInfo, titleFor, attributes, achievementStatus, ACH_CATEGORIES, RARITY,
-  ITEMS, SLOTS, ITEM_BY_ID, equipped, itemUnlocked, unlockText, XP_RULES,
+  ITEMS, SLOTS, ITEM_BY_ID, ACH_BY_ID, equipped, itemUnlocked, unlockText, XP_RULES,
+  weekMissions, syncMissions, syncAchievements,
 } from '../game.js';
 import { avatarSVG, SKINS, HAIRS, HAIR_STYLES } from '../avatar.js';
 import { pixelIcon } from '../pixel.js';
-import { esc, icon, fmtDate } from '../ui.js';
-import { burst } from '../fx.js';
+import { esc, icon, fmtDate, toast } from '../ui.js';
+import { burst, replay } from '../fx.js';
 
-const CAT_ICON = { constancia: 'flame', progreso: 'map', hitos: 'trophy', habitos: 'star' };
+const CAT_ICON = { constancia: 'flame', progreso: 'map', hitos: 'trophy', habilidades: 'heart', habitos: 'star', secretos: 'question' };
 const RARITY_COLOR = { bronce: '#d98a4a', plata: '#c9d1e0', oro: '#ffd23f', leyenda: '#ff4f9a' };
 let achFilter = 'todos';
 
+const ICON_BY_ITEM = {
+  gorra: 'head-cap', corona: 'head-crown', gorro: 'head-beanie', 'gorro-navidad': 'head-beanie', auriculares: 'head-phones',
+  'casco-vikingo': 'head-horns', halo: 'head-halo', 'gafas-sol': 'face-sun', 'gafas-estrella': 'face-star',
+  parche: 'face-patch', bigote: 'face-stache', visor: 'face-visor', toalla: 'neck-towel', cadena: 'neck-chain',
+  alas: 'back-wings', 'alas-oscuras': 'back-wings',
+};
 export function itemIconName(it) {
   if (!it) return 'none';
-  if (it.slot === 'head') return it.id === 'gorra' ? 'head-cap' : it.id === 'corona' ? 'head-crown' : 'head-band';
-  if (it.slot === 'face') return it.id === 'gafas-sol' ? 'face-sun' : it.id === 'gafas-estrella' ? 'face-star' : 'face-mask';
+  if (ICON_BY_ITEM[it.id]) return ICON_BY_ITEM[it.id];
+  if (it.slot === 'pet') return `pet-${it.id}`;
+  if (it.slot === 'head') return 'head-band';
+  if (it.slot === 'face') return 'face-mask';
   return it.slot;
 }
 
@@ -54,9 +63,42 @@ function segBar(value, color, segments = 10) {
   return `<div class="px-bar" style="--seg:${color}">${Array.from({ length: segments }, (_, i) => `<i class="${i < filled ? 'on' : ''}"></i>`).join('')}</div>`;
 }
 
+// Misiones de la semana (cambian cada lunes).
+export function missionsPanel(state) {
+  const list = weekMissions(state);
+  const done = list.filter((m) => m.done).length;
+  return `
+    <section class="px-panel missions-panel">
+      <div class="row between"><h3 class="px-h">${pixelIcon('scroll', '#fff', 24)} Misiones</h3><span class="px-sub">${done}/${list.length}</span></div>
+      <p class="px-desc">Cambian cada lunes. +${XP_RULES.mission} EXP cada una y +${XP_RULES.missionsAll} más si haces las ${list.length}.</p>
+      <ul class="px-missions">${list.map((m) => `
+        <li class="${m.done ? 'done' : ''}">
+          <span class="px-check">${m.done ? pixelIcon('star', '#ffd23f', 20) : ''}</span>
+          <div class="grow">
+            <span class="px-mission-text">${esc(m.text)}</span>
+            ${m.done ? '' : `<div class="px-ach-progress">${segBar(Math.round((m.cur / m.goal) * 100), '#18e0ff', 10)}<span>${m.cur}/${m.goal}${m.unit ? ` ${m.unit}` : ''}</span></div>`}
+          </div>
+          <span class="px-xp">+${XP_RULES.mission}</span>
+        </li>`).join('')}</ul>
+    </section>`;
+}
+
+// Comprueba logros y misiones fuera del entreno (tocar al héroe, cambiar el tema, equiparse…)
+// y celebra el primero que se consiga.
+export function unlockCheck() {
+  let fresh = [];
+  update((s) => { syncMissions(s); fresh = syncAchievements(s); }, { silent: true });
+  const a = ACH_BY_ID[fresh[0]];
+  if (!a) return;
+  const reward = ITEMS.find((it) => it.unlock?.ach === a.id);
+  toast(`${a.secret ? '¡Logro secreto!' : '¡Logro!'} ${a.name}${reward ? ` · Nuevo: ${reward.name}` : ''}`);
+  burst(null, { text: a.secret ? '¡SECRETO!' : '¡LOGRO!', big: true });
+}
+
 // Tarjeta pequeña para la pantalla Hoy.
 export function heroMini(state) {
   const d = heroData(state);
+  const missions = weekMissions(state);
   return `
     <a class="px-panel hero-mini" href="#/heroe">
       <div class="px-scene mini">${heroAvatar(state, 80, 'idle')}</div>
@@ -64,6 +106,7 @@ export function heroMini(state) {
         <div class="row gap"><span class="px-lv">LV ${d.lvl.level}</span><span class="px-title">${esc(d.title)}</span></div>
         <div class="px-name">${esc(state.game.name)}</div>
         ${levelBar(d.lvl, 14)}
+        <span class="px-mini-missions">${pixelIcon('scroll', '#fff', 16)} Misiones ${missions.filter((m) => m.done).length}/${missions.length}</span>
       </div>
     </a>`;
 }
@@ -78,20 +121,23 @@ function attrRows(attrs) {
 }
 
 function achBadge(a) {
-  return `<span class="px-badge ${a.done ? '' : 'locked'}" style="--rar:${RARITY_COLOR[a.rarity]}">
-    ${pixelIcon(a.done ? CAT_ICON[a.cat] : 'lock', '#ffffff', 32)}</span>`;
+  const hidden = a.secret && !a.done;
+  return `<span class="px-badge ${a.done ? '' : 'locked'} ${hidden ? 'secret' : ''}" style="--rar:${RARITY_COLOR[a.rarity]}">
+    ${pixelIcon(a.done ? CAT_ICON[a.cat] : hidden ? 'question' : 'lock', '#ffffff', 32)}</span>`;
 }
 
+// Los secretos no dicen qué piden hasta conseguirlos: solo una pista.
 function achRow(a) {
   const pct = a.goal ? Math.round((a.current / a.goal) * 100) : 0;
+  const hidden = a.secret && !a.done;
   return `
-    <li class="px-ach ${a.done ? 'done' : 'locked'}">
+    <li class="px-ach ${a.done ? 'done' : 'locked'} ${a.secret ? 'is-secret' : ''}">
       ${achBadge(a)}
       <div class="grow">
-        <strong>${esc(a.name)}</strong>
-        <div class="px-desc">${esc(a.desc)}</div>
-        ${!a.done && a.goal > 1 ? `<div class="px-ach-progress">${segBar(pct, '#3ccf5a', 10)}<span>${a.current}/${a.goal}</span></div>` : ''}
-        ${a.reward ? `<div class="px-reward">${itemIcon(a.reward, 20, !a.done)} ${esc(a.reward.name)}</div>` : ''}
+        <strong>${hidden ? '???' : esc(a.name)}</strong>
+        <div class="px-desc">${hidden ? `Pista: ${esc(a.hint)}` : esc(a.desc)}</div>
+        ${!a.done && !hidden && a.goal > 1 ? `<div class="px-ach-progress">${segBar(pct, '#3ccf5a', 10)}<span>${a.current}/${a.goal}</span></div>` : ''}
+        ${a.reward ? `<div class="px-reward">${itemIcon(a.reward, 20, !a.done)} ${a.done || !hidden ? esc(a.reward.name) : '???'}</div>` : ''}
       </div>
       <div class="px-ach-side">
         <span class="px-rarity" style="--rar:${RARITY_COLOR[a.rarity]}">${esc(RARITY[a.rarity].label)}</span>
@@ -111,7 +157,8 @@ export function render() {
   const ach = achievementStatus(state);
   const doneCount = ach.filter((a) => a.done).length;
   const recent = ach.filter((a) => a.done).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 3);
-  const next = ach.filter((a) => !a.done).sort((a, b) => b.current / b.goal - a.current / a.goal).slice(0, 3);
+  const next = ach.filter((a) => !a.done && !a.secret).sort((a, b) => b.current / b.goal - a.current / a.goal).slice(0, 3);
+  const secrets = ach.filter((a) => a.secret);
   const unlockedItems = ITEMS.filter((it) => itemUnlocked(it, state, d.lvl.level)).length;
   return `
     <header class="page-head row between">
@@ -120,7 +167,7 @@ export function render() {
     </header>
 
     <section class="px-panel hero-card">
-      <div class="px-scene">${heroAvatar(state, 240, 'idle')}</div>
+      <div class="px-scene hero-poke" data-action="hero-poke" role="button" aria-label="Tu héroe">${heroAvatar(state, 240, 'idle')}</div>
       <div class="hero-id">
         <span class="px-lv big">LV<b>${d.lvl.level}</b></span>
         <div class="grow">
@@ -139,9 +186,12 @@ export function render() {
       <p class="px-desc">Suben con tu progreso real en las rutas; el aguante, con las horas entrenadas. Rango E → S.</p>
     </section>
 
+    ${missionsPanel(state)}
+
     <section class="px-panel">
       <div class="row between"><h3 class="px-h">Logros</h3><a class="px-link" href="#/logros">${doneCount}/${ach.length} ▶</a></div>
       ${segBar(Math.round((doneCount / ach.length) * 100), '#ffd23f', 20)}
+      <p class="px-desc">${secrets.filter((a) => a.done).length} de ${secrets.length} secretos descubiertos.</p>
       ${recent.length ? `<p class="px-sub">Últimos</p><ul class="px-ach-list">${recent.map(achRow).join('')}</ul>` : ''}
       <p class="px-sub">Más cerca</p>
       <ul class="px-ach-list">${next.map(achRow).join('')}</ul>
@@ -163,6 +213,8 @@ export function render() {
         <li><span>Cada minuto (máx. 60)</span><b>+${XP_RULES.minute}</b></li>
         <li><span>Superar un paso</span><b>+${XP_RULES.levelUp}</b></li>
         <li><span>Completar una ruta</span><b>+${XP_RULES.routeDone}</b></li>
+        <li><span>Cada récord personal</span><b>+${XP_RULES.record}</b></li>
+        <li><span>Cada misión de la semana</span><b>+${XP_RULES.mission}</b></li>
         <li><span>Logros</span><b>+50…1000</b></li>
       </ul>
     </section>
@@ -258,6 +310,15 @@ export const actions = {
     const current = getState().game.name;
     const name = prompt('Nombre de tu héroe', current);
     if (name && name.trim()) update((s) => { s.game.name = name.trim().slice(0, 24); });
+    unlockCheck();
+  },
+  // Tocar al héroe: da un salto (y tiene un logro secreto).
+  'hero-poke'(el) {
+    update((s) => { s.game.pokes = (s.game.pokes || 0) + 1; }, { silent: true });
+    replay(el.querySelector('svg'), 'poked');
+    const words = ['¡JA!', '¡EH!', '¡HUP!', '¡OYE!', '¡JE!'];
+    burst(el, { text: words[getState().game.pokes % words.length], color: 'cyan' });
+    unlockCheck();
   },
   'ach-filter'(el, ctx) {
     achFilter = el.dataset.value;
@@ -279,6 +340,7 @@ export const actions = {
       if (id) s.game.equipped[slot] = id; else delete s.game.equipped[slot];
     });
     if (id) burst(document.querySelector('.px-scene'), { text: '¡EQUIPADO!', color: 'cyan' });
+    unlockCheck();
   },
   look(el) {
     const key = el.dataset.key;

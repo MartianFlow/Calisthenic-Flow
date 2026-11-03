@@ -11,7 +11,7 @@ import { navigate } from '../router.js';
 import { audio, vibrate, wakeLock } from '../device.js';
 import { videoCard } from '../video.js';
 import { burst, bump, beat, replay, confetti } from '../fx.js';
-import { totalXP, levelInfo, syncAchievements, itemsUnlockedBy } from '../game.js';
+import { totalXP, levelInfo, syncAchievements, syncMissions, itemsUnlockedBy, personalRecords } from '../game.js';
 import { roleTag, theName } from './skills.js';
 
 const PREP_STEP = 5;   // segundos que suma el botón «+5 s» de la cuenta atrás de las isometrías
@@ -507,17 +507,19 @@ function finish({ skipChecks = false } = {}) {
   // Recompensas del héroe: XP, nivel, logros y artículos nuevos.
   let reward = null;
   update((s) => {
+    const missions = syncMissions(s);
     const fresh = syncAchievements(s);
     const xpAfter = totalXP(s);
     const levelBefore = levelInfo(xpBefore).level;
     const levelAfter = levelInfo(xpAfter).level;
-    reward = { xp: xpAfter - xpBefore, levelBefore, levelAfter, achievements: fresh, items: itemsUnlockedBy(levelBefore, levelAfter, fresh) };
+    const records = (personalRecords(s).get(session.id) || []).length;
+    reward = { xp: xpAfter - xpBefore, levelBefore, levelAfter, achievements: fresh, missions, records, items: itemsUnlockedBy(levelBefore, levelAfter, fresh) };
     const rec = s.sessions.find((x) => x.id === session.id);
     if (rec) rec.game = reward;
   }, { silent: true });
   wakeLock.release();
   const loadUps = session.items.some((it) => it.outcome?.kind === 'load-up');
-  pendingCelebration = session.levelUps.length > 0 || loadUps || reward.levelAfter > reward.levelBefore || reward.achievements.length > 0;
+  pendingCelebration = session.levelUps.length > 0 || loadUps || reward.levelAfter > reward.levelBefore || reward.achievements.length > 0 || reward.records > 0;
   navigate(`#/resumen/${session.id}`, { replace: true });
   confetti({ count: pendingCelebration ? 70 : 36 });
 }
