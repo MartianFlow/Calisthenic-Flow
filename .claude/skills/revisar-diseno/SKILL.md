@@ -55,6 +55,7 @@ En el iPhone la letra es San Francisco, que aquí no existe. Las herramientas la
 ## Pistas falsas conocidas (ya filtradas)
 
 - El contenido de un `<details>` cerrado tiene posiciones aunque no se pinta.
+- **No es una pista falsa filtrada:** un texto oculto para lectores de pantalla (recortado con `clip`) sale como `cut`. No lo uses; pon `aria-label` en el campo o el botón.
 - Las insignias con `position: absolute` sobresalen a propósito, como la ★ del día recomendado.
 - El texto con `-webkit-line-clamp` o `text-overflow: ellipsis` se recorta a propósito.
 - En las capturas de página entera, la auditoría oculta la tab bar, porque si no saldría a media página.

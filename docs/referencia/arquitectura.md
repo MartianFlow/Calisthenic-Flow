@@ -134,6 +134,7 @@ tests/tools/             simular-actualizacion.js y la auditoría de diseño (ve
 - **WebSearch:** tiene un límite de 200 búsquedas por turno, compartido con los subagentes.
 - **Navegadores:** solo hay Chromium. WebKit corre en CI.
 - **Probar la lógica en Node, sin navegador:** se pueden importar `js/store.js`, `js/logic.js` y `js/schedule.js` con un `localStorage` de mentira.
+  - Para ver la semana de cada forma de dividirla, pon en `settings` `split` (`'etp'`, `'propia'`…) y, para «A tu manera», `myDays` y `myWeek`; luego `buildWeek(getState(), lunes)` y `frequencyWarnings(estado, semana)`.
   ```js
   globalThis.localStorage = { getItem: () => null, setItem() {} };
   const store = await import('./js/store.js');
