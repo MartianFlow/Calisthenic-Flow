@@ -135,7 +135,7 @@ test.describe('Alternar las dos habilidades', () => {
     expect(s.active.items.slice(0, 2).map((it) => it.sets.filter((x) => x.done).length)).toEqual([1, 1]);
     for (let k = 0; k < 6; k++) {
       if (await page.locator('[data-action="rest-skip"]').count()) await page.locator('[data-action="rest-skip"]').click();
-      if (await page.locator('[data-action="rate-later"]').count()) await page.locator('[data-action="rate-later"]').click();
+      if (await page.locator('.rate-panel').count()) await page.locator('.rate-panel [data-value="normal"]').click();
       await page.locator('.exercise [data-action="set-toggle"]:not(.on)').first().click();
     }
     s = await readState(page);

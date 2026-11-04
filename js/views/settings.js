@@ -4,7 +4,7 @@ import { getState, update, replaceState, resetState, clampRest, REST_RANGE } fro
 import { deloadActive, SPLITS, splitOf } from '../logic.js';
 import { esc, icon, toast, fmtClock, fmtDate } from '../ui.js';
 import { navigate } from '../router.js';
-import { audio } from '../device.js';
+import { audio, countdownBeep } from '../device.js';
 import { legsSegmented } from './plan.js';
 import { THEMES, fadeToTheme, effectiveTheme } from '../theme.js';
 import { versionLabel } from '../version.js';
@@ -106,7 +106,7 @@ export function render() {
       ${prepPicker(state)}
       ${toggle('supersets', st.supersets, 'Superseries', 'Alterna una serie de cada en parejas que no se estorban (dominadas y fondos, remo y flexiones…), con medio descanso entre medias. Cada ejercicio descansa lo de siempre o más y el entreno se acorta.')}
       ${toggle('warmup', st.warmup, 'Calentamiento guiado', 'Lista de movilidad antes de los ejercicios')}
-      ${toggle('sound', st.sound, 'Sonido al acabar el descanso', 'El iPhone debe tener el modo silencio desactivado')}
+      ${toggle('sound', st.sound, 'Sonido en el descanso', 'Cuenta atrás con pitidos en los 5 últimos segundos. Suena encima de tu música; con el modo silencio activado, el iPhone no lo deja sonar.')}
       <button class="btn ghost small" data-action="test-sound">${icon('timer', 16)} Probar sonido</button>
     </section>
 
@@ -213,7 +213,8 @@ export const actions = {
     audio.unlock();
     const wasOn = getState().settings.sound;
     if (!wasOn) { toast('Activa el sonido primero'); return; }
-    audio.beep({ times: 3 });
+    // La cuenta atrás de verdad, en pequeño: 3, 2, 1 y el pitido final.
+    [3, 2, 1, 0].forEach((n, i) => countdownBeep(n, i * 0.6));
   },
   'export-data'() {
     downloadBackup(JSON.stringify({ app: 'calisthenic-flow', exportedAt: new Date().toISOString(), data: getState() }, null, 2));

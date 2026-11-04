@@ -105,7 +105,20 @@ El contexto de la persona y de sus peticiones. Las decisiones técnicas que sale
     - **Versión 21 (parte 2):** «Cómo divides tu semana» en el Plan semanal y en la bienvenida (cuerpo completo, torso y pierna, empuje/tirón/pierna y «A tu manera» con sus días en `#/mis-dias`), avisos de frecuencia por grupo y superseries (Ajustes → Entreno, apagadas por defecto).
     - Su semana no cambia: sus datos pasan solos a «Torso y pierna» con la pierna en el gimnasio.
 
+28. **Tras entrenar pierna con la v21** (4/11/2026), cinco cosas:
+    - Al ir a ver un ejercicio ya hecho y volver al actual, la barra de ejercicios de arriba «hace un movimiento súper raro, como que se reinicia». Causa: cada repintado la dejaba al principio y luego se deslizaba. **Versión 22:** conserva su posición y se desliza solo hasta el ejercicio elegido.
+    - Quiere que, para pasar al siguiente (con «Siguiente» o al marcar la última serie), la app le pida **sí o sí el peso (si falta) y Fácil/Normal/Difícil**. Única excepción: **saltar un ejercicio** para hacer otro y volver luego desde la barra de arriba. **Hecho en la 22** (reglas en `reglas-entrenamiento.md`, «Pasar de un ejercicio a otro»).
+    - No oye los sonidos con Spotify. En la app instalada el sonido va por el canal «ambiente», que suena encima de Spotify, pero **el modo silencio lo apaga**; además iOS lo pausaba al cambiar de app y la app no lo reanudaba. **En la 22:** se reanuda solo y los pitidos son más fuertes y fáciles de distinguir sobre la música. Si sigue sin oírlos, lo más probable es el modo silencio.
+    - Cuenta atrás del descanso con sonido **desde 5 s hasta 0**. **Hecho en la 22:** un pitido por segundo y uno largo en el 0.
+    - Preguntó si se puede ver el descanso en la **isla dinámica**. **No** para una web app: hace falta una app nativa (ActivityKit). Detalles en `arquitectura.md`.
+
 ## Pendiente de confirmar con el usuario
+
+- **De la petición 28 (v22):**
+  - si ya oye los pitidos con Spotify (y si tenía el modo silencio puesto);
+  - si la cuenta atrás de 5 a 0 le resulta útil o demasiado insistente;
+  - si la barra de arriba ya se mueve bien y si «Saltar ejercicio» le cuadra en el gimnasio;
+  - si le molesta que la valoración sea obligatoria en algún caso.
 
 - **De la petición 27 (v20 y v21):**
   - que ve la **versión 21** y que su semana sigue igual (Torso A/B + Pierna);

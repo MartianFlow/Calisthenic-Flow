@@ -47,11 +47,13 @@ test.describe('Entreno', () => {
     // Pasó al siguiente ejercicio
     await expect(page.locator('.chip.current')).not.toContainText('Pino');
 
-    // Terminar: pide valorar el ejercicio con series hechas antes de cerrar
+    // Terminar: si falta valorar un ejercicio con series hechas, lo pide antes de cerrar
+    // (ya no hay «Omitir»; «Seguir entrenando» vuelve al entreno)
     await completeCurrentExercise(page);
-    await page.locator('[data-action="rate-later"]').click();
+    await expect(page.locator('.rate-panel')).toBeVisible();
     await page.locator('[data-action="session-finish"]').first().click();
     await expect(page.locator('.rate-q')).toContainText('Antes de terminar');
+    await expect(page.locator('[data-action="rate-back"]')).toHaveText('Seguir entrenando');
     await rate(page, 'normal');
 
     await expect(page).toHaveURL(/#\/resumen\//);

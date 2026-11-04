@@ -3,7 +3,7 @@
 import { addRoute, resolve } from './router.js';
 import { getState, subscribe } from './store.js';
 import { fmtClock } from './ui.js';
-import { wakeLock } from './device.js';
+import { wakeLock, audio } from './device.js';
 import { stagger, staggerLists, countUp, reveal, tap } from './fx.js';
 import * as video from './video.js';
 import * as home from './views/home.js';
@@ -136,7 +136,15 @@ function render() {
   if (pendingReload && route.path !== '/entreno') { location.reload(); return; }
   const prevRoute = currentRoute;
   currentRoute = route;
+  // Las filas con desplazamiento lateral (data-keep-x) conservan su posición al repintar
+  // la misma pantalla: si no, volverían al principio de golpe en cada cambio.
+  const keepX = route.path === lastPath
+    ? [...viewEl.querySelectorAll('[data-keep-x]')].map((el) => [el.dataset.keepX, el.scrollLeft]) : [];
   viewEl.innerHTML = route.view(route.params);
+  for (const [key, x] of keepX) {
+    const el = viewEl.querySelector(`[data-keep-x="${CSS.escape(key)}"]`);
+    if (el) el.scrollLeft = x;
+  }
   pixelCaps(viewEl);
   document.body.classList.toggle('no-tabs', route.options.tab === null);
   document.body.dataset.route = route.path.split('/')[1] || 'hoy';
@@ -211,8 +219,11 @@ setInterval(() => {
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && getState().active && currentRoute?.path === '/entreno') {
     wakeLock.request();
+    audio.wake(); // iOS pausa el audio al salir de la app (por ejemplo, a Spotify)
   }
 });
+// Cualquier toque reanuda el audio si iOS lo había pausado.
+document.addEventListener('pointerdown', () => audio.wake(), { passive: true });
 
 // Logros conseguidos con el historial existente (sin celebración).
 update((s) => { if (s.onboarded) { syncMissions(s); syncAchievements(s); } }, { silent: true });

@@ -60,7 +60,9 @@ Es una **web app instalable (PWA)**: se añade a la pantalla de inicio del iPhon
   - Al terminar cada entreno ves la XP ganada, si subes de nivel, tus récords, las misiones cumplidas y los logros y artículos nuevos.
 - **Descanso entre series a tu medida:** por defecto el mismo para todo (80 s), que cambias en Ajustes con −/+ o con atajos (1 min, 1:20, 1:30, 2 min, 3 min). Durante el descanso, los botones −15 y +15 lo acortan o lo alargan.
   - Si prefieres, «Según ejercicio» usa el recomendado para cada paso: unos 3 min en series de 1–5 reps, 1,5–2 min en las de 6–12, 2,5–3 min en holds de brazos rectos, 45–60 s entre intentos de pino libre y 60 s en core.
-- **Progresión según cómo te sientes:** al terminar cada ejercicio, mientras corre el descanso, la app pregunta si te pareció **Fácil, Normal o Difícil**.
+- **Cuenta atrás con pitidos:** en los 5 últimos segundos del descanso suena un pitido cada segundo, y uno largo al llegar a cero. Suena encima de tu música (Spotify sigue sonando), siempre que el iPhone no esté en modo silencio.
+- **Pasar de ejercicio sin olvidar nada:** para seguir, la app pide el peso (si el ejercicio lleva y no lo has apuntado) y la valoración. Si te toca dejar uno para después (la máquina está ocupada), **«Saltar ejercicio y hacerlo luego»** te lleva al siguiente y lo deja marcado como pendiente en la barra de arriba; la app vuelve a él al final.
+- **Progresión según cómo te sientes:** al terminar cada ejercicio, mientras corre el descanso, la app pregunta si te pareció **Fácil, Normal o Difícil**. Hay que contestar para pasar al siguiente.
   - La valoración equivale a las reps que te quedaban en reserva: Fácil = 3 o más, Normal = 1–2 (la zona ideal), Difícil = ninguna o perdiste técnica.
   - Mientras no llegas a la meta del paso, el objetivo sube +2 (Fácil) o +1 (Normal). En holds de brazos rectos sube solo +2 s o +1 s, porque los tendones se adaptan más despacio. Con Difícil se mantiene, y si no llegaste baja a tu mínimo del día.
   - Al alcanzar la meta: **Fácil** te pasa al siguiente ejercicio de la escala (en brazos rectos cuenta como una sesión superada). **Normal** cuenta como sesión superada: con 1 subes en fuerza, y en habilidades necesitas 2 (configurable). **Difícil** te hace consolidar ese nivel.
@@ -131,6 +133,7 @@ La carpeta [`tests/e2e`](tests/e2e) tiene una batería de pruebas con [Playwrigh
 | `rest.spec.js` | Descanso fijo de 80 s por defecto, −15/+15 durante el descanso, cambiarlo en Ajustes y «Según ejercicio» |
 | `motion.spec.js` | Con las animaciones activadas: todo acaba visible, sin scroll horizontal, y las cabeceras fijas siguen en su sitio |
 | `workout.spec.js` | Entreno completo: calentamiento, series, cronómetro de isometrías, descanso, valoración durante el descanso, resumen con EXP. También recargar a mitad de entreno y descartar |
+| `session-flow.spec.js` | Pasar de ejercicio: el peso y la valoración son obligatorios, «Siguiente», «Saltar ejercicio» (pendiente en la barra y se vuelve a él), «Seguir entrenando» al terminar, la barra de arriba no salta y la cuenta atrás pita en 5…1 y 0 a su segundo |
 | `progression.spec.js` | Fácil, Normal y Difícil: subida del objetivo, cambio de paso, 2 sesiones en habilidades, recalibrado, reinicio por estancamiento y descanso según el paso |
 | `plan.spec.js` | Recomendación de días, nivel con habilidades, cambio de días disponibles, reglas de brazos rectos, día de descanso y «Misión cumplida» |
 | `gym.spec.js` | Pierna en el gimnasio: semana torso/pierna, separación de los días de pierna, recomendación de 5 días, pesos con coma, subida y bajada de peso, cambio de peso durante el entreno y ficha del ejercicio con vídeo desde Hoy y el Plan |
@@ -141,7 +144,7 @@ La carpeta [`tests/e2e`](tests/e2e) tiene una batería de pruebas con [Playwrigh
 | `custom.spec.js` | Ejercicios propios (crear, editar, archivar, borrar, entrenarlos con y sin peso, ficha con gráfica), aviso de copia de seguridad y peso corporal |
 | `split.spec.js` | Cómo divides tu semana (cuerpo completo, torso y pierna, empuje/tirón/pierna y «A tu manera»), avisos de frecuencia, superseries y la pregunta de la bienvenida |
 | `data.spec.js` | Migración desde la v1, exportar e importar la copia, borrar datos y funcionamiento sin conexión |
-| `layout.spec.js` | Diseño en móvil: 165 pantallas y estados a 320, 375, 390 y 430 px. Comprueba que nada se sale de la pantalla, que ningún texto se pisa, se corta o se sale de su botón, que nada queda tapado por las barras y que el contraste es suficiente |
+| `layout.spec.js` | Diseño en móvil: 170 pantallas y estados a 320, 375, 390 y 430 px. Comprueba que nada se sale de la pantalla, que ningún texto se pisa, se corta o se sale de su botón, que nada queda tapado por las barras y que el contraste es suficiente |
 
 Las pruebas usan un reloj fijo (lunes 2/11/2026) y bloquean internet, así que siempre dan el mismo resultado. Además fallan si la app lanza cualquier error de JavaScript.
 

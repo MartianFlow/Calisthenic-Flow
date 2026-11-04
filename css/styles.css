@@ -617,7 +617,7 @@ body.modal-open { overflow: hidden; }
 .session-head .center { display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .session-head .clock { font-family: var(--display); font-size: 40px; letter-spacing: 0.04em; line-height: 1; font-variant-numeric: tabular-nums; }
 .session-head .icon-btn { background: #fff; color: #000; }
-.chips { display: flex; gap: 10px; overflow-x: auto; padding: 4px 16px 8px; margin: 0 -16px; scrollbar-width: none; }
+.chips { position: relative; display: flex; gap: 10px; overflow-x: auto; padding: 4px 16px 8px; margin: 0 -16px; scrollbar-width: none; overscroll-behavior-x: contain; }
 .chips::-webkit-scrollbar { display: none; }
 .chip {
   flex: none; display: inline-flex; align-items: center; gap: 4px;
@@ -1810,3 +1810,11 @@ body[data-route="bienvenida"] .view { gap: 16px; min-height: 100vh; min-height: 
 .myweek { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .myweek li { display: grid; grid-template-columns: minmax(84px, auto) minmax(0, 1fr); align-items: center; gap: 10px; }
 .myweek label strong { font-weight: 800; }
+
+/* ─────────── Entreno: saltar ejercicios y valorar para seguir (v22) ─────────── */
+.chip.skipped { border-style: dashed; color: var(--text); background: color-mix(in srgb, var(--pink) 22%, var(--surface)); }
+.chip.skipped.current { background: var(--yellow); color: #000; }
+.skip-ex { align-self: center; display: inline-flex; align-items: center; gap: 6px; font-size: 17px; }
+.load-row.need { border-color: var(--pink); box-shadow: 3px 3px 0 var(--pink); }
+.rate-why { margin: -2px 0 0; }
+.rest-bar.with-rate .rate-why { margin-top: -4px; }

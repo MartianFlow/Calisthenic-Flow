@@ -118,6 +118,7 @@ const PATHS = {
   target: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/>',
   info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.6v.4"/>',
   swap: '<path d="M7 7h12l-3-3M17 17H5l3 3"/>',
+  later: '<path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4.5 3.5v3.7h3.7"/><path d="M12 8.5V12l2.5 2"/>',
   download: '<path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/>',
   upload: '<path d="M12 20V9M7 13.5l5-5 5 5M5 4h14"/>',
 };

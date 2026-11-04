@@ -82,7 +82,7 @@ async function readState(page) {
 }
 
 // Completa las series pendientes del ejercicio actual (con los valores precargados).
-// Al terminar la última, la app pasa sola al siguiente ejercicio.
+// Al terminar la última pide la valoración y, al darla, pasa al siguiente ejercicio.
 async function completeCurrentExercise(page) {
   const pending = page.locator('[data-action="set-toggle"]:not(.on)');
   const n = await pending.count();

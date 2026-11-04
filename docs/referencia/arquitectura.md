@@ -105,7 +105,10 @@ tests/tools/             simular-actualizacion.js y la auditoría de diseño (ve
   - `items` y `current`;
   - `warmupDone`, `warmupChecks` y `warmupKind` (`'pierna'` si todos los ejercicios son de gimnasio);
   - `rest` (`{ endsAt, total }`), `hold` y `ratePrompt`;
-  - `finishing` (al terminar se preguntan las valoraciones que faltan).
+  - `rateThen` (`{ item, to }`: al valorar `item`, pasa al ejercicio `to`; v22);
+  - `finishing` (al terminar se preguntan las valoraciones que faltan);
+  - en cada ítem, `skipped` si se saltó para hacerlo luego (v22).
+- **Filas con desplazamiento lateral:** ponles `data-keep-x="nombre"` y `render()` (app.js) conservará su `scrollLeft` al repintar la misma pantalla.
 
 ## Despliegue y actualizaciones
 
@@ -142,6 +145,12 @@ tests/tools/             simular-actualizacion.js y la auditoría de diseño (ve
   ```
   - Pon siempre `version: 2`: sin ella, `normalize` migra desde la v1 y recoloca los pasos, y los resultados salen raros.
   - Se usó para simular el reparto de la semana (`buildWeek`) y la duración de los entrenos (`sessionLayout`, `estimateMinutes`).
+- **Sonido en el iPhone (investigado en la v22):**
+  - El audio de una web va por el canal «ambiente» (`navigator.audioSession.type = 'ambient'`, que `device.js` pone al desbloquear el audio): en la app instalada **suena encima de Spotify sin pararlo**, pero **el modo silencio lo apaga**. `playback` sonaría con el modo silencio, pero para la música de otras apps (en Safari se comprobó; en la app instalada no está medido), así que no se usa. `transient` en la app instalada mezcla, pero el audio se pausa solo cada pocos segundos.
+  - iOS pone el `AudioContext` en `interrupted` cuando otra app toma el audio o al salir de la app. `audio.wake()` lo reanuda en cada toque (`pointerdown`), al volver a la app y antes de cada pitido.
+  - Con la pantalla bloqueada o la app en segundo plano, iOS para el JavaScript: no hay pitidos hasta volver. Por eso el entreno mantiene la pantalla encendida (`wakeLock`).
+  - Fuente: mediciones en iOS 18.7.5 de `ZacharyCanlas/cadence#7` (GitHub, octubre de 2026).
+- **Isla dinámica (investigado en la v22):** una web app no puede poner nada ahí. Las Live Activities solo existen para apps nativas (ActivityKit y una extensión en Swift, con Xcode y cuenta de desarrollador de Apple). El truco de «Ahora suena» con la Media Session obligaría a reproducir audio propio, que pararía Spotify.
 - **Servidor local:**
   - Para levantarlo: `(python3 -m http.server 8765 &)`.
   - Para pararlo: `pkill -f "^python3 -m http.server 8765"`. Con el `^`, porque sin él el patrón coincide con el propio comando y mata el shell.

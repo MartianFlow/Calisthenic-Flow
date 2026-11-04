@@ -9,9 +9,9 @@ import {
 } from '../logic.js';
 import { esc, icon, fmtClock, unitLabel, toast, fmtKg, kgInput, parseKg, fmtSeries, fmtLiftSeries } from '../ui.js';
 import { navigate } from '../router.js';
-import { audio, vibrate, wakeLock } from '../device.js';
+import { audio, vibrate, wakeLock, COUNTDOWN_FROM, countdownBeep } from '../device.js';
 import { videoCard, userVideoCard } from '../video.js';
-import { burst, bump, beat, replay, confetti } from '../fx.js';
+import { burst, bump, beat, replay, shake, confetti } from '../fx.js';
 import { totalXP, levelInfo, syncAchievements, syncMissions, itemsUnlockedBy, personalRecords } from '../game.js';
 import { roleTag, theName } from './skills.js';
 
@@ -19,6 +19,8 @@ const PREP_STEP = 5;   // segundos que suma el botón «+5 s» de la cuenta atr�
 const REST_STEP = 15; // segundos que suman o quitan los botones del descanso
 const beeped = { holdStart: null, holdTarget: null };
 const lastSecond = { rest: null, hold: null };
+const restBeeps = new Set(); // segundos de la cuenta atrás ya programados («fin del descanso:segundo»)
+const LOOKAHEAD = 400;       // ms: cada pitido se programa un poco antes para que suene a su segundo exacto
 const RATING_WORDS = { facil: '¡FÁCIL!', normal: '¡BIEN!', dificil: '¡DURO!' };
 const RATING_COLORS = { facil: 'cyan', normal: '', dificil: 'pink' };
 let sheetShown = false; // para animar el panel inferior solo al aparecer
@@ -31,10 +33,36 @@ function chips(a) {
   const warm = `<button class="chip ${a.warmupDone ? 'done' : ''} ${!a.warmupDone ? 'current' : ''}" data-action="session-goto" data-index="-1">Calent.</button>`;
   const items = a.items.map((item, i) => {
     const name = item.customId ? itemName(item) : item.liftId ? LIFT_BY_ID[item.liftId]?.name : item.acc ? `+ ${accInfo(item.acc)?.name || ''}` : ROADMAP_BY_ID[item.roadmapId]?.name;
-    const cls = [itemComplete(item) ? 'done' : '', a.warmupDone && a.current === i ? 'current' : '', item.acc ? 'acc' : ''].join(' ');
-    return `<button class="chip ${cls}" data-action="session-goto" data-index="${i}">${itemComplete(item) ? icon('check', 14) : ''}${esc(name || '')}</button>`;
+    const done = itemComplete(item);
+    const later = item.skipped && !done;
+    const cls = [done ? 'done' : '', later ? 'skipped' : '', a.warmupDone && a.current === i ? 'current' : '', item.acc ? 'acc' : ''].join(' ');
+    return `<button class="chip ${cls}" data-action="session-goto" data-index="${i}" ${later ? `aria-label="${esc(name || '')} (pendiente)"` : ''}>${done ? icon('check', 14) : later ? icon('later', 14) : ''}${esc(name || '')}</button>`;
   }).join('');
-  return `<nav class="chips" aria-label="Ejercicios">${warm}${items}</nav>`;
+  return `<nav class="chips" data-keep-x="chips" aria-label="Ejercicios">${warm}${items}</nav>`;
+}
+
+// Reglas para pasar de ejercicio: con peso, hay que apuntarlo antes de marcar series;
+// y al acabar (o al tocar «Siguiente»), valorar Fácil/Normal/Difícil. Solo «Saltar
+// ejercicio» pasa sin nada de eso, y el ejercicio queda pendiente en la barra de arriba.
+const weighted = (item) => !!(item?.liftId || item?.load);
+const needsKg = (item) => weighted(item) && item.kg == null;
+const needsRating = (item) => !item.accessoryOf && !item.rating && item.sets.some((s) => s.done);
+
+// El siguiente ejercicio sin terminar después de «from» (al llegar al final, vuelve a
+// los que quedaron atrás, como los saltados). -1 si no queda ninguno.
+function nextPending(a, from) {
+  const n = a.items.length;
+  for (let d = 1; d < n; d++) {
+    const k = (from + d) % n;
+    if (!itemComplete(a.items[k])) return k;
+  }
+  return -1;
+}
+
+// Un ejercicio ya terminado que falta por valorar (el aviso no se va hasta valorarlo).
+function unratedDone(a) {
+  const i = a.items.findIndex((it) => itemComplete(it) && needsRating(it));
+  return i >= 0 ? i : null;
 }
 
 function warmupCard(a) {
@@ -88,7 +116,9 @@ function setRow(item, set, i) {
 
 // Pie común: añadir/quitar series, valoración y navegación.
 function cardFooter(a, item) {
-  const isLast = a.current === a.items.length - 1;
+  // «Finalizar» cuando ya no queda otro ejercicio por hacer (también los saltados).
+  const others = a.items.some((it, k) => k !== a.current && !itemComplete(it));
+  const isLast = !others;
   const anyDone = item.sets.some((s) => s.done) && !item.accessoryOf;
   return `
       <div class="row between">
@@ -105,7 +135,8 @@ function cardFooter(a, item) {
         ${isLast
           ? `<button class="btn primary grow" data-action="session-finish">${icon('check', 18)} Finalizar entreno</button>`
           : `<button class="btn ghost grow" data-action="session-next">Siguiente ${icon('next', 18)}</button>`}
-      </div>`;
+      </div>
+      ${others && !itemComplete(item) ? `<button class="link muted skip-ex" data-action="session-skip">${icon('later', 16)} Saltar ejercicio y hacerlo luego</button>` : ''}`;
 }
 
 // Ejercicio de gimnasio: peso + repeticiones dentro de un rango.
@@ -136,7 +167,7 @@ function liftCard(state, a, item) {
           <button class="step-btn" data-action="load-inc" aria-label="Más peso">${icon('plus', 18)}</button>
         </div>
       </div>
-      ${kg == null ? '<p class="muted small">Apunta el peso con el que trabajas: la app te dirá cuándo subirlo.</p>' : ''}
+      ${kg == null ? '<p class="muted small">Apunta el peso antes de marcar la primera serie: la app te dirá cuándo subirlo.</p>' : ''}
       ${videoCard({ name: lift.name, video: lift.video || null, query: `${lift.name} técnica gimnasio` })}
       <details class="cues">
         <summary>${icon('info', 18)} Claves técnicas</summary>
@@ -178,7 +209,7 @@ function customCard(state, a, item) {
           <button class="step-btn" data-action="load-inc" aria-label="Más peso">${icon('plus', 18)}</button>
         </div>
       </div>
-      ${item.kg == null ? '<p class="muted small">Apunta el peso con el que trabajas: la app te dirá cuándo subirlo.</p>' : ''}` : ''}
+      ${item.kg == null ? '<p class="muted small">Apunta el peso antes de marcar la primera serie: la app te dirá cuándo subirlo.</p>' : ''}` : ''}
       ${userVideoCard(itemName(item), c?.video)}
       ${c?.cues?.length ? `
       <details class="cues">
@@ -227,7 +258,7 @@ function pairedSkill(a, i) {
   const list = a.items.map((it, k) => (isSkillItem(it) ? k : -1)).filter((k) => k >= 0);
   for (let n = 1; n < list.length; n++) {
     const k = list[(list.indexOf(i) + n) % list.length];
-    if (!itemComplete(a.items[k])) return k;
+    if (!itemComplete(a.items[k]) && !a.items[k].skipped) return k;
   }
   return -1;
 }
@@ -240,7 +271,7 @@ function ssPartner(a, i) {
 }
 function ssNote(state, a, item) {
   const k = ssPartner(a, a.current);
-  if (k < 0 || itemComplete(item) || itemComplete(a.items[k])) return '';
+  if (k < 0 || itemComplete(item) || itemComplete(a.items[k]) || a.items[k].skipped) return '';
   return `<div class="alt-note ss-note">${icon('swap', 15)}<span>Superserie con <strong>${esc(itemName(a.items[k]))}</strong>: una serie de cada, con ${esc(ssPause(state))} entre medias. Cada uno descansa así lo de siempre o más.</span></div>`;
 }
 
@@ -295,12 +326,15 @@ function ratePanel(a) {
   lastPrompt = a.ratePrompt;
   const item = a.items[a.ratePrompt];
   if (!item) return '';
+  // Sin «Ahora no»: para seguir hay que valorar. Al terminar se puede volver al entreno.
+  const away = a.current !== a.ratePrompt || !a.warmupDone;
   return `
     <div class="rate-panel">
-      <div class="rate-q ${appear ? 'appear' : ''}">${a.finishing ? '<span class="eyebrow">Antes de terminar</span>' : ''}
+      <div class="rate-q ${appear ? 'appear' : ''}">${a.finishing ? '<span class="eyebrow">Antes de terminar</span>' : away ? '<span class="eyebrow">Te falta valorar</span>' : ''}
         ¿Qué tal te ha parecido <strong>${esc(itemName(item))}</strong>?</div>
       ${ratingButtons(a.ratePrompt, item.rating)}
-      <button class="link muted" data-action="rate-later">${a.finishing ? 'Omitir' : 'Ahora no'}</button>
+      ${a.finishing ? '<button class="link muted" data-action="rate-back">Seguir entrenando</button>'
+        : `<p class="muted tiny center rate-why">${a.rateThen?.item === a.ratePrompt && a.rateThen.to >= 0 && !away ? 'Valóralo para pasar al siguiente ejercicio.' : 'Tu valoración decide cuánto sube la próxima vez.'}</p>`}
     </div>`;
 }
 
@@ -349,24 +383,30 @@ function holdOverlay(a) {
 
 // Al cambiar de ejercicio, la tarjeta nueva entra desde el lado hacia el que se avanza
 // y la fila de ejercicios de arriba se desplaza para dejar a la vista el actual.
+// La barra conserva su posición al repintar (data-keep-x en app.js) y desde ahí se
+// desliza hasta el actual; al abrir el entreno se coloca directamente, sin animación.
 function cardWithMotion(a, html) {
   const key = a.warmupDone ? a.current : -1;
-  const changed = shownCard?.id === a.startedAt && shownCard.key !== key;
+  const first = shownCard?.id !== a.startedAt;
+  const changed = !first && shownCard.key !== key;
   if (changed) cardDir = key > shownCard.key ? 1 : -1;
   shownCard = { id: a.startedAt, key };
+  if (first) requestAnimationFrame(() => centerCurrentChip(false));
   if (!changed) return html;
-  requestAnimationFrame(centerCurrentChip);
+  requestAnimationFrame(() => centerCurrentChip(true));
   return html.replace('<section class="card exercise', `<section class="card-in-${cardDir > 0 ? 'r' : 'l'} card exercise`);
 }
 
-function centerCurrentChip() {
+function centerCurrentChip(animate) {
   const row = document.querySelector('.chips');
   const chip = row?.querySelector('.chip.current');
   if (!chip) return;
-  const r = chip.getBoundingClientRect();
-  const left = row.scrollLeft + r.left - row.getBoundingClientRect().left - (row.clientWidth - r.width) / 2;
-  const smooth = !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  row.scrollTo({ left: Math.max(0, left), behavior: smooth ? 'smooth' : 'auto' });
+  // offsetLeft no cambia con el giro de la pastilla actual (getBoundingClientRect sí)
+  const max = row.scrollWidth - row.clientWidth;
+  const left = Math.min(max, Math.max(0, chip.offsetLeft - (row.clientWidth - chip.offsetWidth) / 2));
+  if (Math.abs(left - row.scrollLeft) < 2) return;
+  const smooth = animate && !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  row.scrollTo({ left, behavior: smooth ? 'smooth' : 'auto' });
 }
 
 export function render() {
@@ -408,8 +448,11 @@ export function tick(ctx) {
 
   if (a.rest) {
     const remaining = (a.rest.endsAt - now) / 1000;
+    scheduleCountdown(a.rest.endsAt, now);
     if (remaining <= 0) {
-      audio.beep({ times: 3 });
+      // (si el pitido final no se programó, por ejemplo al volver a la app, suena ahora)
+      if (!restBeeps.has(`${a.rest.endsAt}:0`)) countdownBeep(0);
+      restBeeps.clear();
       vibrate([200, 100, 200]);
       update((s) => { s.active.rest = null; }, { silent: true });
       ctx.rerender();
@@ -471,12 +514,35 @@ export function tick(ctx) {
   }
 }
 
+// Pitidos de la cuenta atrás: 5, 4, 3, 2, 1 y el final. Cada uno se programa con el reloj
+// del audio cuando falta poco para su segundo; si ya pasó (la app estaba en segundo
+// plano), no suena con retraso.
+function scheduleCountdown(endsAt, now) {
+  for (let n = COUNTDOWN_FROM; n >= 0; n--) {
+    const key = `${endsAt}:${n}`;
+    if (restBeeps.has(key)) continue;
+    const ahead = endsAt - n * 1000 - now;
+    if (ahead > LOOKAHEAD) continue;
+    if (ahead < -150) { if (n > 0) restBeeps.add(key); continue; }
+    restBeeps.add(key);
+    countdownBeep(n, Math.max(0, ahead) / 1000);
+  }
+}
+
+// Al cambiar o quitar el descanso, los pitidos ya programados no deben sonar.
+function resetCountdown() {
+  audio.cancel();
+  restBeeps.clear();
+}
+
 function startRest(s, item, sec = restSeconds(s, item.rest)) {
+  resetCountdown();
   s.active.rest = { endsAt: Date.now() + sec * 1000, total: sec };
 }
 
 // Suma o quita segundos al descanso en marcha. Si se queda en cero, termina como siempre (con aviso).
 function adjustRest(delta) {
+  resetCountdown();
   update((s) => {
     const rest = s.active?.rest;
     if (!rest) return;
@@ -491,21 +557,25 @@ function completeSet(s, itemIndex, setIndex) {
   const a = s.active;
   const item = a.items[itemIndex];
   item.sets[setIndex].done = true;
+  item.skipped = false; // al volver a un ejercicio saltado, deja de estar pendiente
   a.lastActivityAt = Date.now();
   const allDone = a.items.every(itemComplete);
-  // Superserie: se pasa a la pareja con medio descanso (si le quedan series).
+  // Superserie: se pasa a la pareja con medio descanso (si le quedan series y no la saltaste).
   const ss = ssPartner(a, itemIndex);
-  const ssGo = ss >= 0 && !itemComplete(a.items[ss]);
+  const ssGo = ss >= 0 && !itemComplete(a.items[ss]) && !a.items[ss].skipped;
   if (!allDone) startRest(s, item, ssGo ? supersetRest(s, item.rest) : undefined);
-  else a.rest = null;
-  // Si el ejercicio queda completo, pregunta la dificultad (durante el descanso)
-  // y pasa al siguiente ejercicio pendiente.
+  else { a.rest = null; resetCountdown(); }
+  // Si el ejercicio queda completo, pide la dificultad (durante el descanso) y, en cuanto
+  // la eliges, pasa al siguiente pendiente. Sin valoración que pedir, pasa directamente.
   const pair = pairedSkill(a, itemIndex);
   if (itemComplete(item)) {
-    if (!item.rating && !item.accessoryOf) a.ratePrompt = itemIndex;
-    const next = a.items.findIndex((it, i) => i > itemIndex && !itemComplete(it));
-    const any = pair >= 0 ? pair : ssGo ? ss : next >= 0 ? next : a.items.findIndex((it) => !itemComplete(it));
-    if (any >= 0) a.current = any;
+    const next = pair >= 0 ? pair : ssGo ? ss : nextPending(a, itemIndex);
+    if (needsRating(item)) {
+      a.ratePrompt = itemIndex;
+      a.rateThen = { item: itemIndex, to: next };
+    } else if (next >= 0) {
+      a.current = next;
+    }
   } else if (pair >= 0) {
     a.current = pair;
   } else if (ssGo) {
@@ -562,10 +632,12 @@ function finish({ skipChecks = false } = {}) {
     // Antes de cerrar, pide la valoración de los ejercicios que falten.
     const unrated = nextUnrated(a);
     if (unrated != null) {
+      resetCountdown();
       update((s) => { s.active.finishing = true; s.active.ratePrompt = unrated; s.active.rest = null; });
       return;
     }
   }
+  resetCountdown();
   const xpBefore = totalXP(getState());
   const session = finishActiveSession();
   // Recompensas del héroe: XP, nivel, logros y artículos nuevos.
@@ -592,7 +664,17 @@ function finish({ skipChecks = false } = {}) {
 function exitFinishing(s) {
   if (!s.active.finishing) return;
   s.active.finishing = false;
-  s.active.ratePrompt = null;
+  s.active.ratePrompt = unratedDone(s.active);
+}
+
+// Pide el peso: aviso, el campo se marca y se abre el teclado.
+function askKg() {
+  toast('Antes, apunta el peso que usas');
+  const input = document.querySelector('.load-input');
+  const row = input?.closest('.load-row');
+  row?.classList.add('need');
+  shake(row);
+  input?.focus();
 }
 
 function afterRating() {
@@ -601,6 +683,7 @@ function afterRating() {
 }
 
 function discard() {
+  resetCountdown();
   update((s) => { s.active = null; });
   wakeLock.release();
   navigate('#/', { replace: true });
@@ -625,8 +708,42 @@ export const actions = {
     update((s) => { exitFinishing(s); s.active.current = Math.max(0, s.active.current - 1); });
     window.scrollTo({ top: 0 });
   },
+  // Siguiente: con alguna serie hecha, pide el peso (si falta) y la valoración antes de
+  // pasar. Sin ninguna serie, para pasar hay que saltar el ejercicio.
   'session-next'() {
-    update((s) => { s.active.current = Math.min(s.active.items.length - 1, s.active.current + 1); });
+    const a = getState().active;
+    const item = a.items[a.current];
+    if (!item.sets.some((x) => x.done)) {
+      toast('Aún no has hecho ninguna serie. Para dejarlo para luego, toca «Saltar ejercicio»');
+      shake(document.querySelector('[data-action="session-skip"]'));
+      return;
+    }
+    if (needsKg(item)) { askKg(); return; }
+    const to = nextPending(a, a.current);
+    if (needsRating(item)) {
+      const again = a.ratePrompt === a.current;
+      update((s) => { s.active.ratePrompt = s.active.current; s.active.rateThen = { item: s.active.current, to }; });
+      if (again) shake(document.querySelector('.rate-panel .rate-q'));
+      toast('Elige qué tal te ha ido para pasar al siguiente');
+      return;
+    }
+    update((s) => { s.active.current = to >= 0 ? to : Math.min(s.active.items.length - 1, s.active.current + 1); });
+    window.scrollTo({ top: 0 });
+  },
+  // Saltar: pasa al siguiente sin pedir nada; el ejercicio queda pendiente en la barra.
+  'session-skip'() {
+    const a = getState().active;
+    const to = nextPending(a, a.current);
+    if (to < 0) return;
+    const name = itemName(a.items[a.current]);
+    update((s) => {
+      const b = s.active;
+      b.items[b.current].skipped = true;
+      if (b.rateThen?.item === b.current) b.rateThen = null;
+      if (b.ratePrompt === b.current) b.ratePrompt = unratedDone(b);
+      b.current = to;
+    });
+    toast(`«${name}» queda pendiente: lo tienes arriba, en la barra`);
     window.scrollTo({ top: 0 });
   },
   'warmup-check'(el) {
@@ -649,6 +766,7 @@ export const actions = {
     const i = Number(el.dataset.set);
     const before = getState().active.current;
     const wasDone = getState().active.items[before].sets[i].done;
+    if (!wasDone && needsKg(getState().active.items[before])) { askKg(); return; }
     const rect = el.getBoundingClientRect();
     update((s) => {
       const a = s.active;
@@ -688,35 +806,37 @@ export const actions = {
   'rate'(el) {
     const i = Number(el.dataset.item);
     const value = el.dataset.value;
+    const rect = el.getBoundingClientRect();
+    let moved = false;
     update((s) => {
       const a = s.active;
       a.items[i].rating = value;
       a.items[i].rateSkipped = false;
-      if (a.ratePrompt === i) a.ratePrompt = a.finishing ? nextUnrated(a) : null;
+      // Si estaba esperando la valoración para pasar al siguiente, pasa ya.
+      let to = a.rateThen?.item === i ? a.rateThen.to : null;
+      if (a.rateThen?.item === i) a.rateThen = null;
+      if (to != null && to >= 0 && itemComplete(a.items[to])) to = nextPending(a, i);
+      if (a.ratePrompt === i) a.ratePrompt = a.finishing ? nextUnrated(a) : unratedDone(a);
+      if (!a.finishing && to != null && to >= 0 && a.current === i && a.warmupDone) { a.current = to; moved = true; }
     });
-    burst(el, { text: RATING_WORDS[value], color: RATING_COLORS[value] });
+    burst({ getBoundingClientRect: () => rect }, { text: RATING_WORDS[value], color: RATING_COLORS[value] });
     toast(`Anotado: ${RATINGS[value].label}`);
+    if (moved) window.scrollTo({ top: 0 });
     afterRating();
   },
-  'rate-later'() {
-    update((s) => {
-      const a = s.active;
-      if (a.finishing && a.ratePrompt != null) {
-        a.items[a.ratePrompt].rateSkipped = true;
-        a.ratePrompt = nextUnrated(a);
-      } else {
-        a.ratePrompt = null;
-      }
-    });
-    afterRating();
+  // Al terminar, en vez de valorar: vuelve al entreno sin cerrarlo.
+  'rate-back'() {
+    update((s) => exitFinishing(s));
   },
   'rest-add'() { adjustRest(REST_STEP); },
   'rest-sub'() { adjustRest(-REST_STEP); },
   'rest-skip'() {
+    resetCountdown();
     update((s) => { s.active.rest = null; });
   },
   'hold-start'(el) {
     audio.unlock();
+    resetCountdown();
     const set = Number(el.dataset.set);
     update((s) => {
       s.active.rest = null;

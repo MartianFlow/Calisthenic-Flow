@@ -26,6 +26,19 @@ Cómo decide la app objetivos, subidas, descansos y el plan semanal. Las fuentes
   - `auto` («Según ejercicio»): el recomendado de cada paso, en la tabla de abajo; en el gimnasio, `lift.rest`.
 - `restSeconds(state, recomendado)` (logic.js) da el que se usa. Se aplica al empezar cada descanso, así que un cambio en Ajustes vale también para el entreno en curso.
 - **Durante el descanso:** −15 / +15 s. Si se quita más de lo que queda, termina con su aviso.
+- **Cuenta atrás con pitidos (v22, la pidió el usuario):** un pitido corto en cada uno de los 5 últimos segundos (784 Hz) y uno largo y más agudo en el 0 (1175 Hz). `scheduleCountdown` (session.js) programa cada pitido con el reloj del audio unos 400 ms antes, para que suene a su segundo exacto aunque el `tick` vaya cada 250 ms. Al cambiar o saltar el descanso, `resetCountdown()` cancela los que no han sonado. Si la app estaba en segundo plano, no suenan segundos atrasados: solo el final, al volver.
+
+## Pasar de un ejercicio a otro (v22)
+
+Lo pidió el usuario: que la app **obligue** a apuntar el peso y la valoración antes de seguir, con una sola excepción, «Saltar ejercicio».
+
+- **Peso:** en un ejercicio con peso (gimnasio o propio con peso) sin peso apuntado, marcar una serie no la marca: avisa («Antes, apunta el peso que usas»), resalta el campo y abre el teclado (`askKg`).
+- **Valoración:** al marcar la última serie, el panel de abajo pide Fácil/Normal/Difícil y **no hay «Ahora no»**. La app se queda en ese ejercicio y, al valorarlo, pasa al siguiente (`a.rateThen = { item, to }`). Si mientras tanto se va a otro ejercicio con la barra de arriba, el aviso sigue («Te falta valorar») y valorar ya no le cambia de ejercicio.
+- **«Siguiente»:** sin ninguna serie hecha, no pasa (dice que use «Saltar ejercicio»). Con alguna hecha, pide el peso si falta y la valoración si falta, y después pasa. Va al siguiente **sin terminar** (`nextPending`): al llegar al final, vuelve a los que quedaron atrás.
+- **«Saltar ejercicio y hacerlo luego»:** pasa al siguiente al momento sin pedir nada. El ejercicio queda `skipped`: en la barra de arriba sale con borde discontinuo, rosa y un reloj. Al hacer una serie suya deja de estar pendiente. Mientras esté saltado, ni la alternancia de habilidades ni la superserie llevan hacia él.
+- **«Finalizar entreno»** sale en el ejercicio cuando ya no queda otro por hacer (los saltados cuentan). Al terminar con valoraciones pendientes, se piden una a una; en vez de «Omitir» está «Seguir entrenando», que vuelve al entreno.
+- Los complementarios no se valoran: pasan sin pedir nada.
+- **Barra de arriba:** `app.js` conserva la posición de las filas con `data-keep-x` al repintar (antes volvía al principio en cada cambio y luego se deslizaba: el «movimiento raro» que vio el usuario). Al cambiar de ejercicio se desliza desde donde estaba hasta centrar el actual; al abrir un entreno ya empezado, se coloca sin animación.
 
 ## Cuenta atrás de las isometrías
 

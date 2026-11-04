@@ -328,7 +328,7 @@ function trainingBody(state) {
     <section class="card">${prepPicker(state)}</section>
     <section class="card wiz-toggles">
       ${toggle('warmup', st.warmup, 'Calentamiento guiado', 'Una lista de movilidad de 5–6 minutos antes de empezar')}
-      ${toggle('sound', st.sound, 'Sonido al acabar el descanso', 'Con el modo silencio del iPhone desactivado')}
+      ${toggle('sound', st.sound, 'Sonido en el descanso', 'Pitidos en los 5 últimos segundos, encima de tu música. Con el modo silencio activado no suena.')}
     </section>`;
 }
 

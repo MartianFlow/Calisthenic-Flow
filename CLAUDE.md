@@ -8,7 +8,8 @@ App **personal** de calistenia (PWA) que el usuario usa a diario en su **iPhone*
 - **Privacidad:** los datos solo viven en el `localStorage` de su iPhone. Sin servidor, sin cuentas y nada de sus datos en GitHub.
 - **Trabajo directo en `main`** del repositorio `MartianFlow/Calisthenic-Flow`. Sin pull requests salvo que los pida.
 - **Explícale los cambios sin jerga**, con lo que verá en el iPhone y cómo actualizar. Si algo solo se puede comprobar en su móvil, pídele una captura.
-- **Estado actual:** versión 21 (`cf-v21`).
+- **Estado actual:** versión 22 (`cf-v22`).
+  - **Petición 28 (v22):** en el entreno, la barra de ejercicios ya no salta; para pasar al siguiente hay que apuntar el peso (si falta) y valorar, salvo con «Saltar ejercicio y hacerlo luego»; cuenta atrás con pitidos desde 5 s; el sonido se reanuda tras usar Spotify. La isla dinámica no es posible en una web app.
   - **Petición 27 (v20 y v21):**
     - ejercicios propios (Rutas → Mis ejercicios);
     - cómo dividir la semana: cuerpo completo, torso y pierna, empuje/tirón/pierna y «A tu manera» (`#/mis-dias`);
@@ -20,6 +21,7 @@ App **personal** de calistenia (PWA) que el usuario usa a diario en su **iPhone*
   - Las reglas están en `reglas-entrenamiento.md` y `gamificacion.md`; lo pendiente de confirmar, en `docs/referencia/historial-usuario.md`.
 - **Siguiente trabajo:** no hay nada pedido sin hacer. Lo que espera respuesta del usuario está al final de `historial-usuario.md`, y las ideas sueltas, en `pendiente.md`.
 - **El descanso sigue fijo en 80 s** para todo: el usuario no quiere que las habilidades descansen más.
+- **Para pasar de ejercicio, peso y valoración son obligatorios** (lo pidió él): no vuelvas a poner «Ahora no» ni «Omitir». La única salida es «Saltar ejercicio».
 
 ## Cómo está hecha
 

@@ -35,6 +35,11 @@ Ver el final de `historial-usuario.md`: la versión 19 en su iPhone y la tarjeta
 
 ## Huecos de pruebas funcionales (la «serie de pruebas exhaustivas» que pidió)
 
+- **Pasar de ejercicio (v22):**
+  - saltar un ejercicio que está en superserie o en alternancia de habilidades (la pareja no debe llevar hacia él);
+  - «Siguiente» tras borrar el peso con series ya hechas (debe pedirlo);
+  - el sonido de verdad en el iPhone (con Spotify, tras cambiar de app y con el modo silencio): solo se puede comprobar en su móvil.
+
 - **Ejercicios propios y división (v20–v21):**
   - `nextDayType` sin plan semanal con empuje/tirón/pierna y «A tu manera»;
   - estancamiento de un ejercicio propio con y sin peso;

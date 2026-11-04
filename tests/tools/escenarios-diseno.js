@@ -366,6 +366,12 @@ const scenarios = [
   { name: 'superseries-entreno-descanso', route: '/', viewportOnly: true, state: richState({ settings: { ...rich.settings, supersets: true, focus: null, maintain: [] } }), setup: async (page) => { await startSession(page); await skipWarmup(page); await doSet(page, 0); } },
   { name: 'bienvenida-division', route: '/bienvenida', state: fresh(), setup: wizTo('division') },
   { name: 'bienvenida-division-propia', route: '/bienvenida', state: fresh({ settings: { legs: 'gym', split: 'propia' } }), setup: wizTo('division') },
+  // v22: pasar de ejercicio (peso y valoración obligatorios, saltar ejercicio)
+  { name: 'pasar-pide-peso', route: '/', state: gymState({ lifts: {}, sessions: [] }), now: TUE, setup: async (page) => { await startSession(page); await skipWarmup(page); await doSet(page, 0); await page.locator('.load-input').blur(); } },
+  { name: 'pasar-saltado', route: '/', state: gym, now: TUE, setup: async (page) => { await startSession(page); await skipWarmup(page); await page.locator('[data-action="session-skip"]').click(); } },
+  { name: 'pasar-saltado-final', route: '/', state: gym, now: TUE, setup: async (page) => { await startSession(page); await skipWarmup(page); await page.locator('[data-action="session-skip"]').click(); await page.locator('.chip').last().click(); await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight)); }, viewportOnly: true },
+  { name: 'pasar-falta-valorar', route: '/', state: gym, now: TUE, viewportOnly: true, setup: async (page) => { await startSession(page); await skipWarmup(page); await doAllSets(page); await page.locator('.chip').nth(3).click(); } },
+  { name: 'pasar-siguiente-sin-valorar', route: '/', state: rich, viewportOnly: true, setup: async (page) => { await startSession(page); await skipWarmup(page); await doSet(page, 0); await page.locator('[data-action="rest-skip"]').click(); await page.locator('[data-action="session-next"]').click(); } },
 ];
 
 module.exports = { scenarios, baseState, richState, gymState, NOW };

@@ -7,7 +7,7 @@ description: Escribir, ejecutar y depurar las pruebas Playwright de Calisthenic 
 
 ## Ejecutar
 
-- `npm install` y luego `npx playwright test --project=iphone-chromium`. Tarda ~4 min con unas 305 pruebas.
+- `npm install` y luego `npx playwright test --project=iphone-chromium`. Tarda ~4 min con unas 315 pruebas.
 - Para una sola: `npx playwright test tests/e2e/gym.spec.js -g "texto" --project=iphone-chromium --reporter=line`.
 - **En este entorno** solo hay Chromium: `@playwright/test` 1.63.0 usa `/opt/pw-browsers`. **No** ejecutes `playwright install`.
 - **WebKit** (el motor de Safari) solo corre en CI: `.github/workflows/e2e.yml`, que instala también `fonts-inter`. Para esperar a CI y leer los fallos, sigue la skill `publicar`.
@@ -23,6 +23,7 @@ description: Escribir, ejecutar y depurar las pruebas Playwright de Calisthenic 
 | `rest.spec.js` (4) | Descanso fijo de 80 s por defecto con −15/+15; cambiarlo en Ajustes; «Según ejercicio»; valores raros corregidos al cargar |
 | `motion.spec.js` (3) | **Con animaciones** (`reducedMotion: 'no-preference'`): pantallas visibles al terminar y sin scroll horizontal, pastilla de la pestaña, cabeceras fijas en el entreno y en la bienvenida |
 | `workout.spec.js` (6) | Flujo completo con isometría, descanso, valoración y resumen; recargar a mitad; +/− y descartar; cuenta atrás de las isometrías (5 s, «+5 s», 10 s desde Ajustes) |
+| `session-flow.spec.js` (9) | Pasar de ejercicio (v22): sin peso no deja marcar la serie (lo pide y abre el teclado); tras la última serie se queda hasta valorar; «Siguiente» sin series no pasa y con series pide la valoración; «Saltar» deja el ejercicio pendiente en la barra y se vuelve a él al final; valorar mirando otro no cambia de ejercicio; «Seguir entrenando» al terminar; la barra no vuelve al principio al repintar y el actual se ve al recargar; cuenta atrás 5…1 y 0 a su segundo (con un `AudioContext` de mentira) y saltar el descanso la cancela |
 | `progression.spec.js` (8) | Fácil +2, Normal +1, Fácil en la meta sube de paso (en fuerza; en brazos rectos, ver `skill-training`), 2 pases en habilidades, recalibrado, reinicio al 80 %, descanso por paso («Según ejercicio») y fijo |
 | `plan.spec.js` (12) | Recomendación a principiantes; nivel con habilidades; cambiar días; front lever sin días seguidos; día de descanso; «Misión cumplida»; mover un entreno de día y deshacerlo; mover el de hoy; cambios de otra semana ignorados; «Entrenar hoy»; elegir rutina en Hoy (al editar y en descanso) |
 | `gym.spec.js` (9) | Semana L–V; 72 h entre piernas con el sábado; 5 días y 9 pesos; coma decimal; subida y bajada de peso; cambio de peso a mitad; ficha desde Hoy; ruta desde el Plan |
@@ -33,7 +34,7 @@ description: Escribir, ejecutar y depurar las pruebas Playwright de Calisthenic 
 | `custom.spec.js` (14) | Ejercicios propios: crear (sin nombre no se guarda, lo escrito no se pierde, con peso, rango y días), editar, archivar, borrar si no se entrenó, añadir a un entreno suelto, datos raros corregidos; entrenar con peso (sube el peso), «+» con su incremento, de segundos (cronómetro y `top`), sin peso (+2 con Fácil), ficha con gráfica y récord. Aviso de copia (sale, «Ahora no», no sale con copia reciente, exportar da «A salvo»). Peso corporal (uno por día, diferencia, borrar) |
 | `split.spec.js` (11) | Cómo divides tu semana: datos de antes quedan torso/pierna con la misma semana; empuje/tirón/pierna con 5 días (las de mantener en su grupo) y con 3 (aviso); torso/pierna con calistenia; cambiar desde el Plan y Ajustes. «A tu manera»: empieza con tus días, renombrar, quitar y añadir ejercicios, día nuevo, semana y «Arquitecto»; hoy toca tu día y el historial guarda su nombre; un ejercicio propio marcado en tu día. Superseries con 40 s y el logro; sin la opción, ninguna. Bienvenida con «A tu manera» |
 | `data.spec.js` (5) | Migración v1; exportar e importar; borrar datos; sin conexión (solo Chromium); misma versión en sw.js y version.js |
-| `layout.spec.js` (165) | Diseño: todos los escenarios de `tests/tools/escenarios-diseno.js` a 320, 375, 390 y 430 px (ver la skill `revisar-diseno`) |
+| `layout.spec.js` (170) | Diseño: todos los escenarios de `tests/tools/escenarios-diseno.js` a 320, 375, 390 y 430 px (ver la skill `revisar-diseno`) |
 
 Lo que falta por cubrir está en `docs/referencia/pendiente.md`, en «Huecos de pruebas funcionales».
 
@@ -55,6 +56,9 @@ Lo que falta por cubrir está en `docs/referencia/pendiente.md`, en «Huecos de 
 - **Artículos bloqueados:** llevan `aria-disabled`; para pulsarlos, `click({ force: true })`.
 
 ## Trucos y errores ya vividos
+
+- **Para seguir hay que valorar (v22):** tras la última serie de un ejercicio la app **no** pasa al siguiente hasta valorarlo, y ya no existe `rate-later`. En una prueba que encadena ejercicios, valora con `rate(page, 'normal')` (o `.rate-panel [data-value]`) antes de marcar el siguiente. En los de peso, siembra `lifts` con `kg` o la serie no se marca.
+- **Comprobar pitidos:** `addInitScript` con un `AudioContext` de mentira cuyo `currentTime` sale de `performance.now()` (también lo controla `page.clock`) y que apunta cada `osc.start(t)`; ver `session-flow.spec.js`.
 
 - **`motion.spec.js` en CI:** la máquina es más lenta y una animación de entrada aún podía estar a medias al medir. `settled()` espera ahora a las animaciones finitas (`document.getAnimations()`).
 - **Semana ISO 45 (impar):** en empuje/tirón/pierna empieza el empuje (E antes que T), igual que en torso/pierna empieza TB.

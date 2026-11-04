@@ -770,6 +770,7 @@ export function createSession(state, plan) {
     rest: null,        // { endsAt, total }
     hold: null,        // { item, set, startsAt }
     ratePrompt: null,  // índice del ejercicio pendiente de valorar
+    rateThen: null,    // { item, to }: al valorar «item», pasar al ejercicio «to»
     finishing: false,  // valorando los últimos ejercicios antes de terminar
     notes: '',
   };
